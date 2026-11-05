@@ -3,6 +3,8 @@ title: 从 w2 start 到端口监听
 description: 沿 w2 start 的调用时序，拆开 CLI 分发、starting 守护化与端口监听三段代码。
 ---
 
+# 从 w2 start 到端口监听
+
 上一篇用一张图给出了全局主干，本节把图中最前面的方框落到真实代码：敲下 `w2 start` 之后，参数如何被分发、进程如何脱离终端转入后台、以及主端口究竟在哪一行开始监听。读完你应当能沿着调用栈从 `bin/whistle.js` 一路走到 `server.listen`，并说清根 `index.js` 为什么不是一个「被 require 就立刻自启」的脚本。
 
 ![从 w2 start 到端口监听的启动时序](/diagrams/startup.svg)

@@ -3,6 +3,8 @@ title: HTTP/2、WebSocket 与流量形态
 description: 对比各协议的帧结构，说明 Whistle 的协议入口与 body 改写的真实代价。
 ---
 
+# HTTP/2、WebSocket 与流量形态
+
 把 TLS 拆开之后，代理拿到的「明文」并不都是同一种东西：HTTP/1.1 是一条顺序的请求/响应流，HTTP/2 是并发的多个 stream，WebSocket 升级后是一串帧，SSE 是不结束的响应流，TCP 隧道里甚至没有应用层语义。本节解释这些形态的差异，并对照 Whistle 各自的入口与处理文件。读完你能判断一条流量能不能改写、该在哪一层改写、以及改写要付什么代价。
 
 ::: tip 先修知识

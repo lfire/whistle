@@ -3,6 +3,8 @@ title: 代理的形态与 CONNECT 隧道
 description: 从请求行与 CONNECT 报文出发，解释 Whistle 四类入口与端口配置的由来。
 ---
 
+# 代理的形态与 CONNECT 隧道
+
 代理工具的所有魔法，起点都是「客户端把请求发给了谁」。本节先区分正向、反向与隧道三种形态，讲清绝对 URI 请求行与 CONNECT 的语义差异，再对照 Whistle 的四个事件入口和端口配置。读完你能判断任意一条流量该落进 `request` 还是 `connect`，也知道 `sockets=256` 究竟限制的是什么。
 
 ::: tip 先修知识

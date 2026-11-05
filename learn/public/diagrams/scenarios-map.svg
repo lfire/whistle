@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1080" viewBox="0 0 1600 1080">
+<rect x="0" y="0" width="1600" height="1080" rx="0" fill="#f7faf9"/>
+<defs>
+<marker id="arrow-gray" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#6b8a85"/></marker>
+<marker id="arrow-teal" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#0f7a68"/></marker>
+<marker id="arrow-blue" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#2f6fb5"/></marker>
+<marker id="arrow-orange" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#d9822b"/></marker>
+<marker id="arrow-purple" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#7c5cbf"/></marker>
+<marker id="arrow-red" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#c0504d"/></marker>
+</defs>
+<rect x="0" y="0" width="1600" height="88" rx="0" fill="#d9efe9"/>
+<rect x="0" y="0" width="9" height="88" rx="0" fill="#0f7a68"/>
+<text x="36" y="42" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="30" fill="#173a35" text-anchor="start" font-weight="bold">工程场景与源码的追溯地图</text>
+<text x="36" y="72" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#52706c" text-anchor="start" font-weight="normal">从真实工程问题出发，向上追溯设计思想，向下定位实现代码</text>
+<rect x="30" y="112" width="440" height="30" rx="8" fill="#0f7a68"/>
+<text x="44" y="134" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#ffffff" text-anchor="start" font-weight="bold">工程场景（真实问题）</text>
+<rect x="560" y="112" width="480" height="30" rx="8" fill="#2f6fb5"/>
+<text x="574" y="134" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#ffffff" text-anchor="start" font-weight="bold">设计原则（为什么这样设计）</text>
+<rect x="1130" y="112" width="440" height="30" rx="8" fill="#7c5cbf"/>
+<text x="1144" y="134" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#ffffff" text-anchor="start" font-weight="bold">内核模块（在哪里实现）</text>
+<rect x="30" y="155" width="440" height="118" rx="10" fill="#d9efe9" stroke="#0f7a68" stroke-width="1.5"/>
+<rect x="44" y="171" width="6" height="26" rx="3" fill="#0f7a68"/>
+<text x="60" y="191" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#173a35" text-anchor="start" font-weight="bold">联调与环境切换</text>
+<text x="60" y="221" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">host / proxy / 多实例</text>
+<text x="60" y="249" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">来源：docs/getting-started.md</text>
+<rect x="30" y="285" width="440" height="118" rx="10" fill="#e4eefb" stroke="#2f6fb5" stroke-width="1.5"/>
+<rect x="44" y="301" width="6" height="26" rx="3" fill="#2f6fb5"/>
+<text x="60" y="321" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#173a35" text-anchor="start" font-weight="bold">Mock 与契约开发</text>
+<text x="60" y="351" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">file / tpl / statusCode</text>
+<text x="60" y="379" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">来源：docs/rules/file.md</text>
+<rect x="30" y="415" width="440" height="118" rx="10" fill="#eee7f8" stroke="#7c5cbf" stroke-width="1.5"/>
+<rect x="44" y="431" width="6" height="26" rx="3" fill="#7c5cbf"/>
+<text x="60" y="451" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#173a35" text-anchor="start" font-weight="bold">复现与重放</text>
+<text x="60" y="481" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">抓包 / SAZ / Composer</text>
+<text x="60" y="509" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">来源：docs/gui/composer.md</text>
+<rect x="30" y="545" width="440" height="118" rx="10" fill="#fbecd9" stroke="#d9822b" stroke-width="1.5"/>
+<rect x="44" y="561" width="6" height="26" rx="3" fill="#d9822b"/>
+<text x="60" y="581" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#173a35" text-anchor="start" font-weight="bold">弱网与异常注入</text>
+<text x="60" y="611" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">delay / speed / chance</text>
+<text x="60" y="639" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">来源：docs/rules/reqDelay.md</text>
+<rect x="30" y="675" width="440" height="118" rx="10" fill="#fae6e5" stroke="#c0504d" stroke-width="1.5"/>
+<rect x="44" y="691" width="6" height="26" rx="3" fill="#c0504d"/>
+<text x="60" y="711" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#173a35" text-anchor="start" font-weight="bold">HTTPS / 真机 / 远程调试</text>
+<text x="60" y="741" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">证书 / weinre / log</text>
+<text x="60" y="769" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">来源：docs/faq.md</text>
+<rect x="30" y="805" width="440" height="118" rx="10" fill="#eef3f2" stroke="#6b8a85" stroke-width="1.5"/>
+<rect x="44" y="821" width="6" height="26" rx="3" fill="#6b8a85"/>
+<text x="60" y="841" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#173a35" text-anchor="start" font-weight="bold">协作与自动化</text>
+<text x="60" y="871" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">@远程规则 / 嵌入式 API</text>
+<text x="60" y="899" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">来源：docs/rules/@.md</text>
+<rect x="560" y="155" width="480" height="84" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<text x="576" y="189" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">观测不改道</text>
+<text x="576" y="217" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">data.js:279-302</text>
+<rect x="560" y="253" width="480" height="84" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<text x="576" y="287" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">默认透传、显式才解密</text>
+<text x="576" y="315" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">tunnel.js:191-213</text>
+<rect x="560" y="351" width="480" height="84" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<text x="576" y="385" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">配置即代码、可热替换</text>
+<text x="576" y="413" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">rules/util.js:58-106</text>
+<rect x="560" y="449" width="480" height="84" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<text x="576" y="483" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">协议差异消化在入口层</text>
+<text x="576" y="511" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">lib/index.js:40-52</text>
+<rect x="560" y="547" width="480" height="84" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<text x="576" y="581" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">单端口多事件</text>
+<text x="576" y="609" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">lib/index.js:53-61</text>
+<rect x="560" y="645" width="480" height="84" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<text x="576" y="679" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">第三方代码必须隔离</text>
+<text x="576" y="707" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">plugins/index.js:633-647</text>
+<rect x="560" y="743" width="480" height="84" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<text x="576" y="777" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">顺序即优先级</text>
+<text x="576" y="805" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">rules/rules.js:997</text>
+<rect x="560" y="841" width="480" height="84" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<text x="576" y="875" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">内存有界优先于数据完整</text>
+<text x="576" y="903" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">data-server.js:21-26</text>
+<rect x="1130" y="158" width="440" height="98" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1146" y="196" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#7c5cbf" text-anchor="start" font-weight="bold">lib/rules/</text>
+<text x="1146" y="228" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">规则解析与匹配</text>
+<rect x="1130" y="270" width="440" height="98" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1146" y="308" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#7c5cbf" text-anchor="start" font-weight="bold">lib/inspectors/</text>
+<text x="1146" y="340" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">四阶段改写与旁路采样</text>
+<rect x="1130" y="382" width="440" height="98" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1146" y="420" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#7c5cbf" text-anchor="start" font-weight="bold">lib/handlers/</text>
+<text x="1146" y="452" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">分发与本地短路</text>
+<rect x="1130" y="494" width="440" height="98" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1146" y="532" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#7c5cbf" text-anchor="start" font-weight="bold">lib/tunnel.js + lib/https/</text>
+<text x="1146" y="564" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">CONNECT 判定与证书</text>
+<rect x="1130" y="606" width="440" height="98" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1146" y="644" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#7c5cbf" text-anchor="start" font-weight="bold">lib/util/data-server.js</text>
+<text x="1146" y="676" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">抓包有界缓存</text>
+<rect x="1130" y="718" width="440" height="98" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1146" y="756" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#7c5cbf" text-anchor="start" font-weight="bold">lib/plugins/ + lib/service/</text>
+<text x="1146" y="788" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">扩展与重活隔离</text>
+<rect x="1130" y="830" width="440" height="98" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1146" y="868" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#7c5cbf" text-anchor="start" font-weight="bold">biz/webui/</text>
+<text x="1146" y="900" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">约定式 CGI 与轮询</text>
+<line x1="473" y1="214.0" x2="556" y2="491.0" stroke="#0f7a68" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-teal)"/>
+<line x1="473" y1="214.0" x2="556" y2="785.0" stroke="#0f7a68" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-teal)"/>
+<line x1="473" y1="344.0" x2="556" y2="393.0" stroke="#2f6fb5" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-blue)"/>
+<line x1="473" y1="344.0" x2="556" y2="785.0" stroke="#2f6fb5" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-blue)"/>
+<line x1="473" y1="474.0" x2="556" y2="197.0" stroke="#7c5cbf" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-purple)"/>
+<line x1="473" y1="474.0" x2="556" y2="883.0" stroke="#7c5cbf" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-purple)"/>
+<line x1="473" y1="604.0" x2="556" y2="197.0" stroke="#d9822b" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-orange)"/>
+<line x1="473" y1="604.0" x2="556" y2="785.0" stroke="#d9822b" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-orange)"/>
+<line x1="473" y1="734.0" x2="556" y2="295.0" stroke="#c0504d" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-red)"/>
+<line x1="473" y1="734.0" x2="556" y2="589.0" stroke="#c0504d" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-red)"/>
+<line x1="473" y1="864.0" x2="556" y2="393.0" stroke="#6b8a85" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-gray)"/>
+<line x1="473" y1="864.0" x2="556" y2="687.0" stroke="#6b8a85" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-gray)"/>
+<line x1="1043" y1="197.0" x2="1126" y2="319.0" stroke="#7c5cbf" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-purple)"/>
+<line x1="1043" y1="295.0" x2="1126" y2="543.0" stroke="#7c5cbf" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-purple)"/>
+<line x1="1043" y1="393.0" x2="1126" y2="207.0" stroke="#7c5cbf" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-purple)"/>
+<line x1="1043" y1="393.0" x2="1126" y2="431.0" stroke="#7c5cbf" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-purple)"/>
+<line x1="1043" y1="491.0" x2="1126" y2="207.0" stroke="#7c5cbf" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-purple)"/>
+<line x1="1043" y1="589.0" x2="1126" y2="879.0" stroke="#7c5cbf" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-purple)"/>
+<line x1="1043" y1="687.0" x2="1126" y2="767.0" stroke="#7c5cbf" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-purple)"/>
+<line x1="1043" y1="785.0" x2="1126" y2="207.0" stroke="#7c5cbf" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-purple)"/>
+<line x1="1043" y1="883.0" x2="1126" y2="655.0" stroke="#7c5cbf" stroke-width="1.5" fill="none" stroke-opacity="0.38" marker-end="url(#arrow-purple)"/>
+<rect x="30" y="950" width="1540" height="66" rx="10" fill="#ffffff" stroke="#6b8a85" stroke-width="1.5"/>
+<rect x="44" y="966" width="6" height="34" rx="3" fill="#0f7a68"/>
+<text x="64" y="990" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">场景 → 原则 = 为什么这样设计　｜　原则 → 模块 = 在哪里实现　｜　模块 → 源码路径:行号 = 怎么验证</text>
+<text x="1572" y="1052" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="14" fill="#8aa5a0" text-anchor="end" font-weight="normal">Whistle 源码研读 · guide@3b85cebc4</text>
+</svg>

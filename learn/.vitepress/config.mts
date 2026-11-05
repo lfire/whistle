@@ -36,6 +36,20 @@ const modules = [
   { text: '16. Web 管理界面', link: '/modules/webui' }
 ]
 
+// 横向专题：从工程问题出发，向上追溯设计思想、向下追溯到源码细节
+const scenarios = [
+  { text: '专题总览：场景、设计思想与源码追溯', link: '/scenarios/index' },
+  { text: '本地联调与环境切换', link: '/scenarios/local-env' },
+  { text: '接口未就绪：Mock 与契约先行', link: '/scenarios/mock-contract' },
+  { text: '复现、保存与重放', link: '/scenarios/reproduce-replay' },
+  { text: '弱网与异常注入', link: '/scenarios/fault-injection' },
+  { text: 'HTTPS、证书与鉴权排障', link: '/scenarios/https-trust' },
+  { text: '真机、移动端与远程调试', link: '/scenarios/mobile-remote' },
+  { text: '团队协作与配置即代码', link: '/scenarios/collab-config' },
+  { text: 'CI、嵌入式集成与自动化', link: '/scenarios/automation' },
+  { text: '能力边界、风险与合规', link: '/scenarios/boundaries' }
+]
+
 const advanced = [
   { text: '17. 三个动手实验', link: '/advanced/hands-on' },
   { text: '18. 源码阅读与调试路线', link: '/advanced/source-reading' },
@@ -92,6 +106,7 @@ export default defineConfig({
       { text: '领域基础', link: '/domain/proxy-basics' },
       { text: '架构与链路', link: '/architecture/overview' },
       { text: '模块深潜', link: '/modules/rules-engine' },
+      { text: '工程场景', link: '/scenarios/index' },
       { text: '实战速查', link: '/advanced/hands-on' }
     ],
     sidebar: [
@@ -100,6 +115,7 @@ export default defineConfig({
       { text: '第二层 · 全局架构', items: architecture },
       { text: '第三层 · 核心链路', items: core },
       { text: '第四层 · 模块深潜', items: modules },
+      { text: '专题 · 工程场景', items: scenarios },
       { text: '第五层 · 进阶实践', items: advanced }
     ],
     search: {

@@ -4,8 +4,9 @@
 
 - 源码基线：分支 `guide`，提交 `3b85cebc4`，`whistle v2.10.13`
 - 站点地址：`https://<owner>.github.io/whistle/`（`base` 固定为 `/whistle/`）
-- 内容：19 篇正文 + 13 张自绘 SVG 架构图，分五层逐级递进
-- 定位：讲「实现原理 + 源码细节 + 领域知识」，与仓库根目录 `docs/` 的官方使用文档互补
+- 内容：29 篇正文 + 15 张自绘 SVG 架构图，五层逐级递进，外加一层横向「工程场景」专题
+- 定位：讲「实现原理 + 源码细节 + 领域知识 + 工程场景」，与仓库根目录 `docs/` 的官方使用文档互补
+- 工程场景专题：`scenarios/` 下 10 篇，从真实工程问题出发，向上追溯整体业务设计思想、向下定位到源码路径与行号；场景与规则均取自官方使用文档、集成测试与 CGI 实现
 
 ## 本地开发
 
@@ -30,9 +31,9 @@ learn/
 │       ├── custom.css       # 主题色、表格列宽、首页卡片、查看器样式
 │       └── lightbox.ts      # 图片放大：缩放 / 拖拽 / 1:1 / ESC
 ├── public/
-│   ├── diagrams/*.svg       # 13 张架构图与时序图
+│   ├── diagrams/*.svg       # 15 张架构图与时序图
 │   └── favicon.svg
-├── guide/  domain/  architecture/  core/  modules/  advanced/
+├── guide/  domain/  architecture/  core/  modules/  scenarios/  advanced/
 ├── index.md                 # 首页（VitePress home layout）
 ├── package.json
 └── package-lock.json
@@ -55,6 +56,8 @@ learn/
 **图片**：全部放在 `public/diagrams/`，正文用 `![图注](/diagrams/xxx.svg)` 引用（VitePress 构建时自动补 base）。图片点击会打开查看器，支持滚轮缩放、按住拖拽、双击切换 1:1、`0` 键回到原始尺寸、`f` 适应窗口、`Esc` 关闭。SVG 必须显式声明 `width` / `height` / `viewBox`，否则查看器无法取得固有尺寸。
 
 **源码引用**：一律使用仓库相对路径加行号，例如 `lib/tunnel.js:168-213`，不要写本机绝对路径。
+
+**工程场景文档模板**：`scenarios/` 下每篇（总览页除外）固定使用「场景与痛点 → 可复制的配置 → 背后的设计思想 → 源码链路 → 边界与坑 → 小结 → 下一步」七段结构。其中「设计思想」必须链接回前面的架构/领域章节，「源码链路」必须链接到核心链路/模块章节并给出 `路径:行号`，以此保证每个场景都双向可追溯。配置与命令需注明来源（`docs/docs/` 文档、`test/` 用例或源码），不得凭常识编造。
 
 **新增文档**：把 markdown 放入对应目录后，在 `.vitepress/config.mts` 的侧栏数组里补一条；如需使用 `::: cols`，无需额外配置。
 

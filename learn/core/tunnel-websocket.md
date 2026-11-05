@@ -3,6 +3,8 @@ title: 隧道、WebSocket 与帧拦截
 description: 以 socket-mgr 为中心，串起连接上下文、双向流拼接、ws-parser 帧处理与 TCP 抓包。
 ---
 
+# 隧道、WebSocket 与帧拦截
+
 上一篇看到 CONNECT 的两条分支最后都汇成一对双向字节流；WebSocket 的 upgrade 同样如此，只是多了 101 应答与帧结构。本篇把这两类流量放到同一个模块下理解：`lib/socket-mgr.js` 名字容易被当成连接池，实际上它是「连接上下文 + 双向流 + 帧处理中心」。读完你能说清一条连接何时被直接对拼、何时被插入双 Transform，以及帧脚本、暂停状态与心跳各自落在哪一段代码上。
 
 ![socket-mgr 的连接上下文与帧处理中心](/diagrams/socket-mgr.svg)

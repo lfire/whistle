@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1160" viewBox="0 0 1500 1160">
+<rect x="0" y="0" width="1500" height="1160" rx="0" fill="#f7faf9"/>
+<defs>
+<marker id="arrow-gray" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#6b8a85"/></marker>
+<marker id="arrow-teal" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#0f7a68"/></marker>
+<marker id="arrow-blue" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#2f6fb5"/></marker>
+<marker id="arrow-orange" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#d9822b"/></marker>
+<marker id="arrow-purple" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#7c5cbf"/></marker>
+<marker id="arrow-red" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#c0504d"/></marker>
+</defs>
+<rect x="0" y="0" width="1500" height="88" rx="0" fill="#d9efe9"/>
+<rect x="0" y="0" width="9" height="88" rx="0" fill="#0f7a68"/>
+<text x="36" y="42" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="30" fill="#173a35" text-anchor="start" font-weight="bold">一条规则的双向追溯链</text>
+<text x="36" y="72" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#52706c" text-anchor="start" font-weight="normal">以 www.example.com/api file://({"status":"ok"}) 为例，从工程问题一路走到代码</text>
+<rect x="150" y="145" width="1300" height="126" rx="10" fill="#d9efe9" stroke="#0f7a68" stroke-width="1.5"/>
+<circle cx="192" cy="208.0" r="22" fill="#0f7a68"/>
+<text x="192" y="216.0" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="22" fill="#ffffff" text-anchor="middle" font-weight="bold">1</text>
+<text x="232" y="179" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#173a35" text-anchor="start" font-weight="bold">工程问题</text>
+<text x="232" y="211" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#173a35" text-anchor="start" font-weight="normal">接口未就绪，前端需要并行开发</text>
+<text x="232" y="241" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">期望：不发网络请求，也能拿到约定的响应</text>
+<text x="1430" y="179" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#0f7a68" text-anchor="end" font-weight="bold">真实场景：本地联调阶段</text>
+<line x1="800.0" y1="273" x2="800.0" y2="289" stroke="#6b8a85" stroke-width="2" fill="none" stroke-opacity="0.8" marker-end="url(#arrow-gray)"/>
+<rect x="150" y="293" width="1300" height="126" rx="10" fill="#e4eefb" stroke="#2f6fb5" stroke-width="1.5"/>
+<circle cx="192" cy="356.0" r="22" fill="#2f6fb5"/>
+<text x="192" y="364.0" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="22" fill="#ffffff" text-anchor="middle" font-weight="bold">2</text>
+<text x="232" y="327" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#173a35" text-anchor="start" font-weight="bold">设计思想</text>
+<text x="232" y="359" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#173a35" text-anchor="start" font-weight="normal">短路转发 · 配置即代码 · 解析期与请求期分离</text>
+<text x="232" y="389" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">代价：mock 验证的是「对后端的假设」，不是后端本身</text>
+<text x="1430" y="327" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#2f6fb5" text-anchor="end" font-weight="bold">向上：整体业务设计思想</text>
+<line x1="800.0" y1="421" x2="800.0" y2="437" stroke="#6b8a85" stroke-width="2" fill="none" stroke-opacity="0.8" marker-end="url(#arrow-gray)"/>
+<rect x="150" y="441" width="1300" height="126" rx="10" fill="#eee7f8" stroke="#7c5cbf" stroke-width="1.5"/>
+<circle cx="192" cy="504.0" r="22" fill="#7c5cbf"/>
+<text x="192" y="512.0" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="22" fill="#ffffff" text-anchor="middle" font-weight="bold">3</text>
+<text x="232" y="475" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#173a35" text-anchor="start" font-weight="bold">配置表达</text>
+<text x="232" y="507" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#173a35" text-anchor="start" font-weight="normal">www.example.com/api file://({"status":"ok"})</text>
+<text x="232" y="537" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">文本即配置，可复制、可版本化、可共享</text>
+<text x="1430" y="475" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#7c5cbf" text-anchor="end" font-weight="bold">来源：docs/docs/rules/file.md</text>
+<line x1="800.0" y1="569" x2="800.0" y2="585" stroke="#6b8a85" stroke-width="2" fill="none" stroke-opacity="0.8" marker-end="url(#arrow-gray)"/>
+<rect x="150" y="589" width="1300" height="126" rx="10" fill="#fbecd9" stroke="#d9822b" stroke-width="1.5"/>
+<circle cx="192" cy="652.0" r="22" fill="#d9822b"/>
+<text x="192" y="660.0" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="22" fill="#ffffff" text-anchor="middle" font-weight="bold">4</text>
+<text x="232" y="623" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#173a35" text-anchor="start" font-weight="bold">编译期</text>
+<text x="232" y="655" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#173a35" text-anchor="start" font-weight="normal">parseText → parseRule → 按协议分桶 _rules.file</text>
+<text x="232" y="685" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">规则集 / Values / 模板变量在此全部拍平</text>
+<text x="1430" y="623" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#d9822b" text-anchor="end" font-weight="bold">lib/rules/rules.js:1745-1806 · protocols.js:256-265</text>
+<line x1="800.0" y1="717" x2="800.0" y2="733" stroke="#6b8a85" stroke-width="2" fill="none" stroke-opacity="0.8" marker-end="url(#arrow-gray)"/>
+<rect x="150" y="737" width="1300" height="126" rx="10" fill="#fae6e5" stroke="#c0504d" stroke-width="1.5"/>
+<circle cx="192" cy="800.0" r="22" fill="#c0504d"/>
+<text x="192" y="808.0" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="22" fill="#ffffff" text-anchor="middle" font-weight="bold">5</text>
+<text x="232" y="771" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#173a35" text-anchor="start" font-weight="bold">请求期</text>
+<text x="232" y="803" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#173a35" text-anchor="start" font-weight="normal">init → inspectors/rules 命中 → handlers/file-proxy 短路</text>
+<text x="232" y="833" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">本地协议直接返回，不建立出站连接</text>
+<text x="1430" y="771" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#c0504d" text-anchor="end" font-weight="bold">lib/inspectors/rules.js:153-214 · file-proxy.js:233-269</text>
+<line x1="800.0" y1="865" x2="800.0" y2="881" stroke="#6b8a85" stroke-width="2" fill="none" stroke-opacity="0.8" marker-end="url(#arrow-gray)"/>
+<rect x="150" y="885" width="1300" height="126" rx="10" fill="#eef3f2" stroke="#6b8a85" stroke-width="1.5"/>
+<circle cx="192" cy="948.0" r="22" fill="#6b8a85"/>
+<text x="192" y="956.0" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="22" fill="#ffffff" text-anchor="middle" font-weight="bold">6</text>
+<text x="232" y="919" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#173a35" text-anchor="start" font-weight="bold">回写与观测</text>
+<text x="232" y="951" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#173a35" text-anchor="start" font-weight="normal">data.js 旁路采样 → data-server 有界缓存</text>
+<text x="232" y="981" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">get-data 100/900ms 轮询 → Network 面板</text>
+<text x="1430" y="919" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#6b8a85" text-anchor="end" font-weight="bold">data-server.js:319-333 · data-center.js:1158-1159</text>
+<line x1="78" y1="165" x2="78" y2="991" stroke="#0f7a68" stroke-width="3" fill="none" marker-end="url(#arrow-teal)"/>
+<path d="M71,177 L78,165 L85,177 z" fill="#0f7a68"/>
+<text x="34" y="445" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#0f7a68" text-anchor="start" font-weight="bold">向</text>
+<text x="34" y="471" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#0f7a68" text-anchor="start" font-weight="bold">上</text>
+<text x="34" y="497" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#0f7a68" text-anchor="start" font-weight="bold">设</text>
+<text x="34" y="523" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#0f7a68" text-anchor="start" font-weight="bold">计</text>
+<text x="34" y="575" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#52706c" text-anchor="start" font-weight="bold">向</text>
+<text x="34" y="601" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#52706c" text-anchor="start" font-weight="bold">下</text>
+<text x="34" y="627" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#52706c" text-anchor="start" font-weight="bold">代</text>
+<text x="34" y="653" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#52706c" text-anchor="start" font-weight="bold">码</text>
+<rect x="150" y="1039" width="1300" height="62" rx="10" fill="#ffffff" stroke="#6b8a85" stroke-width="1.5"/>
+<rect x="164" y="1053" width="6" height="34" rx="3" fill="#d9822b"/>
+<text x="184" y="1078" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#173a35" text-anchor="start" font-weight="bold">边界：内联值必须用 () 包裹　｜　204/304 无响应体时 body 改写不生效　｜　超 2MB 只保留元信息</text>
+<text x="1472" y="1142" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="14" fill="#8aa5a0" text-anchor="end" font-weight="normal">Whistle 源码研读 · guide@3b85cebc4</text>
+</svg>

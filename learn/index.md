@@ -21,10 +21,12 @@ features:
     details: 先讲清正向代理、CONNECT 隧道、证书链与 MITM、HTTP/2 与 WebSocket 帧，再读代码，避免只认得 API 却不理解取舍。
   - title: 结论都有出处
     details: 每个实现细节都标注仓库内文件路径与行号，可随时跳回源码核对；易混淆的概念单独点破。
-  - title: 五层逐级递进
-    details: 领域基础 → 全局架构 → 核心链路 → 模块深潜 → 进阶实践，19 篇文档由浅入深，可顺读也可按需查阅。
+  - title: 五层递进 + 场景专题
+    details: 领域基础 → 全局架构 → 核心链路 → 模块深潜 → 工程场景 → 进阶实践，29 篇文档由浅入深，可顺读也可按需查阅。
+  - title: 场景可双向追溯
+    details: 10 篇工程场景从真实问题出发，向上追溯设计思想、向下定位到源码路径与行号，每个场景都有可复制的配置。
   - title: 图表支持放大
-    details: 13 张自绘矢量架构图与时序图，点击即可放大、缩放、拖拽，解决信息密集图缩在正文里看不清的问题。
+    details: 15 张自绘矢量架构图与时序图，点击即可放大、缩放、拖拽，解决信息密集图缩在正文里看不清的问题。
 ---
 
 <div class="meta-strip">
@@ -32,12 +34,12 @@ features:
   <span>提交：3b85cebc4</span>
   <span>版本：whistle v2.10.13</span>
   <span>运行环境：Node.js ≥ 16</span>
-  <span>19 篇正文 · 13 张图</span>
+  <span>29 篇正文 · 15 张图</span>
 </div>
 
 ## 学习路径
 
-站点按「先建立领域模型，再进入工程实现」的顺序组织。每一层都回答一类问题，前一层是后一层的前置知识。
+站点按「先建立领域模型，再进入工程实现」的顺序组织。每一层都回答一类问题，前一层是后一层的前置知识。模块深潜之后插入一层横向的「工程场景」专题，把前面各层学到的机制放回真实工程问题里检验：向上追问为什么这样设计，向下定位到具体源码。
 
 <div class="path-grid">
   <a class="path-card" href="/guide/orientation">
@@ -69,6 +71,12 @@ features:
     <span class="path-card__title">规则、证书、插件与 UI</span>
     <span class="path-card__desc">逐个拆开规则引擎、指令体系、根 CA 签发、插件子进程与 Web 管理界面。</span>
     <span class="path-card__links">5 篇 · 深入细节 →</span>
+  </a>
+  <a class="path-card" href="/scenarios/index">
+    <span class="path-card__num">专题 · 工程场景</span>
+    <span class="path-card__title">从问题追溯到代码</span>
+    <span class="path-card__desc">10 篇真实工程场景：联调、Mock、重放、弱网、证书、真机、协作、CI 与边界，每篇双向追溯设计思想与源码。</span>
+    <span class="path-card__links">10 篇 · 学以致用 →</span>
   </a>
   <a class="path-card" href="/advanced/hands-on">
     <span class="path-card__num">第 5 层 · 进阶实践</span>

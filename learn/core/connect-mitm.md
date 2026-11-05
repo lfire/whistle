@@ -3,6 +3,8 @@ title: CONNECT 判定与 TLS 解密
 description: 拆解 CONNECT 的解密判定、首包识别、SNI 证书签发与两段独立 TLS 的还原路径。
 ---
 
+# CONNECT 判定与 TLS 解密
+
 上一篇的 16 步链路处理的是「已经能读到明文」的请求；而 HTTPS 代理请求首先以 CONNECT 隧道的形式到达，代理看不到一个字节的正文。本篇回答两个问题：Whistle 凭什么决定拆开某条 CONNECT，以及拆开之后如何把 TLS 首包还原成上一篇那条 Express 链路。文中所有判定都落到 `lib/tunnel.js` 与 `lib/https/index.js` 的真实分支上，读完你能解释「为什么装了根证书也不一定解密」。
 
 ![CONNECT 解密判定的信号与分支](/diagrams/connect-decision.svg)
