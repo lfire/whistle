@@ -8,7 +8,7 @@
 <marker id="arrow-purple" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#7c5cbf"/></marker>
 <marker id="arrow-red" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#c0504d"/></marker>
 <marker id="arrow-gray" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#6b8a85"/></marker>
-</defs>
+<clipPath id="roundClip1"><rect x="30" y="104" width="1440" height="306" rx="14"/></clipPath><clipPath id="roundClip2"><rect x="52" y="160" width="440" height="228" rx="10"/></clipPath><clipPath id="roundClip3"><rect x="522" y="160" width="440" height="228" rx="10"/></clipPath><clipPath id="roundClip4"><rect x="992" y="160" width="440" height="228" rx="10"/></clipPath><clipPath id="roundClip5"><rect x="30" y="428" width="1440" height="470" rx="14"/></clipPath><clipPath id="roundClip6"><rect x="46" y="520" width="176" height="100" rx="10"/></clipPath><clipPath id="roundClip7"><rect x="246" y="520" width="176" height="100" rx="10"/></clipPath><clipPath id="roundClip8"><rect x="446" y="520" width="176" height="100" rx="10"/></clipPath><clipPath id="roundClip9"><rect x="646" y="520" width="176" height="100" rx="10"/></clipPath><clipPath id="roundClip10"><rect x="846" y="520" width="176" height="100" rx="10"/></clipPath><clipPath id="roundClip11"><rect x="1046" y="520" width="176" height="100" rx="10"/></clipPath><clipPath id="roundClip12"><rect x="1246" y="520" width="176" height="100" rx="10"/></clipPath></defs>
 <rect x="0" y="0" width="1500" height="88" fill="#d9efe9"/>
 <rect x="0" y="0" width="9" height="88" fill="#0f7a68"/>
 <text x="36" y="42" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="30" fill="#173a35" text-anchor="start" font-weight="bold">隧道拼接与 WebSocket 帧管道</text>
@@ -23,61 +23,61 @@
 <rect x="1390.1" y="42" width="14" height="14" rx="3" fill="#7c5cbf"/>
 <text x="1410.1" y="54" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">帧事件</text>
 <rect x="30" y="104" width="1440" height="306" rx="14" fill="#e8f4f0" stroke="#0f7a68" stroke-width="1.5" fill-opacity="0.7"/>
-<rect x="30" y="104" width="6" height="306" rx="3" fill="#0f7a68"/>
+<rect x="30" y="104" width="6" height="306" rx="0" fill="#0f7a68" clip-path="url(#roundClip1)"/>
 <text x="50" y="136" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#0f7a68" text-anchor="start" font-weight="bold">① 三种拼接方式对比</text>
 <rect x="52" y="160" width="440" height="228" rx="10" fill="#ffffff" stroke="#0f7a68" stroke-width="1.5"/>
-<rect x="52" y="160" width="440" height="5" rx="2" fill="#0f7a68"/>
+<rect x="52" y="160" width="440" height="5" rx="0" fill="#0f7a68" clip-path="url(#roundClip2)"/>
 <text x="66" y="192" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">① 无需抓帧</text>
 <text x="66" y="219" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">req.pipe(res).pipe(req)</text>
 <text x="66" y="242" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">原始字节直接对拷，零解析开销</text>
 <text x="66" y="265" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">用于普通 TCP / HTTP CONNECT 隧道</text>
 <text x="66" y="288" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">不进入 ws-parser 帧管线</text>
 <rect x="522" y="160" width="440" height="228" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
-<rect x="522" y="160" width="440" height="5" rx="2" fill="#2f6fb5"/>
+<rect x="522" y="160" width="440" height="5" rx="0" fill="#2f6fb5" clip-path="url(#roundClip3)"/>
 <text x="536" y="192" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">② 需抓帧（双 Transform）</text>
 <text x="536" y="219" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">req → reqTrans → res</text>
 <text x="536" y="242" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">res → resTrans → req</text>
 <text x="536" y="265" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">两个 Transform 夹在双向流中间</text>
 <text x="536" y="288" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">逐帧解析后再写回对端</text>
 <rect x="992" y="160" width="440" height="228" rx="10" fill="#ffffff" stroke="#d9822b" stroke-width="1.5"/>
-<rect x="992" y="160" width="440" height="5" rx="2" fill="#d9822b"/>
+<rect x="992" y="160" width="440" height="5" rx="0" fill="#d9822b" clip-path="url(#roundClip4)"/>
 <text x="1006" y="192" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">③ 本地 TLS Server 桥接</text>
 <text x="1006" y="219" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">reqSocket.pipe(socket).pipe(reqSocket)</text>
 <text x="1006" y="242" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">hagent 起本地 TLS server 解密</text>
 <text x="1006" y="265" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">明文交给 inspectors 后再拼接</text>
 <text x="1006" y="288" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">用于 HTTPS / WSS 需解密的场景</text>
 <rect x="30" y="428" width="1440" height="470" rx="14" fill="#e8f4f0" stroke="#7c5cbf" stroke-width="1.5" fill-opacity="0.7"/>
-<rect x="30" y="428" width="6" height="470" rx="3" fill="#7c5cbf"/>
+<rect x="30" y="428" width="6" height="470" rx="0" fill="#7c5cbf" clip-path="url(#roundClip5)"/>
 <text x="50" y="460" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#7c5cbf" text-anchor="start" font-weight="bold">② WebSocket 帧处理管线</text>
 <text x="52" y="486" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">接收 → 解析 → 脚本改写 → 状态机 → 帧事件 → 重新编码 → 写回（单向帧流）</text>
 <rect x="46" y="520" width="176" height="100" rx="10" fill="#ffffff" stroke="#0f7a68" stroke-width="1.5"/>
-<rect x="46" y="520" width="176" height="5" rx="2" fill="#0f7a68"/>
+<rect x="46" y="520" width="176" height="5" rx="0" fill="#0f7a68" clip-path="url(#roundClip6)"/>
 <text x="60" y="552" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">ws-parser</text>
 <text x="60" y="579" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">getReceiver()</text>
 <rect x="246" y="520" width="176" height="100" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
-<rect x="246" y="520" width="176" height="5" rx="2" fill="#2f6fb5"/>
+<rect x="246" y="520" width="176" height="5" rx="0" fill="#2f6fb5" clip-path="url(#roundClip7)"/>
 <text x="260" y="552" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">onData</text>
 <text x="260" y="579" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">收到字节流</text>
 <rect x="446" y="520" width="176" height="100" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
-<rect x="446" y="520" width="176" height="5" rx="2" fill="#2f6fb5"/>
+<rect x="446" y="520" width="176" height="5" rx="0" fill="#2f6fb5" clip-path="url(#roundClip8)"/>
 <text x="460" y="552" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">frameScript</text>
 <text x="460" y="579" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">脚本改写帧</text>
 <rect x="646" y="520" width="176" height="100" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
-<rect x="646" y="520" width="176" height="5" rx="2" fill="#7c5cbf"/>
+<rect x="646" y="520" width="176" height="5" rx="0" fill="#7c5cbf" clip-path="url(#roundClip9)"/>
 <text x="660" y="552" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">状态机</text>
 <text x="660" y="579" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">pause(1)</text>
 <text x="660" y="602" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">ignore(2)</text>
 <rect x="846" y="520" width="176" height="100" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
-<rect x="846" y="520" width="176" height="5" rx="2" fill="#7c5cbf"/>
+<rect x="846" y="520" width="176" height="5" rx="0" fill="#7c5cbf" clip-path="url(#roundClip10)"/>
 <text x="860" y="552" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">帧事件</text>
 <text x="860" y="579" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">emit('frame')</text>
 <text x="860" y="602" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">广播给 UI</text>
 <rect x="1046" y="520" width="176" height="100" rx="10" fill="#ffffff" stroke="#d9822b" stroke-width="1.5"/>
-<rect x="1046" y="520" width="176" height="5" rx="2" fill="#d9822b"/>
+<rect x="1046" y="520" width="176" height="5" rx="0" fill="#d9822b" clip-path="url(#roundClip11)"/>
 <text x="1060" y="552" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">getSender()</text>
 <text x="1060" y="579" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">重新编码</text>
 <rect x="1246" y="520" width="176" height="100" rx="10" fill="#ffffff" stroke="#d9822b" stroke-width="1.5"/>
-<rect x="1246" y="520" width="176" height="5" rx="2" fill="#d9822b"/>
+<rect x="1246" y="520" width="176" height="5" rx="0" fill="#d9822b" clip-path="url(#roundClip12)"/>
 <text x="1260" y="552" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">写回 socket</text>
 <text x="1260" y="579" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">发给对端</text>
 <line x1="222" y1="570" x2="246" y2="570" stroke="#7c5cbf" stroke-width="2" fill="none" marker-end="url(#arrow-purple)"/>
