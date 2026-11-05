@@ -44,17 +44,45 @@ html {
 
 /* ---------- 标题层级 ---------- */
 .vp-doc h2 {
+  position: relative;
   margin: 44px 0 18px;
-  padding: 0 0 10px 14px;
+  padding: 0 30px 12px 0;
+  border-top: 0; /* 清掉 VitePress 默认上边框 */
   border-bottom: 1px solid var(--w-border);
-  border-left: 4px solid var(--vp-c-brand-1);
-  border-radius: 2px;
   font-size: 1.5rem;
+  font-weight: 650;
+  line-height: 1.5;
   letter-spacing: 0.01em;
 }
 
+/* 标题前的品牌色竖条：参与文本流，不干扰绝对定位的锚点 */
+.vp-doc h2::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 1.02em;
+  margin: 0 12px 0 0;
+  vertical-align: -0.14em;
+  border-radius: 2px;
+  background: var(--vp-c-brand-1);
+}
+
+/* 分隔线左端的一小段高亮，强化章节层次 */
+.vp-doc h2::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 46px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--vp-c-brand-1);
+}
+
 .vp-doc h3 {
+  position: relative;
   margin: 30px 0 12px;
+  padding-right: 28px;
   font-size: 1.16rem;
 }
 
@@ -69,9 +97,40 @@ html {
 }
 
 .vp-doc h4 {
+  position: relative;
   margin: 22px 0 10px;
+  padding-right: 28px;
   font-size: 1.02rem;
   color: var(--w-ink-soft);
+}
+
+/* VitePress 默认把 h2 锚点绝对定位在 top:24px / 左侧，
+   与自定义标题装饰冲突（# 会掉到左下方）。统一改为右侧垂直居中、hover 淡入。 */
+.vp-doc h2 .header-anchor,
+.vp-doc h3 .header-anchor,
+.vp-doc h4 .header-anchor {
+  top: 50%;
+  left: auto;
+  right: 0;
+  margin-left: 0;
+  transform: translateY(-58%);
+  font-size: 0.78em;
+  color: var(--vp-c-brand-1);
+  opacity: 0;
+}
+
+.vp-doc h3 .header-anchor,
+.vp-doc h4 .header-anchor {
+  transform: translateY(-50%);
+}
+
+.vp-doc h2:hover .header-anchor,
+.vp-doc h2 .header-anchor:focus,
+.vp-doc h3:hover .header-anchor,
+.vp-doc h3 .header-anchor:focus,
+.vp-doc h4:hover .header-anchor,
+.vp-doc h4 .header-anchor:focus {
+  opacity: 1;
 }
 
 /* ---------- 段落与行内代码 ---------- */
