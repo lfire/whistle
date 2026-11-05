@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="880" viewBox="0 0 1500 880">
+<rect width="100%" height="100%" fill="#f7faf9"/>
+<defs>
+<marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#52706c"/></marker>
+<marker id="arrow-teal" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#0f7a68"/></marker>
+<marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2f6fb5"/></marker>
+<marker id="arrow-orange" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#d9822b"/></marker>
+<marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7c5cbf"/></marker>
+<marker id="arrow-red" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#c0504d"/></marker>
+<marker id="arrow-gray" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#6b8a85"/></marker>
+<marker id="arrow-light" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#8aa5a0"/></marker>
+</defs>
+<rect x="40" y="28" width="1420" height="84" rx="10" fill="#0f7a68"/>
+<text x="68" y="68" font-size="30" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#ffffff">三种代理形态对比</text>
+<text x="68" y="98" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#d9efe9">回答：Whistle 在同一个端口上如何区分普通 HTTP、CONNECT 隧道与 SOCKS/反向代理，并落到哪四类入口？</text>
+<rect x="30" y="136" width="460" height="566" rx="10" fill="#ffffff" stroke="#cfded9" stroke-width="1.5"/>
+<rect x="46" y="152" width="428" height="48" rx="10" fill="#e4eefb" stroke="#2f6fb5" stroke-width="1.5"/>
+<text x="60" y="183" font-size="20" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">普通 HTTP 代理</text>
+<text x="60" y="216" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">绝对 URI 请求行</text>
+<rect x="54" y="246" width="110" height="70" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<text x="109.0" y="276" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">客户端</text>
+<text x="109.0" y="302" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">浏览器 / APP</text>
+<rect x="205" y="246" width="110" height="70" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<text x="260.0" y="276" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">代理</text>
+<text x="260.0" y="302" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">可读明文</text>
+<rect x="356" y="246" width="110" height="70" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<text x="411.0" y="276" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">源站</text>
+<text x="411.0" y="302" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">HTTP 服务</text>
+<line x1="168" y1="281" x2="201" y2="281" stroke="#2f6fb5" stroke-width="2" fill="none" marker-end="url(#arrow-blue)"/>
+<line x1="319" y1="281" x2="352" y2="281" stroke="#2f6fb5" stroke-width="2" fill="none" marker-end="url(#arrow-blue)"/>
+<text x="260" y="340" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">请求行携带完整 URL，代理可解析并改写</text>
+<line x1="54" y1="360" x2="466" y2="360" stroke="#dce9e5" stroke-width="1" fill="none"/>
+<text x="60" y="390" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">关键特征</text>
+<circle cx="64" cy="415" r="4" fill="#2f6fb5"/>
+<text x="78" y="420" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">请求行携带完整 URL，可读明文</text>
+<circle cx="64" cy="445" r="4" fill="#2f6fb5"/>
+<text x="78" y="450" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">规则匹配、改写、Mock 在此生效</text>
+<circle cx="64" cy="475" r="4" fill="#2f6fb5"/>
+<text x="78" y="480" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">对应 server.on('request')</text>
+<rect x="54" y="544" width="412" height="92" rx="10" fill="#e4eefb" stroke="#2f6fb5" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text x="70" y="568" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#2f6fb5">报文 / 字节样例</text>
+<text x="70" y="594" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">GET http://a.com/p HTTP/1.1</text>
+<text x="70" y="618" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">Host: a.com  →  req.url 含 scheme+host</text>
+<rect x="520" y="136" width="460" height="566" rx="10" fill="#ffffff" stroke="#cfded9" stroke-width="1.5"/>
+<rect x="536" y="152" width="428" height="48" rx="10" fill="#fbecd9" stroke="#d9822b" stroke-width="1.5"/>
+<text x="550" y="183" font-size="20" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">CONNECT 隧道</text>
+<text x="550" y="216" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">200 Connection Established 后字节透传</text>
+<rect x="544" y="246" width="110" height="70" rx="10" fill="#ffffff" stroke="#d9822b" stroke-width="1.5"/>
+<text x="599.0" y="276" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">客户端</text>
+<text x="599.0" y="302" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">浏览器 / APP</text>
+<rect x="695" y="246" width="110" height="70" rx="10" fill="#ffffff" stroke="#d9822b" stroke-width="1.5"/>
+<text x="750.0" y="276" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">代理</text>
+<text x="750.0" y="302" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">隧道透传</text>
+<rect x="846" y="246" width="110" height="70" rx="10" fill="#ffffff" stroke="#d9822b" stroke-width="1.5"/>
+<text x="901.0" y="276" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">源站</text>
+<text x="901.0" y="302" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">任意协议</text>
+<line x1="658" y1="281" x2="691" y2="281" stroke="#d9822b" stroke-width="2" fill="none" marker-end="url(#arrow-orange)"/>
+<line x1="809" y1="281" x2="842" y2="281" stroke="#d9822b" stroke-width="2" fill="none" marker-end="url(#arrow-orange)"/>
+<text x="750" y="340" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">先建隧道，再在隧道内跑 TLS / 任意协议</text>
+<line x1="544" y1="360" x2="956" y2="360" stroke="#dce9e5" stroke-width="1" fill="none"/>
+<text x="550" y="390" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">关键特征</text>
+<circle cx="554" cy="415" r="4" fill="#d9822b"/>
+<text x="568" y="420" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">请求行只有 host:port</text>
+<circle cx="554" cy="445" r="4" fill="#d9822b"/>
+<text x="568" y="450" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">默认字节透传，看不到明文</text>
+<circle cx="554" cy="475" r="4" fill="#d9822b"/>
+<text x="568" y="480" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">对应 server.on('connect')</text>
+<rect x="544" y="544" width="412" height="92" rx="10" fill="#fbecd9" stroke="#d9822b" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text x="560" y="568" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#d9822b">报文 / 字节样例</text>
+<text x="560" y="594" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">CONNECT a.com:443 HTTP/1.1</text>
+<text x="560" y="618" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">HTTP/1.1 200 Connection Established</text>
+<rect x="1010" y="136" width="460" height="566" rx="10" fill="#ffffff" stroke="#cfded9" stroke-width="1.5"/>
+<rect x="1026" y="152" width="428" height="48" rx="10" fill="#eee7f8" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1040" y="183" font-size="20" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">SOCKS / 反向代理</text>
+<text x="1040" y="216" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">SOCKS 握手 / 反向代理转发</text>
+<rect x="1034" y="246" width="110" height="70" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1089.0" y="276" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">客户端</text>
+<text x="1089.0" y="302" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">APP / 浏览器</text>
+<rect x="1185" y="246" width="110" height="70" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1240.0" y="276" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">网关</text>
+<text x="1240.0" y="302" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">Whistle</text>
+<rect x="1336" y="246" width="110" height="70" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1391.0" y="276" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">源站</text>
+<text x="1391.0" y="302" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">后端服务</text>
+<line x1="1148" y1="281" x2="1181" y2="281" stroke="#7c5cbf" stroke-width="2" fill="none" marker-end="url(#arrow-purple)"/>
+<line x1="1299" y1="281" x2="1332" y2="281" stroke="#7c5cbf" stroke-width="2" fill="none" marker-end="url(#arrow-purple)"/>
+<text x="1240" y="340" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">SOCKS 自带协商；反代对客户端表现为源站</text>
+<line x1="1034" y1="360" x2="1446" y2="360" stroke="#dce9e5" stroke-width="1" fill="none"/>
+<text x="1040" y="390" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">关键特征</text>
+<circle cx="1044" cy="415" r="4" fill="#7c5cbf"/>
+<text x="1058" y="420" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">SOCKS 走 clientError 识别</text>
+<circle cx="1044" cy="445" r="4" fill="#7c5cbf"/>
+<text x="1058" y="450" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">反向代理由规则指定目标</text>
+<circle cx="1044" cy="475" r="4" fill="#7c5cbf"/>
+<text x="1058" y="480" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">WebSocket 走 upgrade 入口</text>
+<rect x="1034" y="544" width="412" height="92" rx="10" fill="#eee7f8" stroke="#7c5cbf" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text x="1050" y="568" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#7c5cbf">报文 / 字节样例</text>
+<text x="1050" y="594" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">SOCKS5 0x05 协商 + ATYP/ADDR</text>
+<text x="1050" y="618" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">upgrade / clientError 兜底分发</text>
+<rect x="30" y="716" width="1440" height="56" rx="10" fill="#0f7a68"/>
+<text x="54" y="750" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#ffffff">Whistle 落地：lib/index.js 的 request / connect / upgrade / clientError 四类入口</text>
+<rect x="30" y="786" width="1440" height="40" rx="10" fill="#ffffff" stroke="#cfded9" stroke-width="1.5"/>
+<rect x="50.0" y="798.0" width="16" height="16" rx="4" fill="#2f6fb5" stroke="#6b8a85" stroke-width="1"/>
+<text x="74.0" y="811.0" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">普通 HTTP 代理</text>
+<rect x="530.0" y="798.0" width="16" height="16" rx="4" fill="#d9822b" stroke="#6b8a85" stroke-width="1"/>
+<text x="554.0" y="811.0" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">CONNECT 隧道</text>
+<rect x="1010.0" y="798.0" width="16" height="16" rx="4" fill="#7c5cbf" stroke="#6b8a85" stroke-width="1"/>
+<text x="1034.0" y="811.0" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">SOCKS / 反向代理</text>
+<text x="1460" y="856" font-size="14" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#8aa5a0" text-anchor="end">Whistle 源码研读 · guide@3b85cebc4</text>
+</svg>

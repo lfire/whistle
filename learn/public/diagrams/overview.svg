@@ -1,0 +1,177 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100" viewBox="0 0 1600 1100">
+<rect width="100%" height="100%" fill="#f7faf9"/>
+<defs>
+<marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#52706c"/></marker>
+<marker id="arrow-teal" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#0f7a68"/></marker>
+<marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2f6fb5"/></marker>
+<marker id="arrow-orange" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#d9822b"/></marker>
+<marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7c5cbf"/></marker>
+<marker id="arrow-red" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#c0504d"/></marker>
+<marker id="arrow-gray" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#6b8a85"/></marker>
+<marker id="arrow-light" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#8aa5a0"/></marker>
+</defs>
+<rect x="40" y="28" width="1520" height="84" rx="10" fill="#0f7a68"/>
+<text x="68" y="68" font-size="30" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#ffffff">Whistle 全局架构</text>
+<text x="68" y="98" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#d9efe9">回答：一个请求从客户端到目标服务器，穿过哪些入口、中间件、旁路能力、出站通道与存储？</text>
+<rect x="40" y="136" width="1260" height="96" rx="10" fill="#e4eefb" stroke="#2f6fb5" stroke-width="1.5" fill-opacity="0.55"/>
+<rect x="40" y="256" width="1260" height="144" rx="10" fill="#d9efe9" stroke="#0f7a68" stroke-width="1.5" fill-opacity="0.55"/>
+<rect x="40" y="424" width="1260" height="184" rx="10" fill="#eee7f8" stroke="#7c5cbf" stroke-width="1.5" fill-opacity="0.55"/>
+<rect x="40" y="632" width="1260" height="112" rx="10" fill="#fbecd9" stroke="#d9822b" stroke-width="1.5" fill-opacity="0.55"/>
+<rect x="40" y="768" width="1260" height="104" rx="10" fill="#fae6e5" stroke="#c0504d" stroke-width="1.5" fill-opacity="0.55"/>
+<rect x="40" y="896" width="1520" height="104" rx="10" fill="#eef3f2" stroke="#6b8a85" stroke-width="1.5" fill-opacity="0.8"/>
+<text x="56" y="162" font-size="20" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">① 客户端层</text>
+<rect x="56" y="176" width="280" height="52" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<text x="196.0" y="198" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">浏览器</text>
+<text x="196.0" y="218" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">HTTP + HTTPS 流量</text>
+<rect x="360" y="176" width="280" height="52" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<text x="500.0" y="198" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">APP</text>
+<text x="500.0" y="218" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">移动端 / 小程序</text>
+<rect x="664" y="176" width="280" height="52" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<text x="804.0" y="198" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">系统代理</text>
+<text x="804.0" y="218" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">OS 全局代理设置</text>
+<rect x="968" y="176" width="280" height="52" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<text x="1108.0" y="198" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">PAC</text>
+<text x="1108.0" y="218" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">按域名选择代理</text>
+<text x="56" y="282" font-size="20" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">② 入口层：一个 http.Server（默认 :8899）· 四类入口</text>
+<text x="700" y="282" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">另有 SOCKS server / --httpPort / --httpsPort / --uiport 汇入同一入口</text>
+<rect x="56" y="298" width="280" height="64" rx="10" fill="#ffffff" stroke="#0f7a68" stroke-width="1.5"/>
+<text x="196.0" y="324" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">request</text>
+<text x="196.0" y="346" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">普通 HTTP · 绝对 URI</text>
+<rect x="356" y="298" width="280" height="64" rx="10" fill="#ffffff" stroke="#0f7a68" stroke-width="1.5"/>
+<text x="496.0" y="324" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">connect</text>
+<text x="496.0" y="346" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">CONNECT 隧道</text>
+<rect x="656" y="298" width="280" height="64" rx="10" fill="#ffffff" stroke="#0f7a68" stroke-width="1.5"/>
+<text x="796.0" y="324" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">upgrade</text>
+<text x="796.0" y="346" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">WebSocket · Upgrade</text>
+<rect x="956" y="298" width="280" height="64" rx="10" fill="#ffffff" stroke="#0f7a68" stroke-width="1.5"/>
+<text x="1096.0" y="324" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">clientError</text>
+<text x="1096.0" y="346" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">SOCKS · 非法包兜底</text>
+<text x="56" y="448" font-size="20" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">③ 处理层：Express 中间件链（顺序即处理顺序）</text>
+<text x="760" y="448" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">lib/index.js → lib/inspectors/* → lib/handlers/*</text>
+<rect x="56" y="466" width="226" height="52" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="169.0" y="486" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">① init</text>
+<text x="169.0" y="508" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">包装 PipeStream</text>
+<rect x="306" y="466" width="226" height="52" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="419.0" y="486" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">② biz</text>
+<text x="419.0" y="508" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">UI / CGI 分流</text>
+<rect x="556" y="466" width="226" height="52" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="669.0" y="486" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">③ inspectors/rules</text>
+<text x="669.0" y="508" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">规则 → req.options</text>
+<rect x="806" y="466" width="226" height="52" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="919.0" y="486" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">④ inspectors/req</text>
+<text x="919.0" y="508" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">请求改写 Transform</text>
+<rect x="1056" y="466" width="226" height="52" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1169.0" y="486" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">⑤ inspectors/data</text>
+<text x="1169.0" y="508" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">抓包 / proxy.emit</text>
+<rect x="56" y="542" width="226" height="52" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="169.0" y="562" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">⑥ inspectors/res</text>
+<text x="169.0" y="584" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">挂 req.request / res.response</text>
+<rect x="306" y="542" width="226" height="52" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="419.0" y="562" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">⑦ config.middlewares</text>
+<text x="419.0" y="584" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">自定义 / 插件中间件</text>
+<rect x="556" y="542" width="226" height="52" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="669.0" y="562" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">⑧ handlers/file-proxy</text>
+<text x="669.0" y="584" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">本地协议短路</text>
+<rect x="806" y="542" width="226" height="52" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="919.0" y="562" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">⑨ handlers/http-proxy</text>
+<text x="919.0" y="584" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">真实出站分发</text>
+<rect x="1056" y="542" width="226" height="52" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1169.0" y="562" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">⑩ error-handler</text>
+<text x="1169.0" y="584" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">异常兜底</text>
+<line x1="284" y1="492" x2="302" y2="492" stroke="#52706c" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<line x1="284" y1="568" x2="302" y2="568" stroke="#52706c" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<line x1="534" y1="492" x2="552" y2="492" stroke="#52706c" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<line x1="534" y1="568" x2="552" y2="568" stroke="#52706c" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<line x1="784" y1="492" x2="802" y2="492" stroke="#52706c" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<line x1="784" y1="568" x2="802" y2="568" stroke="#52706c" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<line x1="1034" y1="492" x2="1052" y2="492" stroke="#52706c" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<line x1="1034" y1="568" x2="1052" y2="568" stroke="#52706c" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<path d="M1169 518 V530 H169 V540" stroke="#52706c" stroke-width="2" fill="none" marker-end="url(#arrow)" stroke-dasharray="4 4"/>
+<text x="56" y="658" font-size="20" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">④ 旁路层（被各阶段按需调用）</text>
+<rect x="56" y="674" width="226" height="58" rx="10" fill="#ffffff" stroke="#d9822b" stroke-width="1.5"/>
+<text x="169.0" y="698" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">lib/rules</text>
+<text x="169.0" y="720" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">规则引擎</text>
+<rect x="306" y="674" width="226" height="58" rx="10" fill="#ffffff" stroke="#d9822b" stroke-width="1.5"/>
+<text x="419.0" y="698" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">data-server.js</text>
+<text x="419.0" y="720" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">lib/util · 抓包缓存</text>
+<rect x="556" y="674" width="226" height="58" rx="10" fill="#ffffff" stroke="#d9822b" stroke-width="1.5"/>
+<text x="669.0" y="698" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">lib/https/ca.js</text>
+<text x="669.0" y="720" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">证书签发 / 根 CA</text>
+<rect x="806" y="674" width="226" height="58" rx="10" fill="#ffffff" stroke="#d9822b" stroke-width="1.5"/>
+<text x="919.0" y="698" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">lib/plugins</text>
+<text x="919.0" y="720" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">插件系统</text>
+<rect x="1056" y="674" width="226" height="58" rx="10" fill="#ffffff" stroke="#d9822b" stroke-width="1.5"/>
+<text x="1169.0" y="698" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">socket-mgr</text>
+<text x="1169.0" y="720" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">连接与端口复用</text>
+<text x="56" y="794" font-size="20" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">⑤ 出站层：按 req.options 选择协议与目标</text>
+<rect x="56" y="810" width="226" height="52" rx="10" fill="#ffffff" stroke="#c0504d" stroke-width="1.5"/>
+<text x="169.0" y="832" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">http/https.request</text>
+<text x="169.0" y="852" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">普通出站</text>
+<rect x="306" y="810" width="226" height="52" rx="10" fill="#ffffff" stroke="#c0504d" stroke-width="1.5"/>
+<text x="419.0" y="832" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">tls.connect</text>
+<text x="419.0" y="852" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">原始 TLS / CONNECT</text>
+<rect x="556" y="810" width="226" height="52" rx="10" fill="#ffffff" stroke="#c0504d" stroke-width="1.5"/>
+<text x="669.0" y="832" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">http2.connect</text>
+<text x="669.0" y="852" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">HTTP/2 出站</text>
+<rect x="806" y="810" width="226" height="52" rx="10" fill="#ffffff" stroke="#c0504d" stroke-width="1.5"/>
+<text x="919.0" y="832" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">上游代理 / SOCKS</text>
+<text x="919.0" y="852" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">二级代理转发</text>
+<rect x="1056" y="810" width="226" height="52" rx="10" fill="#ffffff" stroke="#c0504d" stroke-width="1.5"/>
+<text x="1169.0" y="832" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">目标服务器</text>
+<text x="1169.0" y="852" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">Origin</text>
+<text x="56" y="922" font-size="20" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">⑥ 存储层：磁盘与进程</text>
+<rect x="56" y="936" width="700" height="52" rx="10" fill="#ffffff" stroke="#6b8a85" stroke-width="1.5"/>
+<text x="406.0" y="958" font-size="17" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">~/.WhistleAppData/.whistle</text>
+<text x="406.0" y="978" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">rules / values / properties / certs / custom_dirs</text>
+<rect x="780" y="936" width="360" height="52" rx="10" fill="#ffffff" stroke="#6b8a85" stroke-width="1.5"/>
+<text x="960.0" y="958" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">pfork 子进程</text>
+<text x="960.0" y="978" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">service / 插件 N / weinre</text>
+<rect x="1164" y="936" width="356" height="52" rx="10" fill="#ffffff" stroke="#6b8a85" stroke-width="1.5"/>
+<text x="1342.0" y="958" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">Web UI CGI 轮询</text>
+<text x="1342.0" y="978" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">获取规则 / 抓包 / 状态</text>
+<line x1="670" y1="234" x2="670" y2="254" stroke="#52706c" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<line x1="670" y1="402" x2="670" y2="422" stroke="#52706c" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<line x1="670" y1="610" x2="670" y2="630" stroke="#52706c" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<line x1="670" y1="746" x2="670" y2="766" stroke="#52706c" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<line x1="670" y1="874" x2="670" y2="894" stroke="#52706c" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+<rect x="1324" y="136" width="236" height="736" rx="10" fill="#fae6e5" stroke="#c0504d" stroke-width="1.5" stroke-dasharray="5 5" fill-opacity="0.3"/>
+<text x="1442" y="166" font-size="20" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">事件总线</text>
+<text x="1442" y="190" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">proxyEvents（进程内广播）</text>
+<rect x="1344" y="214" width="196" height="48" rx="10" fill="#ffffff" stroke="#c0504d" stroke-width="1.5"/>
+<text x="1442.0" y="244" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">request</text>
+<rect x="1344" y="286" width="196" height="48" rx="10" fill="#ffffff" stroke="#c0504d" stroke-width="1.5"/>
+<text x="1442.0" y="316" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">frame</text>
+<rect x="1344" y="358" width="196" height="48" rx="10" fill="#ffffff" stroke="#c0504d" stroke-width="1.5"/>
+<text x="1442.0" y="388" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">rulesDataChange</text>
+<rect x="1344" y="430" width="196" height="48" rx="10" fill="#ffffff" stroke="#c0504d" stroke-width="1.5"/>
+<text x="1442.0" y="460" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">pluginsChange</text>
+<rect x="1344" y="502" width="196" height="48" rx="10" fill="#ffffff" stroke="#c0504d" stroke-width="1.5"/>
+<text x="1442.0" y="532" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">whistleStarted</text>
+<rect x="1344" y="580" width="196" height="120" rx="10" fill="#ffffff" stroke="#c0504d" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text x="1356" y="606" font-size="17" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">订阅者</text>
+<text x="1356" y="632" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">插件 / Web UI</text>
+<text x="1356" y="656" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">抓包缓存</text>
+<text x="1356" y="680" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">pfork service</text>
+<text x="1356" y="730" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">事件驱动规则热更新</text>
+<text x="1356" y="754" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">与配置同步</text>
+<text x="1356" y="790" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#c0504d">（proxyEvents.emit）</text>
+<line x1="1322" y1="300" x2="1302" y2="300" stroke="#c0504d" stroke-width="2" fill="none" marker-end="url(#arrow-red)"/>
+<line x1="1322" y1="500" x2="1302" y2="500" stroke="#c0504d" stroke-width="2" fill="none" marker-end="url(#arrow-red)"/>
+<line x1="1322" y1="690" x2="1302" y2="690" stroke="#c0504d" stroke-width="2" fill="none" marker-end="url(#arrow-red)"/>
+<rect x="40" y="1014" width="1520" height="36" rx="10" fill="#ffffff" stroke="#cfded9" stroke-width="1.5"/>
+<rect x="60.0" y="1024.0" width="16" height="16" rx="4" fill="#2f6fb5" stroke="#6b8a85" stroke-width="1"/>
+<text x="84.0" y="1037.0" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">客户端层</text>
+<rect x="277.1428571428571" y="1024.0" width="16" height="16" rx="4" fill="#0f7a68" stroke="#6b8a85" stroke-width="1"/>
+<text x="301.1428571428571" y="1037.0" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">入口层</text>
+<rect x="494.2857142857143" y="1024.0" width="16" height="16" rx="4" fill="#7c5cbf" stroke="#6b8a85" stroke-width="1"/>
+<text x="518.2857142857142" y="1037.0" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">处理层</text>
+<rect x="711.4285714285714" y="1024.0" width="16" height="16" rx="4" fill="#d9822b" stroke="#6b8a85" stroke-width="1"/>
+<text x="735.4285714285714" y="1037.0" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">旁路层</text>
+<rect x="928.5714285714286" y="1024.0" width="16" height="16" rx="4" fill="#c0504d" stroke="#6b8a85" stroke-width="1"/>
+<text x="952.5714285714286" y="1037.0" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">出站层</text>
+<rect x="1145.7142857142858" y="1024.0" width="16" height="16" rx="4" fill="#6b8a85" stroke="#6b8a85" stroke-width="1"/>
+<text x="1169.7142857142858" y="1037.0" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">存储层</text>
+<rect x="1362.857142857143" y="1024.0" width="16" height="16" rx="4" fill="#c0504d" stroke="#6b8a85" stroke-width="1" stroke-dasharray="4 4"/>
+<text x="1386.857142857143" y="1037.0" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">事件总线（右列）</text>
+<text x="1560" y="1076" font-size="14" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#8aa5a0" text-anchor="end">Whistle 源码研读 · guide@3b85cebc4</text>
+</svg>

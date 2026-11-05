@@ -1,0 +1,16 @@
+{
+  "name": "whistle-source-guide",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Whistle 源码研读站 —— 基于 guide 分支的原理、实现与领域知识教程",
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev .",
+    "build": "vitepress build .",
+    "preview": "vitepress preview ."
+  },
+  "devDependencies": {
+    "markdown-it-container": "^4.0.0",
+    "vitepress": "^1.6.4"
+  }
+}

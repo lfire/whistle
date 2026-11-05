@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1000" viewBox="0 0 1500 1000">
+<rect width="100%" height="100%" fill="#f7faf9"/>
+<defs>
+<marker id="arrow" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#52706c"/></marker>
+<marker id="arrow-teal" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#0f7a68"/></marker>
+<marker id="arrow-blue" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#2f6fb5"/></marker>
+<marker id="arrow-orange" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#d9822b"/></marker>
+<marker id="arrow-purple" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#7c5cbf"/></marker>
+<marker id="arrow-red" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#c0504d"/></marker>
+<marker id="arrow-gray" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#6b8a85"/></marker>
+</defs>
+<rect x="0" y="0" width="1500" height="88" fill="#d9efe9"/>
+<rect x="0" y="0" width="9" height="88" fill="#0f7a68"/>
+<text x="36" y="42" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="30" fill="#173a35" text-anchor="start" font-weight="bold">插件系统通信架构</text>
+<text x="36" y="72" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#52706c" text-anchor="start" font-weight="normal">安装发现 / 主进程 / 插件子进程 / Web UI 四层，hagent 按 hook 名分发</text>
+<text x="1472" y="984" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="14" fill="#8aa5a0" text-anchor="end" font-weight="normal">Whistle 源码研读 · guide@3b85cebc4</text>
+<rect x="1049.3" y="42" width="14" height="14" rx="3" fill="#0f7a68"/>
+<text x="1069.3" y="54" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">安装与发现</text>
+<rect x="1169.8" y="42" width="14" height="14" rx="3" fill="#2f6fb5"/>
+<text x="1189.8" y="54" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">主进程</text>
+<rect x="1259.7" y="42" width="14" height="14" rx="3" fill="#7c5cbf"/>
+<text x="1279.7" y="54" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">插件子进程</text>
+<rect x="1380.2" y="42" width="14" height="14" rx="3" fill="#d9822b"/>
+<text x="1400.2" y="54" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">Web UI</text>
+<rect x="30" y="108" width="690" height="316" rx="14" fill="#d9efe9" stroke="#0f7a68" stroke-width="1.5" fill-opacity="0.55"/>
+<rect x="30" y="108" width="6" height="316" rx="3" fill="#0f7a68"/>
+<text x="50" y="140" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#0f7a68" text-anchor="start" font-weight="bold">① 安装与发现</text>
+<rect x="55" y="150" width="640" height="36" rx="10" fill="#ffffff" stroke="#0f7a68" stroke-width="1.5"/>
+<text x="69" y="173.25" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="start" font-weight="normal">w2 install / UI POST /cgi-bin/plugins/install</text>
+<line x1="375" y1="186" x2="375" y2="204" stroke="#0f7a68" stroke-width="2" fill="none" marker-end="url(#arrow-teal)"/>
+<rect x="55" y="206" width="640" height="36" rx="10" fill="#ffffff" stroke="#0f7a68" stroke-width="1.5"/>
+<text x="69" y="229.25" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="start" font-weight="normal">service 进程接收安装任务</text>
+<line x1="375" y1="242" x2="375" y2="260" stroke="#0f7a68" stroke-width="2" fill="none" marker-end="url(#arrow-teal)"/>
+<rect x="55" y="262" width="640" height="36" rx="10" fill="#ffffff" stroke="#0f7a68" stroke-width="1.5"/>
+<text x="69" y="285.25" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="start" font-weight="normal">npm install 拉取 whistle.xxx 包</text>
+<line x1="375" y1="298" x2="375" y2="316" stroke="#0f7a68" stroke-width="2" fill="none" marker-end="url(#arrow-teal)"/>
+<rect x="55" y="318" width="640" height="36" rx="10" fill="#ffffff" stroke="#0f7a68" stroke-width="1.5"/>
+<text x="69" y="341.25" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="start" font-weight="normal">~/.WhistleAppData/custom_plugins/whistle.xxx</text>
+<line x1="375" y1="354" x2="375" y2="372" stroke="#0f7a68" stroke-width="2" fill="none" marker-end="url(#arrow-teal)"/>
+<rect x="55" y="374" width="640" height="36" rx="10" fill="#ffffff" stroke="#0f7a68" stroke-width="1.5"/>
+<text x="69" y="397.25" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="start" font-weight="normal">getPluginsSync + 每 6s refreshPlugins</text>
+<rect x="740" y="108" width="730" height="316" rx="14" fill="#e4eefb" stroke="#2f6fb5" stroke-width="1.5" fill-opacity="0.55"/>
+<rect x="740" y="108" width="6" height="316" rx="3" fill="#2f6fb5"/>
+<text x="760" y="140" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#2f6fb5" text-anchor="start" font-weight="bold">② 主进程</text>
+<rect x="765" y="158" width="325" height="150" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<rect x="765" y="158" width="325" height="5" rx="2" fill="#2f6fb5"/>
+<text x="779" y="190" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">pluginMgr</text>
+<text x="779" y="217" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">loadPlugin · getRules · getPipe</text>
+<text x="779" y="240" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">loadCert · postStats</text>
+<text x="779" y="263" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">管理插件生命周期与能力导出</text>
+<rect x="1110" y="158" width="325" height="150" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<rect x="1110" y="158" width="325" height="5" rx="2" fill="#2f6fb5"/>
+<text x="1124" y="190" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">Express / tunnel</text>
+<text x="1124" y="217" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">+ CGI 路由</text>
+<text x="1124" y="240" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">对插件暴露 hook 与反向查询</text>
+<rect x="765" y="330" width="675" height="40" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<text x="779" y="355.25" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="start" font-weight="normal">ports 表登记各 hook 端口，主进程按名访问</text>
+<rect x="30" y="442" width="940" height="448" rx="14" fill="#eee7f8" stroke="#7c5cbf" stroke-width="1.5" fill-opacity="0.55"/>
+<rect x="30" y="442" width="6" height="448" rx="3" fill="#7c5cbf"/>
+<text x="50" y="474" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#7c5cbf" text-anchor="start" font-weight="bold">③ 插件子进程（pfork · load-plugin.js）</text>
+<rect x="55" y="490" width="880" height="77" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<rect x="55" y="490" width="880" height="5" rx="2" fill="#7c5cbf"/>
+<text x="69" y="522" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">require 插件入口</text>
+<text x="69" y="549" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">load-plugin.js 加载插件入口 · pfork(script + value 去重) 拉起子进程</text>
+<line x1="495" y1="569" x2="495" y2="589" stroke="#7c5cbf" stroke-width="2" fill="none" marker-end="url(#arrow-purple)"/>
+<rect x="55" y="591" width="880" height="100" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<rect x="55" y="591" width="880" height="5" rx="2" fill="#7c5cbf"/>
+<text x="69" y="623" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">各 hook server</text>
+<text x="69" y="650" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">auth · sniCallback · server · uiServer · rulesServer · statsServer</text>
+<text x="69" y="673" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">12 个读写 pipe hook（reqWrite / resWrite / ...）</text>
+<line x1="495" y1="693" x2="495" y2="713" stroke="#7c5cbf" stroke-width="2" fill="none" marker-end="url(#arrow-purple)"/>
+<rect x="55" y="715" width="880" height="77" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<rect x="55" y="715" width="880" height="5" rx="2" fill="#7c5cbf"/>
+<text x="69" y="747" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">单端口 hagent（40500 段）</text>
+<text x="69" y="774" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">按 x-whistle-plugin-hook-name_ 分发到对应 hook server</text>
+<line x1="495" y1="794" x2="495" y2="814" stroke="#7c5cbf" stroke-width="2" fill="none" marker-end="url(#arrow-purple)"/>
+<rect x="55" y="816" width="880" height="77" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<rect x="55" y="816" width="880" height="5" rx="2" fill="#7c5cbf"/>
+<text x="69" y="848" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">ports 表回传主进程</text>
+<text x="69" y="875" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">options.Storage / sharedStorage / require / wsParser 注入运行时</text>
+<rect x="990" y="442" width="480" height="200" rx="14" fill="#fbecd9" stroke="#d9822b" stroke-width="1.5" fill-opacity="0.55"/>
+<rect x="990" y="442" width="6" height="200" rx="3" fill="#d9822b"/>
+<text x="1010" y="474" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#d9822b" text-anchor="start" font-weight="bold">④ Web UI</text>
+<rect x="1010" y="482" width="440" height="140" rx="10" fill="#ffffff" stroke="#d9822b" stroke-width="1.5"/>
+<rect x="1010" y="482" width="440" height="5" rx="2" fill="#d9822b"/>
+<text x="1024" y="514" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="bold">插件入口</text>
+<text x="1024" y="541" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">插件 Tab · inspector 面板</text>
+<text x="1024" y="564" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">右键菜单 · whistleBridge</text>
+<text x="1024" y="587" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">反向 /cgi-bin/get-session | get-frames</text>
+<rect x="990" y="662" width="480" height="270" rx="14" fill="#e8f4f0" stroke="#6b8a85" stroke-width="1.5" fill-opacity="0.7"/>
+<rect x="990" y="662" width="6" height="270" rx="3" fill="#6b8a85"/>
+<text x="1010" y="694" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#6b8a85" text-anchor="start" font-weight="bold">⑤ 连线标注 · 通信约定</text>
+<text x="1012" y="716" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="start" font-weight="normal">· p.fork(script + value 去重) 拉起子进程</text>
+<text x="1012" y="742" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="start" font-weight="normal">· HTTP 127.0.0.1:&lt;hookPort&gt; + PLUGIN_HOOKS.*</text>
+<text x="1012" y="768" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="start" font-weight="normal">· x-whistle-* 请求头标识来源</text>
+<text x="1012" y="794" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="start" font-weight="normal">· 失败重试 5 次 / 304 ETag 缓存</text>
+<text x="1012" y="820" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="start" font-weight="normal">· Storage / sharedStorage / require / wsParser</text>
+<text x="1012" y="846" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="start" font-weight="normal">· hook / ports：子进程回传端口表</text>
+<text x="1012" y="872" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="start" font-weight="normal">· 反向 /cgi-bin/get-session | get-frames</text>
+<text x="1012" y="898" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="start" font-weight="normal">· proxy.js 劫持 net.Socket.connect 回流主代理</text>
+<text x="1012" y="924" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="start" font-weight="normal">· G2 → G4：CGI 反向查询；G1 → G2：插件就绪</text>
+<line x1="695" y1="250" x2="765" y2="250" stroke="#0f7a68" stroke-width="2" fill="none" marker-end="url(#arrow-teal)"/>
+<line x1="850" y1="424" x2="850" y2="442" stroke="#2f6fb5" stroke-width="2" fill="none" marker-end="url(#arrow-blue)"/>
+<rect x="785.15" y="383" width="129.7" height="23" rx="6" fill="#ffffff" stroke="#dbe8e4" stroke-width="1"/>
+<text x="850" y="400" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="middle" font-weight="normal">pfork 子进程</text>
+<line x1="970" y1="550" x2="1010" y2="550" stroke="#7c5cbf" stroke-width="2" fill="none" marker-end="url(#arrow-purple)"/>
+<line x1="1230" y1="424" x2="1230" y2="442" stroke="#d9822b" stroke-width="2" fill="none" marker-end="url(#arrow-orange)"/>
+<rect x="1166.8" y="383" width="126.4" height="23" rx="6" fill="#ffffff" stroke="#dbe8e4" stroke-width="1"/>
+<text x="1230" y="400" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="middle" font-weight="normal">CGI 反向查询</text>
+</svg>

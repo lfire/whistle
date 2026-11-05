@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1010" viewBox="0 0 1600 1010">
+<rect width="100%" height="100%" fill="#f7faf9"/>
+<defs>
+<marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#52706c"/></marker>
+<marker id="arrow-teal" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#0f7a68"/></marker>
+<marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2f6fb5"/></marker>
+<marker id="arrow-orange" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#d9822b"/></marker>
+<marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7c5cbf"/></marker>
+<marker id="arrow-red" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#c0504d"/></marker>
+<marker id="arrow-gray" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#6b8a85"/></marker>
+<marker id="arrow-light" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#8aa5a0"/></marker>
+</defs>
+<rect x="40" y="28" width="1520" height="84" rx="10" fill="#0f7a68"/>
+<text x="68" y="68" font-size="30" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#ffffff">进程拓扑与配置 / 通信</text>
+<text x="68" y="98" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#d9efe9">回答：w2 start 之后有哪些进程、它们怎么通信，config 单例从哪里来、变更如何通知出去？</text>
+<rect x="40" y="136" width="760" height="560" rx="10" fill="#eef3f2" stroke="#6b8a85" stroke-width="1.5" fill-opacity="0.5"/>
+<rect x="824" y="136" width="736" height="560" rx="10" fill="#eee7f8" stroke="#7c5cbf" stroke-width="1.5" fill-opacity="0.45"/>
+<rect x="56" y="152" width="728" height="48" rx="10" fill="#6b8a85"/>
+<text x="80" y="183" font-size="20" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#ffffff">进程拓扑：三层 + 可选 cluster</text>
+<rect x="840" y="152" width="704" height="48" rx="10" fill="#7c5cbf"/>
+<text x="864" y="183" font-size="20" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#ffffff">配置系统：单例 config</text>
+<rect x="70" y="216" width="200" height="62" rx="10" fill="#ffffff" stroke="#6b8a85" stroke-width="1.5"/>
+<text x="170.0" y="242" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">CLI 进程</text>
+<text x="170.0" y="264" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">w2 start / stop</text>
+<rect x="340" y="216" width="260" height="62" rx="10" fill="#ffffff" stroke="#0f7a68" stroke-width="1.5"/>
+<text x="470.0" y="242" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">detached 业务进程</text>
+<text x="470.0" y="264" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">Whistle 主服务（后台常驻）</text>
+<rect x="620" y="216" width="140" height="62" rx="10" fill="#ffffff" stroke="#6b8a85" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text x="690.0" y="240" font-size="17" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">cluster</text>
+<text x="690.0" y="262" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">master / workers</text>
+<line x1="274" y1="247" x2="336" y2="247" stroke="#0f7a68" stroke-width="2" fill="none" marker-end="url(#arrow-teal)"/>
+<text x="305" y="302" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#0f7a68" text-anchor="middle">cp.spawn(detached) + unref</text>
+<line x1="604" y1="247" x2="616" y2="247" stroke="#6b8a85" stroke-width="2" fill="none" marker-end="url(#arrow-gray)" stroke-dasharray="4 4"/>
+<text x="610" y="206" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#6b8a85" text-anchor="middle">可选</text>
+<rect x="70" y="320" width="690" height="190" rx="10" fill="#eee7f8" stroke="#7c5cbf" stroke-width="1.5" stroke-dasharray="5 5" fill-opacity="0.35"/>
+<text x="90" y="346" font-size="17" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">pfork 子进程组（child.sendData / process.on('data')）</text>
+<line x1="470" y1="280" x2="470" y2="316" stroke="#7c5cbf" stroke-width="2" fill="none" marker-end="url(#arrow-purple)"/>
+<text x="480" y="302" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#7c5cbf">fork / IPC 通道</text>
+<rect x="90" y="362" width="190" height="64" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="185.0" y="388" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">service 子进程</text>
+<text x="185.0" y="410" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">规则 / 插件 CGI</text>
+<rect x="320" y="362" width="190" height="64" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="415.0" y="388" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">插件 N</text>
+<text x="415.0" y="410" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">独立进程沙箱</text>
+<rect x="550" y="362" width="190" height="64" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="645.0" y="388" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">weinre</text>
+<text x="645.0" y="410" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">远程调试服务</text>
+<text x="90" y="452" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">child.sendData + process.on('data') · IPC 消息 '1' 心跳 1s</text>
+<text x="90" y="476" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">127.0.0.1:&lt;port&gt;/cgi-bin/* 供 Web UI CGI 轮询</text>
+<rect x="70" y="528" width="690" height="168" rx="10" fill="#ffffff" stroke="#cfded9" stroke-width="1.5"/>
+<text x="86" y="554" font-size="17" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">通信方式速查</text>
+<circle cx="92" cy="575" r="5" fill="#0f7a68"/>
+<text x="108" y="580" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">cp.spawn(detached:true) + unref → 业务进程后台常驻</text>
+<circle cx="92" cy="601" r="5" fill="#c0504d"/>
+<text x="108" y="606" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">~/.startingAppData 写 PID → w2 stop 时 process.kill</text>
+<circle cx="92" cy="627" r="5" fill="#7c5cbf"/>
+<text x="108" y="632" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">child.sendData + process.on('data') → pfork IPC</text>
+<circle cx="92" cy="653" r="5" fill="#d9822b"/>
+<text x="108" y="658" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">IPC 消息 '1' 心跳，间隔 1s 保活</text>
+<circle cx="92" cy="679" r="5" fill="#2f6fb5"/>
+<text x="108" y="684" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">127.0.0.1:&lt;port&gt;/cgi-bin/* → Web UI CGI 轮询</text>
+<rect x="844" y="216" width="696" height="68" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="864" y="244" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">config（模块单例，require 缓存共享）</text>
+<text x="864" y="270" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">所有模块读取同一份状态：端口 / baseDir / 规则 / 插件</text>
+<rect x="844" y="312" width="696" height="188" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5" stroke-dasharray="5 5"/>
+<text x="864" y="334" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#7c5cbf">配置输入源（按优先级覆盖）</text>
+<line x1="1192" y1="310" x2="1192" y2="286" stroke="#7c5cbf" stroke-width="2" fill="none" marker-end="url(#arrow-purple)"/>
+<rect x="844" y="348" width="216" height="58" rx="10" fill="#eee7f8" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="952.0" y="372" font-size="17" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">package.json</text>
+<text x="952.0" y="394" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">内置默认值</text>
+<rect x="1084" y="348" width="216" height="58" rx="10" fill="#eee7f8" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1192.0" y="372" font-size="17" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">~/.whistlerc</text>
+<text x="1192.0" y="394" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">用户级配置</text>
+<rect x="1324" y="348" width="216" height="58" rx="10" fill="#eee7f8" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1432.0" y="372" font-size="17" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">CLI options</text>
+<text x="1432.0" y="394" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">-p / --data</text>
+<rect x="964" y="424" width="216" height="58" rx="10" fill="#eee7f8" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1072.0" y="448" font-size="17" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">环境变量</text>
+<text x="1072.0" y="470" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">WHISTLE_* / PORT</text>
+<rect x="1204" y="424" width="216" height="58" rx="10" fill="#eee7f8" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1312.0" y="448" font-size="17" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">--config</text>
+<text x="1312.0" y="470" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">外部配置文件</text>
+<text x="844" y="540" font-size="17" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">baseDir：~/.WhistleAppData/.whistle</text>
+<rect x="844" y="556" width="126" height="44" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="907.0" y="584" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">rules</text>
+<rect x="986" y="556" width="126" height="44" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1049.0" y="584" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">values</text>
+<rect x="1128" y="556" width="126" height="44" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1191.0" y="584" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">properties</text>
+<rect x="1270" y="556" width="126" height="44" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1333.0" y="584" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">certs</text>
+<rect x="1412" y="556" width="126" height="44" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="1475.0" y="584" font-size="16" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">custom_dirs</text>
+<text x="844" y="628" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">certs 存放本地根 CA 与动态签发的证书；rules / values / properties 存规则与配置。</text>
+<text x="844" y="652" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">custom_dirs 指向用户自定义规则目录，变更通过下列三条路径通知。</text>
+<rect x="40" y="720" width="1520" height="190" rx="10" fill="#eef3f2" stroke="#6b8a85" stroke-width="1.5" fill-opacity="0.5"/>
+<text x="56" y="748" font-size="20" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35">三条变更通知路径</text>
+<rect x="56" y="768" width="472" height="116" rx="10" fill="#ffffff" stroke="#6b8a85" stroke-width="1.5"/>
+<text x="292.0" y="796" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">① proxyEvents.emit</text>
+<text x="292.0" y="822" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">规则/插件变更 → 进程内订阅者</text>
+<text x="292.0" y="846" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">立即刷新内存 config / rules</text>
+<text x="292.0" y="870" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#2f6fb5" text-anchor="middle">lib/config.js · lib/rules</text>
+<rect x="552" y="768" width="472" height="116" rx="10" fill="#ffffff" stroke="#6b8a85" stroke-width="1.5"/>
+<text x="788.0" y="796" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">② setModified + 前端轮询</text>
+<text x="788.0" y="822" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">写标记位 → Web UI CGI 轮询</text>
+<text x="788.0" y="846" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">前端拉取最新 rules / values</text>
+<text x="788.0" y="870" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#2f6fb5" text-anchor="middle">cgi-bin/* · data-server.js</text>
+<rect x="1048" y="768" width="472" height="116" rx="10" fill="#ffffff" stroke="#6b8a85" stroke-width="1.5"/>
+<text x="1284.0" y="796" font-size="18" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#173a35" text-anchor="middle">③ service 子进程 sendData</text>
+<text x="1284.0" y="822" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">pfork 侧变更通过 IPC 回传</text>
+<text x="1284.0" y="846" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c" text-anchor="middle">process.on('data') 合并到主进程</text>
+<text x="1284.0" y="870" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#2f6fb5" text-anchor="middle">lib/plugins · pfork</text>
+<rect x="40" y="926" width="1520" height="36" rx="10" fill="#ffffff" stroke="#cfded9" stroke-width="1.5"/>
+<rect x="60.0" y="936.0" width="16" height="16" rx="4" fill="#0f7a68" stroke="#6b8a85" stroke-width="1"/>
+<text x="84.0" y="949.0" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">进程创建 / detached</text>
+<rect x="313.33333333333337" y="936.0" width="16" height="16" rx="4" fill="#c0504d" stroke="#6b8a85" stroke-width="1"/>
+<text x="337.33333333333337" y="949.0" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">PID 与停止信号</text>
+<rect x="566.6666666666667" y="936.0" width="16" height="16" rx="4" fill="#7c5cbf" stroke="#6b8a85" stroke-width="1"/>
+<text x="590.6666666666667" y="949.0" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">pfork IPC</text>
+<rect x="820.0" y="936.0" width="16" height="16" rx="4" fill="#d9822b" stroke="#6b8a85" stroke-width="1"/>
+<text x="844.0" y="949.0" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">心跳 1s</text>
+<rect x="1073.3333333333335" y="936.0" width="16" height="16" rx="4" fill="#2f6fb5" stroke="#6b8a85" stroke-width="1"/>
+<text x="1097.3333333333335" y="949.0" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">Web UI CGI HTTP</text>
+<rect x="1326.6666666666667" y="936.0" width="16" height="16" rx="4" fill="#6b8a85" stroke="#6b8a85" stroke-width="1"/>
+<text x="1350.6666666666667" y="949.0" font-size="15" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#52706c">cluster 可选</text>
+<text x="1560" y="986" font-size="14" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" fill="#8aa5a0" text-anchor="end">Whistle 源码研读 · guide@3b85cebc4</text>
+</svg>

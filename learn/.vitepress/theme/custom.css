@@ -1,0 +1,503 @@
+/* ============================================================
+   Whistle 源码研读站 · 主题样式
+   目标：亮色为主、深色可用；宽表列宽可控；图片可放大细看。
+   ============================================================ */
+
+:root {
+  --vp-c-brand-1: #0f7a68;
+  --vp-c-brand-2: #12957e;
+  --vp-c-brand-3: #17b295;
+  --vp-c-brand-soft: rgba(15, 122, 104, 0.1);
+  --vp-c-tip-1: #0f7a68;
+  --vp-c-tip-soft: rgba(15, 122, 104, 0.08);
+  --vp-font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  --w-border: #dfe7e5;
+  --w-surface: #ffffff;
+  --w-surface-soft: #f5f9f8;
+  --w-ink: #1c3431;
+  --w-ink-soft: #52706c;
+  --w-shadow: 0 10px 36px rgba(18, 60, 53, 0.1);
+}
+
+.dark {
+  --vp-c-brand-1: #3dd6b5;
+  --vp-c-brand-2: #2ec2a4;
+  --vp-c-brand-3: #22ab90;
+  --vp-c-brand-soft: rgba(61, 214, 181, 0.12);
+  --w-border: #2c3c3a;
+  --w-surface: #182321;
+  --w-surface-soft: #1e2c2a;
+  --w-ink: #e3efec;
+  --w-ink-soft: #9fb7b2;
+  --w-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.vp-doc {
+  font-size: 15.5px;
+  line-height: 1.85;
+}
+
+/* ---------- 标题层级 ---------- */
+.vp-doc h2 {
+  margin: 44px 0 18px;
+  padding: 0 0 10px 14px;
+  border-bottom: 1px solid var(--w-border);
+  border-left: 4px solid var(--vp-c-brand-1);
+  border-radius: 2px;
+  font-size: 1.5rem;
+  letter-spacing: 0.01em;
+}
+
+.vp-doc h3 {
+  margin: 30px 0 12px;
+  font-size: 1.16rem;
+}
+
+.vp-doc h3::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 9px 3px 0;
+  border-radius: 50%;
+  background: var(--vp-c-brand-2);
+}
+
+.vp-doc h4 {
+  margin: 22px 0 10px;
+  font-size: 1.02rem;
+  color: var(--w-ink-soft);
+}
+
+/* ---------- 段落与行内代码 ---------- */
+.vp-doc p {
+  margin: 14px 0;
+}
+
+.vp-doc :not(pre) > code {
+  font-size: 0.875em;
+  padding: 0.16em 0.42em;
+  border-radius: 5px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.vp-doc li {
+  margin: 6px 0;
+}
+
+.vp-doc blockquote {
+  border-left: 3px solid var(--vp-c-brand-2);
+  background: var(--vp-c-brand-soft);
+  border-radius: 0 8px 8px 0;
+  padding: 8px 18px;
+  margin: 20px 0;
+  color: var(--w-ink-soft);
+}
+
+.vp-doc hr {
+  margin: 36px 0;
+  border: none;
+  border-top: 1px dashed var(--w-border);
+}
+
+/* ---------- 表格：可读性与列宽 ---------- */
+.vp-doc table {
+  display: table;
+  width: 100%;
+  margin: 22px 0;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.7;
+  border: 1px solid var(--w-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.vp-doc th,
+.vp-doc td {
+  padding: 9px 13px;
+  border: 1px solid var(--w-border);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.vp-doc thead th {
+  background: var(--w-surface-soft);
+  color: var(--w-ink);
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 2px solid var(--vp-c-brand-2);
+}
+
+.vp-doc tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--w-surface-soft) 55%, transparent);
+}
+
+.vp-doc tbody tr:hover {
+  background: var(--vp-c-brand-soft);
+}
+
+.vp-doc table code {
+  font-size: 12.5px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* ::: cols 20|30|50 —— 手工指定列宽，保证长/短列各得其所 */
+.tbl-cols table {
+  table-layout: fixed;
+}
+
+.tbl-cols table th:nth-child(1), .tbl-cols table td:nth-child(1) { width: var(--c1, auto); }
+.tbl-cols table th:nth-child(2), .tbl-cols table td:nth-child(2) { width: var(--c2, auto); }
+.tbl-cols table th:nth-child(3), .tbl-cols table td:nth-child(3) { width: var(--c3, auto); }
+.tbl-cols table th:nth-child(4), .tbl-cols table td:nth-child(4) { width: var(--c4, auto); }
+.tbl-cols table th:nth-child(5), .tbl-cols table td:nth-child(5) { width: var(--c5, auto); }
+.tbl-cols table th:nth-child(6), .tbl-cols table td:nth-child(6) { width: var(--c6, auto); }
+
+@media (max-width: 768px) {
+  .vp-doc table {
+    display: block;
+    overflow-x: auto;
+    white-space: normal;
+  }
+  .vp-doc thead th { white-space: normal; }
+}
+
+/* ---------- 图片：明确的可放大提示 ---------- */
+.vp-doc img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 24px auto;
+  border: 1px solid var(--w-border);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 3px 14px rgba(20, 60, 54, 0.07);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.vp-doc img.wlb-zoomable {
+  cursor: zoom-in;
+}
+
+.vp-doc img.wlb-zoomable:hover {
+  box-shadow: 0 10px 30px rgba(15, 122, 104, 0.2);
+  transform: translateY(-2px);
+}
+
+/* 在图片右上角给出明确的「可放大」提示 */
+.vp-doc p:has(> img.wlb-zoomable) {
+  position: relative;
+}
+
+.vp-doc p:has(> img.wlb-zoomable)::after {
+  content: "⤢ 点击放大查看";
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(15, 122, 104, 0.9);
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  box-shadow: 0 2px 10px rgba(15, 60, 52, 0.18);
+}
+
+.vp-doc em {
+  color: var(--w-ink-soft);
+  font-size: 0.92em;
+}
+
+/* 图片下方的图注（用 *文字* 紧跟图片，会渲染成下一个段落） */
+.vp-doc p:has(> img.wlb-zoomable) + p > em:only-child {
+  display: block;
+  margin: -12px 0 26px;
+  text-align: center;
+  font-size: 0.88em;
+  color: var(--w-ink-soft);
+}
+
+/* ---------- 首页：站点信息与学习路径地图 ---------- */
+.VPHome .VPHero .name {
+  background: linear-gradient(110deg, #0f7a68 8%, #199a83 48%, #3d8fd0 96%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.VPHome .VPHero .tagline {
+  color: var(--w-ink-soft);
+}
+
+.VPHome .VPFeature {
+  background: var(--w-surface-soft);
+  border: 1px solid var(--w-border);
+  border-radius: 12px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.VPHome .VPFeature:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--w-shadow);
+}
+
+.meta-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 8px 0 30px;
+}
+
+.meta-strip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--w-border);
+  border-radius: 999px;
+  background: var(--w-surface-soft);
+  font-size: 13px;
+  color: var(--w-ink-soft);
+}
+
+.path-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+  margin: 22px 0 34px;
+}
+
+.path-card {
+  display: block;
+  padding: 16px 18px;
+  border: 1px solid var(--w-border);
+  border-radius: 12px;
+  background: var(--w-surface);
+  text-decoration: none !important;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.path-card:hover {
+  border-color: var(--vp-c-brand-2);
+  box-shadow: var(--w-shadow);
+  transform: translateY(-2px);
+}
+
+.path-card__num {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--vp-c-brand-1);
+  margin-bottom: 6px;
+}
+
+.path-card__title {
+  display: block;
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--w-ink);
+  margin-bottom: 6px;
+}
+
+.path-card__desc {
+  display: block;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--w-ink-soft);
+}
+
+.path-card__links {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--vp-c-brand-1);
+}
+
+/* ---------- 图片放大查看器 ---------- */
+.wlb {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  font-family: var(--vp-font-family-base);
+}
+
+.wlb.is-open {
+  display: flex;
+}
+
+body.wlb-no-scroll {
+  overflow: hidden;
+}
+
+.wlb__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 24, 22, 0.92);
+  backdrop-filter: blur(6px);
+}
+
+.wlb__bar,
+.wlb__foot {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  color: #eaf5f2;
+  background: rgba(9, 22, 20, 0.72);
+}
+
+.wlb__bar {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.wlb__foot {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  flex-wrap: wrap;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.wlb__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.wlb__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3dd6b5;
+  box-shadow: 0 0 10px #3dd6b5;
+}
+
+.wlb__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.wlb__actions button {
+  min-width: 34px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #eaf5f2;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.wlb__actions button:hover {
+  background: rgba(61, 214, 181, 0.28);
+}
+
+.wlb__actions .wlb__close {
+  font-size: 15px;
+  min-width: 34px;
+}
+
+.wlb__scale {
+  min-width: 52px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: #b9d6cf;
+}
+
+.wlb__viewport {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+}
+
+.wlb.is-dragging .wlb__viewport {
+  cursor: grabbing;
+}
+
+.wlb__stage {
+  transform-origin: center center;
+  will-change: transform;
+  line-height: 0;
+}
+
+.wlb__img {
+  display: block;
+  max-width: none;
+  width: auto;
+  height: auto;
+  margin: 0;
+  border: none;
+  border-radius: 4px;
+  background: #ffffff;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.55);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.wlb__caption {
+  font-size: 13px;
+  color: #eaf5f2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70%;
+}
+
+.wlb__hint {
+  font-size: 12px;
+  color: #8fb4ac;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .wlb__bar { padding: 10px 12px; flex-wrap: wrap; }
+  .wlb__brand { display: none; }
+  .wlb__actions { gap: 5px; }
+  .wlb__actions button { padding: 0 8px; font-size: 12px; }
+  .wlb__hint { display: none; }
+  .wlb__caption { max-width: 100%; }
+}
+
+/* ---------- 侧栏与内容宽度 ---------- */
+.VPSidebar {
+  scrollbar-width: thin;
+}
+
+.vp-doc .custom-block.tip {
+  border-color: var(--vp-c-brand-2);
+}
+
+.vp-doc div[class*='language-'] {
+  border-radius: 10px;
+}

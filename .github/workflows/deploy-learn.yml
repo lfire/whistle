@@ -1,0 +1,68 @@
+name: Deploy Whistle 源码研读站
+
+on:
+  push:
+    branches:
+      - guide
+      - master
+      - main
+    paths:
+      - 'learn/**'
+      - '.github/workflows/deploy-learn.yml'
+  workflow_dispatch:
+
+# 允许 deploy-pages 使用 GITHUB_TOKEN 发布到 GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只允许一个部署任务，避免并发发布互相覆盖
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: learn/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefix learn
+
+      - name: Build VitePress site
+        run: npm run build --prefix learn
+        env:
+          # 站点 base 固定为 /whistle/，对应 https://<owner>.github.io/whistle/
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Mark as static site
+        run: touch learn/.vitepress/dist/.nojekyll
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: learn/.vitepress/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

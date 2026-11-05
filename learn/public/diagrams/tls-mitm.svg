@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1080" viewBox="0 0 1600 1080">
+<rect width="100%" height="100%" fill="#f7faf9"/>
+<defs>
+<marker id="arrow" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#52706c"/></marker>
+<marker id="arrow-teal" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#0f7a68"/></marker>
+<marker id="arrow-blue" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#2f6fb5"/></marker>
+<marker id="arrow-orange" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#d9822b"/></marker>
+<marker id="arrow-purple" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#7c5cbf"/></marker>
+<marker id="arrow-red" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#c0504d"/></marker>
+<marker id="arrow-gray" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#6b8a85"/></marker>
+</defs>
+<rect x="0" y="0" width="1600" height="88" fill="#d9efe9"/>
+<rect x="0" y="0" width="9" height="88" fill="#0f7a68"/>
+<text x="36" y="42" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="30" fill="#173a35" text-anchor="start" font-weight="bold">MITM 双向 TLS 与证书签发时序</text>
+<text x="36" y="72" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#52706c" text-anchor="start" font-weight="normal">从 CONNECT 到两段独立 TLS：客户端 ↔ 内部 TLS Server ↔ 目标服务器</text>
+<text x="1572" y="1064" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="14" fill="#8aa5a0" text-anchor="end" font-weight="normal">Whistle 源码研读 · guide@3b85cebc4</text>
+<rect x="969.7" y="42" width="14" height="14" rx="3" fill="#2f6fb5"/>
+<text x="989.7" y="54" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">入站 / CONNECT</text>
+<rect x="1137.3" y="42" width="14" height="14" rx="3" fill="#0f7a68"/>
+<text x="1157.3" y="54" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">内部判定</text>
+<rect x="1242.5" y="42" width="14" height="14" rx="3" fill="#d9822b"/>
+<text x="1262.5" y="54" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">证书签发</text>
+<rect x="1347.7" y="42" width="14" height="14" rx="3" fill="#7c5cbf"/>
+<text x="1367.7" y="54" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">TLS 解密</text>
+<rect x="1459.5" y="42" width="14" height="14" rx="3" fill="#c0504d"/>
+<text x="1479.5" y="54" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">回写客户端</text>
+<rect x="28" y="98" width="154" height="100" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<rect x="28" y="98" width="154" height="5" rx="2" fill="#2f6fb5"/>
+<text x="105" y="143" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="middle" font-weight="bold">客户端</text>
+<text x="105" y="163" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="middle" font-weight="normal">Client / 浏览器</text>
+<rect x="190" y="98" width="154" height="100" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<rect x="190" y="98" width="154" height="5" rx="2" fill="#2f6fb5"/>
+<text x="267" y="143" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="middle" font-weight="bold">lib/tunnel.js</text>
+<text x="267" y="163" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="middle" font-weight="normal">CONNECT 隧道入口</text>
+<rect x="352" y="98" width="154" height="100" rx="10" fill="#ffffff" stroke="#0f7a68" stroke-width="1.5"/>
+<rect x="352" y="98" width="154" height="5" rx="2" fill="#0f7a68"/>
+<text x="429" y="143" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="middle" font-weight="bold">https/index.js</text>
+<text x="429" y="163" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="middle" font-weight="normal">dispatch 拦截判定</text>
+<rect x="514" y="98" width="154" height="100" rx="10" fill="#ffffff" stroke="#d9822b" stroke-width="1.5"/>
+<rect x="514" y="98" width="154" height="5" rx="2" fill="#d9822b"/>
+<text x="591" y="143" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="middle" font-weight="bold">https/ca.js</text>
+<text x="591" y="163" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="middle" font-weight="normal">根证书 / 签发</text>
+<rect x="676" y="98" width="154" height="100" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<rect x="676" y="98" width="154" height="5" rx="2" fill="#7c5cbf"/>
+<text x="753" y="143" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="middle" font-weight="bold">内部 TLS Server</text>
+<text x="753" y="163" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="middle" font-weight="normal">hagent 42900 / 43900</text>
+<rect x="838" y="98" width="154" height="100" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<rect x="838" y="98" width="154" height="5" rx="2" fill="#7c5cbf"/>
+<text x="915" y="143" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="middle" font-weight="bold">主 Express app</text>
+<text x="915" y="163" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="middle" font-weight="normal">+ inspectors</text>
+<rect x="1000" y="98" width="154" height="100" rx="10" fill="#ffffff" stroke="#d9822b" stroke-width="1.5"/>
+<rect x="1000" y="98" width="154" height="5" rx="2" fill="#d9822b"/>
+<text x="1077" y="123" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="middle" font-weight="bold">utils</text>
+<text x="1077" y="143" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="middle" font-weight="normal">https.request</text>
+<text x="1077" y="163" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="middle" font-weight="normal">tls.connect</text>
+<text x="1077" y="183" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="middle" font-weight="normal">http2.connect</text>
+<rect x="1162" y="98" width="154" height="100" rx="10" fill="#ffffff" stroke="#6b8a85" stroke-width="1.5"/>
+<rect x="1162" y="98" width="154" height="5" rx="2" fill="#6b8a85"/>
+<text x="1239" y="143" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="middle" font-weight="bold">目标服务器</text>
+<text x="1239" y="163" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="middle" font-weight="normal">origin server</text>
+<line x1="105" y1="198" x2="105" y2="992" stroke="#cfe0db" stroke-width="1.5" stroke-dasharray="5 5"/>
+<line x1="267" y1="198" x2="267" y2="992" stroke="#cfe0db" stroke-width="1.5" stroke-dasharray="5 5"/>
+<line x1="429" y1="198" x2="429" y2="992" stroke="#cfe0db" stroke-width="1.5" stroke-dasharray="5 5"/>
+<line x1="591" y1="198" x2="591" y2="992" stroke="#cfe0db" stroke-width="1.5" stroke-dasharray="5 5"/>
+<line x1="753" y1="198" x2="753" y2="992" stroke="#cfe0db" stroke-width="1.5" stroke-dasharray="5 5"/>
+<line x1="915" y1="198" x2="915" y2="992" stroke="#cfe0db" stroke-width="1.5" stroke-dasharray="5 5"/>
+<line x1="1077" y1="198" x2="1077" y2="992" stroke="#cfe0db" stroke-width="1.5" stroke-dasharray="5 5"/>
+<line x1="1239" y1="198" x2="1239" y2="992" stroke="#cfe0db" stroke-width="1.5" stroke-dasharray="5 5"/>
+<path d="M 591,245 L 619,245 L 619,263 L 601,263" stroke="#0f7a68" stroke-width="2" fill="none" marker-end="url(#arrow-teal)"/>
+<rect x="399.1" y="216" width="503.8" height="23" rx="6" fill="#ffffff" stroke="#dbe8e4" stroke-width="1"/>
+<text x="651" y="233" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="middle" font-weight="normal">启动期 createRootCA()：生成 / 读取 root.key + root.crt</text>
+<line x1="111" y1="295" x2="261" y2="295" stroke="#2f6fb5" stroke-width="2" fill="none" marker-end="url(#arrow-blue)"/>
+<rect x="65.05" y="266" width="241.9" height="23" rx="6" fill="#ffffff" stroke="#dbe8e4" stroke-width="1"/>
+<text x="186" y="283" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="middle" font-weight="normal">CONNECT example.com:443</text>
+<path d="M 267,345 L 295,345 L 295,363 L 277,363" stroke="#0f7a68" stroke-width="2" fill="none" marker-end="url(#arrow-teal)"/>
+<rect x="103.6" y="316" width="446.8" height="23" rx="6" fill="#ffffff" stroke="#dbe8e4" stroke-width="1"/>
+<text x="327" y="333" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="middle" font-weight="normal">isIntercept 判定：Host / 规则 / 白名单决定是否拦截</text>
+<line x1="273" y1="395" x2="423" y2="395" stroke="#2f6fb5" stroke-width="2" fill="none" marker-end="url(#arrow-blue)"/>
+<rect x="111.4" y="366" width="473.2" height="23" rx="6" fill="#ffffff" stroke="#dbe8e4" stroke-width="1"/>
+<text x="348" y="383" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="middle" font-weight="normal">dispatch() 转发；并先回 200 Connection Established</text>
+<path d="M 429,445 L 457,445 L 457,463 L 439,463" stroke="#0f7a68" stroke-width="2" fill="none" marker-end="url(#arrow-teal)"/>
+<rect x="260.35" y="416" width="457.3" height="23" rx="6" fill="#ffffff" stroke="#dbe8e4" stroke-width="1"/>
+<text x="489" y="433" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="middle" font-weight="normal">readOneChunk 判 chunk[0] === 22（TLS 握手首字节）</text>
+<path d="M 429,495 L 457,495 L 457,513 L 439,513" stroke="#0f7a68" stroke-width="2" fill="none" marker-end="url(#arrow-teal)"/>
+<rect x="322.15" y="466" width="333.7" height="23" rx="6" fill="#ffffff" stroke="#dbe8e4" stroke-width="1"/>
+<text x="489" y="483" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="middle" font-weight="normal">checkSNI 取 SNI；getDomain 归并域名</text>
+<line x1="435" y1="545" x2="585" y2="545" stroke="#d9822b" stroke-width="2" fill="none" marker-end="url(#arrow-orange)"/>
+<rect x="244.9" y="516" width="530.2" height="23" rx="6" fill="#ffffff" stroke="#dbe8e4" stroke-width="1"/>
+<text x="510" y="533" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="middle" font-weight="normal">getOrCreateCert → createSelfCert → createSecureContext</text>
+<path d="M 591,595 L 619,595 L 619,613 L 601,613" stroke="#d9822b" stroke-width="2" fill="none" marker-end="url(#arrow-orange)"/>
+<rect x="400.75" y="566" width="500.5" height="23" rx="6" fill="#ffffff" stroke="#dbe8e4" stroke-width="1"/>
+<text x="651" y="583" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="middle" font-weight="normal">RSA2048 复用根私钥 · CN/SAN/AKI · SHA256 · 36 天有效期</text>
+<line x1="111" y1="645" x2="747" y2="645" stroke="#7c5cbf" stroke-width="2" fill="none" marker-end="url(#arrow-purple)"/>
+<rect x="299.95" y="616" width="258.1" height="23" rx="6" fill="#ffffff" stroke="#dbe8e4" stroke-width="1"/>
+<text x="429" y="633" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="middle" font-weight="normal">客户端 TLS 握手，拿到伪造证书</text>
+<line x1="759" y1="695" x2="909" y2="695" stroke="#7c5cbf" stroke-width="2" fill="none" marker-end="url(#arrow-purple)"/>
+<rect x="580.15" y="666" width="507.7" height="23" rx="6" fill="#ffffff" stroke="#dbe8e4" stroke-width="1"/>
+<text x="834" y="683" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="middle" font-weight="normal">解密后 addReqInfo + server.emit('request') 回 Express</text>
+<path d="M 915,745 L 943,745 L 943,763 L 925,763" stroke="#7c5cbf" stroke-width="2" fill="none" marker-end="url(#arrow-purple)"/>
+<rect x="779.5" y="716" width="391" height="23" rx="6" fill="#ffffff" stroke="#dbe8e4" stroke-width="1"/>
+<text x="975" y="733" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="middle" font-weight="normal">规则匹配 / 抓包采样 / 请求改写（inspectors）</text>
+<line x1="921" y1="795" x2="1071" y2="795" stroke="#d9822b" stroke-width="2" fill="none" marker-end="url(#arrow-orange)"/>
+<rect x="888.25" y="766" width="215.5" height="23" rx="6" fill="#ffffff" stroke="#dbe8e4" stroke-width="1"/>
+<text x="996" y="783" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="middle" font-weight="normal">出站请求交给 utils 发起</text>
+<line x1="1083" y1="845" x2="1233" y2="845" stroke="#d9822b" stroke-width="2" fill="none" marker-end="url(#arrow-orange)"/>
+<rect x="805.3" y="816" width="519.7" height="23" rx="6" fill="#ffffff" stroke="#dbe8e4" stroke-width="1"/>
+<text x="1065.15" y="833" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="middle" font-weight="normal">真实 TLS：servername=SNI，rejectUnauthorized 默认 false</text>
+<line x1="1233" y1="895" x2="1083" y2="895" stroke="#6b8a85" stroke-width="2" fill="none" marker-end="url(#arrow-gray)"/>
+<rect x="1098.1" y="866" width="119.8" height="23" rx="6" fill="#ffffff" stroke="#dbe8e4" stroke-width="1"/>
+<text x="1158" y="883" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="middle" font-weight="normal">明文响应回读</text>
+<line x1="747" y1="945" x2="111" y2="945" stroke="#c0504d" stroke-width="2" fill="none" marker-end="url(#arrow-red)"/>
+<rect x="282.7" y="916" width="292.6" height="23" rx="6" fill="#ffffff" stroke="#dbe8e4" stroke-width="1"/>
+<text x="429" y="933" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#173a35" text-anchor="middle" font-weight="normal">内部 TLS Server 加密后写回客户端</text>
+<rect x="1340" y="215" width="236" height="200" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<rect x="1340" y="215" width="236" height="5" rx="2" fill="#7c5cbf"/>
+<text x="1352" y="249" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="20" fill="#7c5cbf" text-anchor="start" font-weight="bold">两段 TLS 完全独立</text>
+<text x="1352" y="278" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">客户端 ↔ 内部 TLS</text>
+<text x="1352" y="302" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">内部 TLS ↔ 目标服务器</text>
+<text x="1352" y="326" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">各自独立握手 / 独立密钥</text>
+<text x="1352" y="350" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">明文仅在进程内传递</text>
+<text x="1352" y="374" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">解密与再加密同进程完成</text>
+<rect x="1340" y="435" width="236" height="200" rx="10" fill="#ffffff" stroke="#0f7a68" stroke-width="1.5"/>
+<rect x="1340" y="435" width="236" height="5" rx="2" fill="#0f7a68"/>
+<text x="1352" y="469" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="20" fill="#0f7a68" text-anchor="start" font-weight="bold">首包不可解密时回退</text>
+<text x="1352" y="498" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">readOneChunk 判首字节</text>
+<text x="1352" y="522" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">chunk[0] === 22 → TLS</text>
+<text x="1352" y="546" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">否则不拦截、不伪造证书</text>
+<text x="1352" y="570" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">next(chunk) 回退纯透传</text>
+<text x="1352" y="594" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">原样 pipe 到目标服务器</text>
+<rect x="1340" y="655" width="236" height="195" rx="10" fill="#ffffff" stroke="#d9822b" stroke-width="1.5"/>
+<rect x="1340" y="655" width="236" height="5" rx="2" fill="#d9822b"/>
+<text x="1352" y="689" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="20" fill="#d9822b" text-anchor="start" font-weight="bold">三级 LRU 缓存</text>
+<text x="1352" y="718" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">customPairs 自定义证书对</text>
+<text x="1352" y="742" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">cachePairs 5120</text>
+<text x="1352" y="766" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">certsCache 256</text>
+<text x="1352" y="790" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">remoteCerts 1280</text>
+<text x="1352" y="814" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">优先命中，未命中才签发</text>
+<rect x="30" y="1000" width="1290" height="44" rx="10" fill="#ffffff" stroke="#0f7a68" stroke-width="1.5"/>
+<text x="44" y="1027.6" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#173a35" text-anchor="start" font-weight="normal">两段 TLS 会话在进程内以明文衔接；证书缓存命中率决定握手开销</text>
+</svg>
