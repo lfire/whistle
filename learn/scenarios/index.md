@@ -48,20 +48,20 @@ description: 用「工程问题 → 设计原则 → 内核机制 → 源码位�
 
 ## 场景地图
 
-本层共 10 篇（含本页总览），其中 9 篇场景正文按 6 类分组，均已发布并收录进侧边栏。每篇回答一个明确的工程问题，并给出对应的素材出处，可按下面链接直接跳转。
+本层共 10 篇（含本页总览），占全站统一编号 **18–27**（编号规则见[站点导览](/guide/orientation)）；18 是本页总览，19–27 是按 6 类分组的 9 篇场景正文，均已发布并收录进侧边栏。每篇回答一个明确的工程问题，并给出对应的素材出处，可按下面链接直接跳转。
 
 ::: cols 16|28|36|20
 | 分组 | 场景文档 | 回答的工程问题 | 主要素材 |
 |---|---|---|---|
-| 环境与路由 | [本地联调与环境切换](/scenarios/local-env) | 不改代码把整站切到 dev server | getting-started、host |
-| 契约与模拟 | [接口未就绪：Mock 与契约先行](/scenarios/mock-contract) | 后端没写好时先固定返回 | file、tpl、statusCode |
-| 复现与回放 | [复现、保存与重放](/scenarios/reproduce-replay) | 把偶现请求存下来反复重放 | gui、composer 测试 |
-| 故障与容错 | [弱网与异常注入](/scenarios/fault-injection) | 把偶发超时抖动变成必现 | statusCode、reqDelay |
-| 证书与真机 | [HTTPS、证书与鉴权排障](/scenarios/https-trust) | 定位 Tunnel to 与证书不受信任 | faq、ca.js、enable |
-| 证书与真机 | [真机、移动端与远程调试](/scenarios/mobile-remote) | 手机流量接入并做页面内调试 | mobile、weinre |
-| 协作与工程化 | [协作与配置管理](/scenarios/collab-config) | 规则分组、Values 与多人共享 | cli、rules、storage |
-| 协作与工程化 | [CI、嵌入式集成与自动化回归](/scenarios/automation) | 把代理内嵌进 CI 并断言规则生效 | test/、npm.md |
-| 协作与工程化 | [边界、阈值与默认行为](/scenarios/boundaries) | 汇总内存、容量与失效边界 | data-server、enable |
+| 环境与路由 | [19 本地联调与环境切换](/scenarios/local-env) | 不改代码把整站切到 dev server | getting-started、host |
+| 契约与模拟 | [20 接口未就绪：Mock 与契约先行](/scenarios/mock-contract) | 后端没写好时先固定返回 | file、tpl、statusCode |
+| 复现与回放 | [21 复现、保存与重放](/scenarios/reproduce-replay) | 把偶现请求存下来反复重放 | gui、composer 测试 |
+| 故障与容错 | [22 弱网与异常注入](/scenarios/fault-injection) | 把偶发超时抖动变成必现 | statusCode、reqDelay |
+| 证书与真机 | [23 HTTPS、证书与鉴权排障](/scenarios/https-trust) | 定位 Tunnel to 与证书不受信任 | faq、ca.js、enable |
+| 证书与真机 | [24 真机、移动端与远程调试](/scenarios/mobile-remote) | 手机流量接入并做页面内调试 | mobile、weinre |
+| 协作与工程化 | [25 协作与配置管理](/scenarios/collab-config) | 规则分组、Values 与多人共享 | cli、rules、storage |
+| 协作与工程化 | [26 CI、嵌入式集成与自动化回归](/scenarios/automation) | 把代理内嵌进 CI 并断言规则生效 | test/、npm.md |
+| 协作与工程化 | [27 边界、阈值与默认行为](/scenarios/boundaries) | 汇总内存、容量与失效边界 | data-server、enable |
 :::
 
 这 9 篇不是操作手册的目录，而是「问题类型」的目录：同一条 `file://` 规则，在「本地联调」里是目录映射，在「Mock」里是内联短路，在「复现」里是会话导出后重放的输入。分类的用意，正是逼出同一机制在不同约束下的不同用法。

@@ -63,7 +63,7 @@ description: 用词典式的详尽词条把工程里的专业名词讲透，建�
 
 ### 三条路线
 
-- **系统通读**：从 [01 代理与流量入口](/concepts/01-proxy) 顺读到 [07 扩展与工程化](/concepts/07-extension)，再进[辨析](/concepts/08-confusions)与[贯通](/concepts/09-walkthrough)。适合第一次接触代理内核，或想把已有经验重新梳理成体系。
+- **系统通读**：从[代理与流量入口](/concepts/01-proxy)顺读到[扩展与工程化](/concepts/07-extension)，再进[辨析](/concepts/08-confusions)与[贯通](/concepts/09-walkthrough)。适合第一次接触代理内核，或想把已有经验重新梳理成体系。
 - **按词回查**：带着具体名词直接跳进对应篇，用页内标题定位卡片，读完「容易混淆」再顺着链接去[辨析篇](/concepts/08-confusions)；[术语索引](/concepts/glossary)与[速查表](/advanced/reference)负责快速定位。适合读源码时被一个词卡住。
 - **结合场景**：从[工程场景总览](/scenarios/index)挑一个真实问题（如[真机接入](/scenarios/mobile-remote)、[弱网注入](/scenarios/fault-injection)），遇到不懂的名词再回到本板块查卡片，最后用[动手实验](/advanced/hands-on)验证。适合「先有问题、后补概念」。
 
@@ -102,17 +102,19 @@ w2 ca
 
 ## 板块目录
 
-1. [概念精解：从名词到工程直觉](/concepts/index)（本篇）：板块定位、五层递进、概念关系与三种读法。
-2. [第一层：代理与流量入口](/concepts/01-proxy)：正向、反向、系统代理、PAC、上游代理、CONNECT、SOCKSv5 与隧道。
-3. [第一层：HTTP 报文与连接语义](/concepts/02-http)：报文结构、分块与压缩、Keep-Alive、HTTP/2、ALPN、Upgrade 与帧。
-4. [第二层：TLS、证书与信任](/concepts/03-tls)：中间人、CA、证书链、SNI、SAN 与信任存储。
-5. [第三层：Node 运行时与内核骨架](/concepts/04-runtime)：Stream、事件循环、连接池与进程模型。
-6. [第三层：抓包数据面与帧](/concepts/05-capture)：四阶段 inspector、请求与响应采集、缓存。
-7. [第四层：规则 DSL 全景](/concepts/06-rules)：pattern、protocol、Values 与匹配优先级。
-8. [第五层：扩展机制与工程化](/concepts/07-extension)：插件 hook、多实例与配置即代码。
-9. [易混淆概念辨析](/concepts/08-confusions)：成对名词的集中对照与判别口诀。
-10. [一次请求的贯通推演](/concepts/09-walkthrough)：把全部词条串成一条完整链路。
-11. [术语索引](/concepts/glossary)：按中文与英文回查全部名词及所在篇。
+本板块在全站统一编号中占 **31–41**（编号规则见[站点导览](/guide/orientation)）；下列序号就是全站编号，链接文字保留各篇自身的层级名。
+
+31. [概念精解：从名词到工程直觉](/concepts/index)（本篇）：板块定位、五层递进、概念关系与三种读法。
+32. [第一层：代理与流量入口](/concepts/01-proxy)：正向、反向、系统代理、PAC、上游代理、CONNECT、SOCKSv5 与隧道。
+33. [第一层：HTTP 报文与连接语义](/concepts/02-http)：报文结构、分块与压缩、Keep-Alive、HTTP/2、ALPN、Upgrade 与帧。
+34. [第二层：TLS、证书与信任](/concepts/03-tls)：中间人、CA、证书链、SNI、SAN 与信任存储。
+35. [第三层：Node 运行时与内核骨架](/concepts/04-runtime)：Stream、事件循环、连接池与进程模型。
+36. [第三层：抓包数据面与帧](/concepts/05-capture)：四阶段 inspector、请求与响应采集、缓存。
+37. [第四层：规则 DSL 全景](/concepts/06-rules)：pattern、protocol、Values 与匹配优先级。
+38. [第五层：扩展机制与工程化](/concepts/07-extension)：插件 hook、多实例与配置即代码。
+39. [易混淆概念辨析](/concepts/08-confusions)：成对名词的集中对照与判别口诀。
+40. [一次请求的贯通推演](/concepts/09-walkthrough)：把全部词条串成一条完整链路。
+41. [术语索引](/concepts/glossary)：按中文与英文回查全部名词及所在篇。
 
 ## 常见误解
 

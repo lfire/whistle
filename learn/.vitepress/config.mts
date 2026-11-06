@@ -4,71 +4,73 @@ import container from 'markdown-it-container'
 
 const BASE = '/whistle/'
 
+// 全站统一连续编号 01–41，与「41 篇正文」一一对应。
+// 分组标题表示层级/板块，条目前的两位数字表示全站阅读序号，两者维度不同。
 const guide = [
-  { text: '站点导览与代码地图', link: '/guide/orientation' }
+  { text: '01 站点导览与代码地图', link: '/guide/orientation' }
 ]
 
 const domain = [
-  { text: '1. 代理的形态与 CONNECT 隧道', link: '/domain/proxy-basics' },
-  { text: '2. HTTPS、证书链与中间人', link: '/domain/tls-mitm' },
-  { text: '3. HTTP/2、WebSocket 与流量形态', link: '/domain/web-protocols' },
-  { text: '4. 抓包调试的能力模型', link: '/domain/debugging-workflow' }
+  { text: '02 代理的形态与 CONNECT 隧道', link: '/domain/proxy-basics' },
+  { text: '03 HTTPS、证书链与中间人', link: '/domain/tls-mitm' },
+  { text: '04 HTTP/2、WebSocket 与流量形态', link: '/domain/web-protocols' },
+  { text: '05 抓包调试的能力模型', link: '/domain/debugging-workflow' }
 ]
 
 const architecture = [
-  { text: '5. 一张图看懂全局架构', link: '/architecture/overview' },
-  { text: '6. 从 w2 start 到端口监听', link: '/architecture/startup' },
-  { text: '7. 进程模型与配置系统', link: '/architecture/process-config' }
+  { text: '06 一张图看懂全局架构', link: '/architecture/overview' },
+  { text: '07 从 w2 start 到端口监听', link: '/architecture/startup' },
+  { text: '08 进程模型与配置系统', link: '/architecture/process-config' }
 ]
 
 const core = [
-  { text: '8. 一次 HTTP 代理请求的旅程', link: '/core/http-request' },
-  { text: '9. CONNECT 判定与 TLS 解密', link: '/core/connect-mitm' },
-  { text: '10. 隧道、WebSocket 与帧拦截', link: '/core/tunnel-websocket' },
-  { text: '11. 抓包数据的采集与上报', link: '/core/capture-data' }
+  { text: '09 一次 HTTP 代理请求的旅程', link: '/core/http-request' },
+  { text: '10 CONNECT 判定与 TLS 解密', link: '/core/connect-mitm' },
+  { text: '11 隧道、WebSocket 与帧拦截', link: '/core/tunnel-websocket' },
+  { text: '12 抓包数据的采集与上报', link: '/core/capture-data' }
 ]
 
 const modules = [
-  { text: '12. 规则引擎：解析与匹配', link: '/modules/rules-engine' },
-  { text: '13. 指令体系与分发链路', link: '/modules/protocol-catalog' },
-  { text: '14. 证书体系的实现细节', link: '/modules/certificates' },
-  { text: '15. 插件系统', link: '/modules/plugins' },
-  { text: '16. Web 管理界面', link: '/modules/webui' }
+  { text: '13 规则引擎：解析与匹配', link: '/modules/rules-engine' },
+  { text: '14 指令体系与分发链路', link: '/modules/protocol-catalog' },
+  { text: '15 证书体系的实现细节', link: '/modules/certificates' },
+  { text: '16 插件系统', link: '/modules/plugins' },
+  { text: '17 Web 管理界面', link: '/modules/webui' }
 ]
 
 // 横向专题：从工程问题出发，向上追溯设计思想、向下追溯到源码细节
 const scenarios = [
-  { text: '专题总览：场景、设计思想与源码追溯', link: '/scenarios/index' },
-  { text: '本地联调与环境切换', link: '/scenarios/local-env' },
-  { text: '接口未就绪：Mock 与契约先行', link: '/scenarios/mock-contract' },
-  { text: '复现、保存与重放', link: '/scenarios/reproduce-replay' },
-  { text: '弱网与异常注入', link: '/scenarios/fault-injection' },
-  { text: 'HTTPS、证书与鉴权排障', link: '/scenarios/https-trust' },
-  { text: '真机、移动端与远程调试', link: '/scenarios/mobile-remote' },
-  { text: '团队协作与配置即代码', link: '/scenarios/collab-config' },
-  { text: 'CI、嵌入式集成与自动化', link: '/scenarios/automation' },
-  { text: '能力边界、风险与合规', link: '/scenarios/boundaries' }
+  { text: '18 专题总览：设计思想与源码追溯', link: '/scenarios/index' },
+  { text: '19 本地联调与环境切换', link: '/scenarios/local-env' },
+  { text: '20 接口未就绪：Mock 与契约先行', link: '/scenarios/mock-contract' },
+  { text: '21 复现、保存与重放', link: '/scenarios/reproduce-replay' },
+  { text: '22 弱网与异常注入', link: '/scenarios/fault-injection' },
+  { text: '23 HTTPS、证书与鉴权排障', link: '/scenarios/https-trust' },
+  { text: '24 真机、移动端与远程调试', link: '/scenarios/mobile-remote' },
+  { text: '25 团队协作与配置即代码', link: '/scenarios/collab-config' },
+  { text: '26 CI、嵌入式集成与自动化', link: '/scenarios/automation' },
+  { text: '27 能力边界、风险与合规', link: '/scenarios/boundaries' }
 ]
 
 const advanced = [
-  { text: '17. 三个动手实验', link: '/advanced/hands-on' },
-  { text: '18. 源码阅读与调试路线', link: '/advanced/source-reading' },
-  { text: '19. 术语、路径与配置速查', link: '/advanced/reference' }
+  { text: '28 三个动手实验', link: '/advanced/hands-on' },
+  { text: '29 源码阅读与调试路线', link: '/advanced/source-reading' },
+  { text: '30 术语、路径与配置速查', link: '/advanced/reference' }
 ]
 
 // 概念词典式板块：把专业名词讲透，五层递进 + 辨析 / 贯通 / 索引
 const concepts = [
-  { text: '总览：从名词到工程直觉', link: '/concepts/index' },
-  { text: '1. 代理与流量入口', link: '/concepts/01-proxy' },
-  { text: '2. HTTP 报文与连接语义', link: '/concepts/02-http' },
-  { text: '3. TLS、证书与信任', link: '/concepts/03-tls' },
-  { text: '4. Node 运行时与内核骨架', link: '/concepts/04-runtime' },
-  { text: '5. 抓包数据面与帧', link: '/concepts/05-capture' },
-  { text: '6. 规则 DSL 全景', link: '/concepts/06-rules' },
-  { text: '7. 扩展机制与工程化', link: '/concepts/07-extension' },
-  { text: '8. 易混淆概念辨析', link: '/concepts/08-confusions' },
-  { text: '9. 一次请求里的全部概念', link: '/concepts/09-walkthrough' },
-  { text: '全量术语索引', link: '/concepts/glossary' }
+  { text: '31 总览：从名词到工程直觉', link: '/concepts/index' },
+  { text: '32 代理与流量入口', link: '/concepts/01-proxy' },
+  { text: '33 HTTP 报文与连接语义', link: '/concepts/02-http' },
+  { text: '34 TLS、证书与信任', link: '/concepts/03-tls' },
+  { text: '35 Node 运行时与内核骨架', link: '/concepts/04-runtime' },
+  { text: '36 抓包数据面与帧', link: '/concepts/05-capture' },
+  { text: '37 规则 DSL 全景', link: '/concepts/06-rules' },
+  { text: '38 扩展机制与工程化', link: '/concepts/07-extension' },
+  { text: '39 易混淆概念辨析', link: '/concepts/08-confusions' },
+  { text: '40 一次请求里的全部概念', link: '/concepts/09-walkthrough' },
+  { text: '41 全量术语索引', link: '/concepts/glossary' }
 ]
 
 export default defineConfig({
