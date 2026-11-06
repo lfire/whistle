@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1100" viewBox="0 0 1500 1100">
+<rect x="0" y="0" width="1500" height="1100" rx="0" fill="#f7faf9"/>
+<defs>
+<marker id="arrow-gray" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#6b8a85"/></marker>
+<marker id="arrow-teal" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#0f7a68"/></marker>
+<marker id="arrow-blue" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#2f6fb5"/></marker>
+<marker id="arrow-orange" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#d9822b"/></marker>
+<marker id="arrow-purple" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#7c5cbf"/></marker>
+<marker id="arrow-red" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#c0504d"/></marker>
+</defs>
+<rect x="0" y="0" width="1500" height="88" rx="0" fill="#d9efe9"/>
+<rect x="0" y="0" width="9" height="88" rx="0" fill="#0f7a68"/>
+<text x="36" y="42" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="30" fill="#173a35" text-anchor="start" font-weight="bold">协议栈与 Whistle 的四类入口</text>
+<text x="36" y="72" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#52706c" text-anchor="start" font-weight="normal">同一台 http.Server 上，四种事件把不同协议归一成 Express req / res</text>
+<rect x="40" y="112" width="560" height="34" rx="8" fill="#0f7a68"/>
+<text x="54" y="136" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#ffffff" text-anchor="start" font-weight="bold">协议 / 流量形态</text>
+<rect x="760" y="112" width="700" height="34" rx="8" fill="#7c5cbf"/>
+<text x="774" y="136" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#ffffff" text-anchor="start" font-weight="bold">Whistle 的事件入口与处理文件</text>
+<rect x="40" y="160" width="560" height="92" rx="10" fill="#d9efe9" stroke="#0f7a68" stroke-width="1.5"/>
+<text x="58" y="194" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#173a35" text-anchor="start" font-weight="bold">HTTP/1.1 明文请求</text>
+<text x="58" y="226" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">绝对 URI 请求行 / origin-form</text>
+<rect x="760" y="160" width="700" height="92" rx="10" fill="#ffffff" stroke="#0f7a68" stroke-width="1.5"/>
+<rect x="774" y="176" width="6" height="26" rx="3" fill="#0f7a68"/>
+<text x="792" y="196" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#0f7a68" text-anchor="start" font-weight="bold">事件：request</text>
+<text x="792" y="228" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">lib/index.js:209 → lib/init.js:157 → inspectors → handlers</text>
+<line x1="604" y1="206.0" x2="752" y2="206.0" stroke="#0f7a68" stroke-width="1.8" fill="none" marker-end="url(#arrow-teal)"/>
+<rect x="40" y="264" width="560" height="92" rx="10" fill="#e4eefb" stroke="#2f6fb5" stroke-width="1.5"/>
+<text x="58" y="298" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#173a35" text-anchor="start" font-weight="bold">HTTPS (CONNECT)</text>
+<text x="58" y="330" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">先建隧道，再按首包决定是否解密</text>
+<rect x="760" y="264" width="700" height="92" rx="10" fill="#ffffff" stroke="#2f6fb5" stroke-width="1.5"/>
+<rect x="774" y="280" width="6" height="26" rx="3" fill="#2f6fb5"/>
+<text x="792" y="300" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#2f6fb5" text-anchor="start" font-weight="bold">事件：connect</text>
+<text x="792" y="332" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">lib/tunnel.js:44 → isIntercept():168-213 → lib/https/index.js:1184</text>
+<line x1="604" y1="310.0" x2="752" y2="310.0" stroke="#2f6fb5" stroke-width="1.8" fill="none" marker-end="url(#arrow-blue)"/>
+<rect x="40" y="368" width="560" height="92" rx="10" fill="#eee7f8" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="58" y="402" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#173a35" text-anchor="start" font-weight="bold">HTTP/2 / h2c</text>
+<text x="58" y="434" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">ALPN 协商或明文 preface</text>
+<rect x="760" y="368" width="700" height="92" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<rect x="774" y="384" width="6" height="26" rx="3" fill="#7c5cbf"/>
+<text x="792" y="404" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#7c5cbf" text-anchor="start" font-weight="bold">事件：request (回流)</text>
+<text x="792" y="436" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">lib/https/h2.js:361 / :369 → toHttp1 lib/https/index.js:1013</text>
+<line x1="604" y1="414.0" x2="752" y2="414.0" stroke="#7c5cbf" stroke-width="1.8" fill="none" marker-end="url(#arrow-purple)"/>
+<rect x="40" y="472" width="560" height="92" rx="10" fill="#fbecd9" stroke="#d9822b" stroke-width="1.5"/>
+<text x="58" y="506" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#173a35" text-anchor="start" font-weight="bold">WebSocket / WSS</text>
+<text x="58" y="538" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">Upgrade + 101，之后是结构化帧</text>
+<rect x="760" y="472" width="700" height="92" rx="10" fill="#ffffff" stroke="#d9822b" stroke-width="1.5"/>
+<rect x="774" y="488" width="6" height="26" rx="3" fill="#d9822b"/>
+<text x="792" y="508" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#d9822b" text-anchor="start" font-weight="bold">事件：upgrade</text>
+<text x="792" y="540" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">lib/upgrade.js:180 → lib/socket-mgr.js:291-301</text>
+<line x1="604" y1="518.0" x2="752" y2="518.0" stroke="#d9822b" stroke-width="1.8" fill="none" marker-end="url(#arrow-orange)"/>
+<rect x="40" y="576" width="560" height="92" rx="10" fill="#fae6e5" stroke="#c0504d" stroke-width="1.5"/>
+<text x="58" y="610" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#173a35" text-anchor="start" font-weight="bold">SSE / chunked</text>
+<text x="58" y="642" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">响应不结束，按 \n\n 切事件块</text>
+<rect x="760" y="576" width="700" height="92" rx="10" fill="#ffffff" stroke="#c0504d" stroke-width="1.5"/>
+<rect x="774" y="592" width="6" height="26" rx="3" fill="#c0504d"/>
+<text x="792" y="612" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#c0504d" text-anchor="start" font-weight="bold">事件：request</text>
+<text x="792" y="644" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">lib/inspectors/data.js:14,331-355</text>
+<line x1="604" y1="622.0" x2="752" y2="622.0" stroke="#c0504d" stroke-width="1.8" fill="none" marker-end="url(#arrow-red)"/>
+<rect x="40" y="680" width="560" height="92" rx="10" fill="#eef3f2" stroke="#6b8a85" stroke-width="1.5"/>
+<text x="58" y="714" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#173a35" text-anchor="start" font-weight="bold">SOCKSv5</text>
+<text x="58" y="746" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">协商目标地址，翻译成内部 CONNECT</text>
+<rect x="760" y="680" width="700" height="92" rx="10" fill="#ffffff" stroke="#6b8a85" stroke-width="1.5"/>
+<rect x="774" y="696" width="6" height="26" rx="3" fill="#6b8a85"/>
+<text x="792" y="716" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#6b8a85" text-anchor="start" font-weight="bold">事件：connect (回连)</text>
+<text x="792" y="748" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">lib/index.js:151-207 → 主端口 connect</text>
+<line x1="604" y1="726.0" x2="752" y2="726.0" stroke="#6b8a85" stroke-width="1.8" fill="none" marker-end="url(#arrow-gray)"/>
+<rect x="40" y="784" width="560" height="92" rx="10" fill="#eef3f2" stroke="#6b8a85" stroke-width="1.5"/>
+<text x="58" y="818" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#173a35" text-anchor="start" font-weight="bold">TCP 裸字节流</text>
+<text x="58" y="850" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">无方法 / 头 / 体的双向管道</text>
+<rect x="760" y="784" width="700" height="92" rx="10" fill="#ffffff" stroke="#6b8a85" stroke-width="1.5"/>
+<rect x="774" y="800" width="6" height="26" rx="3" fill="#6b8a85"/>
+<text x="792" y="820" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#6b8a85" text-anchor="start" font-weight="bold">事件：connect</text>
+<text x="792" y="852" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">lib/tunnel.js:577-596 → socket-mgr.js:773</text>
+<line x1="604" y1="830.0" x2="752" y2="830.0" stroke="#6b8a85" stroke-width="1.8" fill="none" marker-end="url(#arrow-gray)"/>
+<rect x="40" y="888" width="560" height="92" rx="10" fill="#fae6e5" stroke="#c0504d" stroke-width="1.5"/>
+<text x="58" y="922" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#173a35" text-anchor="start" font-weight="bold">畸形 / 非法报文</text>
+<text x="58" y="954" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">解析失败、头溢出</text>
+<rect x="760" y="888" width="700" height="92" rx="10" fill="#ffffff" stroke="#c0504d" stroke-width="1.5"/>
+<rect x="774" y="904" width="6" height="26" rx="3" fill="#c0504d"/>
+<text x="792" y="924" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#c0504d" text-anchor="start" font-weight="bold">事件：clientError</text>
+<text x="792" y="956" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">lib/index.js:24-34（431 / 400）</text>
+<line x1="604" y1="934.0" x2="752" y2="934.0" stroke="#c0504d" stroke-width="1.8" fill="none" marker-end="url(#arrow-red)"/>
+<rect x="40" y="996" width="1420" height="46" rx="10" fill="#ffffff" stroke="#6b8a85" stroke-width="1.5"/>
+<text x="58" y="1025" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#173a35" text-anchor="start" font-weight="bold">关键理解：协议差异在入口层被消化，之后共用一条 app.use(mw.bind(proxyEvents)) 中间件链</text>
+<text x="1472" y="1090" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="14" fill="#8aa5a0" text-anchor="end" font-weight="normal">Whistle 源码研读 · guide@3b85cebc4</text>
+</svg>

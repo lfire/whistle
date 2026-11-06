@@ -56,6 +56,21 @@ const advanced = [
   { text: '19. 术语、路径与配置速查', link: '/advanced/reference' }
 ]
 
+// 概念词典式板块：把专业名词讲透，五层递进 + 辨析 / 贯通 / 索引
+const concepts = [
+  { text: '总览：从名词到工程直觉', link: '/concepts/index' },
+  { text: '1. 代理与流量入口', link: '/concepts/01-proxy' },
+  { text: '2. HTTP 报文与连接语义', link: '/concepts/02-http' },
+  { text: '3. TLS、证书与信任', link: '/concepts/03-tls' },
+  { text: '4. Node 运行时与内核骨架', link: '/concepts/04-runtime' },
+  { text: '5. 抓包数据面与帧', link: '/concepts/05-capture' },
+  { text: '6. 规则 DSL 全景', link: '/concepts/06-rules' },
+  { text: '7. 扩展机制与工程化', link: '/concepts/07-extension' },
+  { text: '8. 易混淆概念辨析', link: '/concepts/08-confusions' },
+  { text: '9. 一次请求里的全部概念', link: '/concepts/09-walkthrough' },
+  { text: '全量术语索引', link: '/concepts/glossary' }
+]
+
 export default defineConfig({
   lang: 'zh-CN',
   title: 'Whistle 源码研读',
@@ -107,6 +122,7 @@ export default defineConfig({
       { text: '架构与链路', link: '/architecture/overview' },
       { text: '模块深潜', link: '/modules/rules-engine' },
       { text: '工程场景', link: '/scenarios/index' },
+      { text: '概念精解', link: '/concepts/index' },
       { text: '实战速查', link: '/advanced/hands-on' }
     ],
     sidebar: [
@@ -116,7 +132,8 @@ export default defineConfig({
       { text: '第三层 · 核心链路', items: core },
       { text: '第四层 · 模块深潜', items: modules },
       { text: '专题 · 工程场景', items: scenarios },
-      { text: '第五层 · 进阶实践', items: advanced }
+      { text: '第五层 · 进阶实践', items: advanced },
+      { text: '概念精解 · 由词及理', items: concepts }
     ],
     search: {
       provider: 'local',

@@ -4,9 +4,10 @@
 
 - 源码基线：分支 `guide`，提交 `3b85cebc4`，`whistle v2.10.13`
 - 站点地址：`https://<owner>.github.io/whistle/`（`base` 固定为 `/whistle/`）
-- 内容：29 篇正文 + 15 张自绘 SVG 架构图，五层逐级递进，外加一层横向「工程场景」专题
-- 定位：讲「实现原理 + 源码细节 + 领域知识 + 工程场景」，与仓库根目录 `docs/` 的官方使用文档互补
+- 内容：41 篇正文 + 18 张自绘 SVG 架构图，五层逐级递进，外加「工程场景」与「概念精解」两大专题
+- 定位：讲「实现原理 + 源码细节 + 领域知识 + 工程场景 + 概念精解」，与仓库根目录 `docs/` 的官方使用文档互补
 - 工程场景专题：`scenarios/` 下 10 篇，从真实工程问题出发，向上追溯整体业务设计思想、向下定位到源码路径与行号；场景与规则均取自官方使用文档、集成测试与 CGI 实现
+- 概念精解专题：`concepts/` 下 11 篇，用「通俗定义 + 形象类比 + 源码落点 + 设计取舍 + 易混淆 + 工程实例」拆解约 360 个专业名词，含 83 组辨析、一次 HTTPS 请求的 28 步贯通案例与全量术语索引
 
 ## 本地开发
 
@@ -31,9 +32,9 @@ learn/
 │       ├── custom.css       # 主题色、表格列宽、首页卡片、查看器样式
 │       └── lightbox.ts      # 图片放大：缩放 / 拖拽 / 1:1 / ESC
 ├── public/
-│   ├── diagrams/*.svg       # 15 张架构图与时序图
+│   ├── diagrams/*.svg       # 18 张架构图与时序图
 │   └── favicon.svg
-├── guide/  domain/  architecture/  core/  modules/  scenarios/  advanced/
+├── guide/  domain/  architecture/  core/  modules/  scenarios/  advanced/  concepts/
 ├── index.md                 # 首页（VitePress home layout）
 ├── package.json
 └── package-lock.json
@@ -59,7 +60,9 @@ learn/
 
 **工程场景文档模板**：`scenarios/` 下每篇（总览页除外）固定使用「场景与痛点 → 可复制的配置 → 背后的设计思想 → 源码链路 → 边界与坑 → 小结 → 下一步」七段结构。其中「设计思想」必须链接回前面的架构/领域章节，「源码链路」必须链接到核心链路/模块章节并给出 `路径:行号`，以此保证每个场景都双向可追溯。配置与命令需注明来源（`docs/docs/` 文档、`test/` 用例或源码），不得凭常识编造。
 
-**新增文档**：把 markdown 放入对应目录后，在 `.vitepress/config.mts` 的侧栏数组里补一条；如需使用 `::: cols`，无需额外配置。
+**概念词条卡片**：`concepts/` 下每个核心词条用「一句话定义 → 打个比方 → 在 Whistle 里（路径:行号）→ 为什么这样设计 → 容易混淆 → 工程中的样子」六段展开；次要词条用 4 列速览表覆盖。每篇另需「本层概念地图 / 与工程实际结合 / 常见误解 / 小结 / 下一步」。目标是建立理解，不是罗列定义，因此不限制篇幅。
+
+**新增文档**：把 markdown 放入对应目录后，在 `.vitepress/config.mts` 的侧栏数组里补一条；正文第一行必须写与 frontmatter `title` 一致的 `# 一级标题`（VitePress 不会用 frontmatter 自动渲染 h1）。如需使用 `::: cols`，无需额外配置。
 
 ## 部署
 

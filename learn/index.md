@@ -21,12 +21,14 @@ features:
     details: 先讲清正向代理、CONNECT 隧道、证书链与 MITM、HTTP/2 与 WebSocket 帧，再读代码，避免只认得 API 却不理解取舍。
   - title: 结论都有出处
     details: 每个实现细节都标注仓库内文件路径与行号，可随时跳回源码核对；易混淆的概念单独点破。
-  - title: 五层递进 + 场景专题
-    details: 领域基础 → 全局架构 → 核心链路 → 模块深潜 → 工程场景 → 进阶实践，29 篇文档由浅入深，可顺读也可按需查阅。
+  - title: 五层递进 + 两大专题
+    details: 领域基础 → 全局架构 → 核心链路 → 模块深潜 → 工程场景 → 进阶实践，41 篇文档由浅入深，可顺读也可按需查阅。
   - title: 场景可双向追溯
     details: 10 篇工程场景从真实问题出发，向上追溯设计思想、向下定位到源码路径与行号，每个场景都有可复制的配置。
+  - title: 概念讲透，不点到为止
+    details: 11 篇概念精解用「类比 + 源码 + 设计取舍 + 易混淆 + 工程实例」拆解 360 个术语、83 组辨析与 28 步贯通链路。
   - title: 图表支持放大
-    details: 15 张自绘矢量架构图与时序图，点击即可放大、缩放、拖拽，解决信息密集图缩在正文里看不清的问题。
+    details: 18 张自绘矢量架构图与时序图，点击即可放大、缩放、拖拽，解决信息密集图缩在正文里看不清的问题。
 ---
 
 <div class="meta-strip">
@@ -34,7 +36,7 @@ features:
   <span>提交：3b85cebc4</span>
   <span>版本：whistle v2.10.13</span>
   <span>运行环境：Node.js ≥ 16</span>
-  <span>29 篇正文 · 15 张图</span>
+  <span>41 篇正文 · 18 张图</span>
 </div>
 
 ## 学习路径
@@ -83,6 +85,12 @@ features:
     <span class="path-card__title">动手、调试与速查</span>
     <span class="path-card__desc">三个可复制的实验、源码阅读路线与断点建议、术语/路径/配置/阈值速查。</span>
     <span class="path-card__links">3 篇 · 上手验证 →</span>
+  </a>
+  <a class="path-card" href="/concepts/index">
+    <span class="path-card__num">专题 · 概念精解</span>
+    <span class="path-card__title">把专业名词讲透</span>
+    <span class="path-card__desc">五层递进的概念词典：类比、源码落点、设计取舍、83 组易混辨析、28 步贯通案例与 360 条术语索引。</span>
+    <span class="path-card__links">11 篇 · 可通读也可回查 →</span>
   </a>
 </div>
 

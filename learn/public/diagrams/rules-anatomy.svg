@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1060" viewBox="0 0 1500 1060">
+<rect x="0" y="0" width="1500" height="1060" rx="0" fill="#f7faf9"/>
+<defs>
+<marker id="arrow-gray" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#6b8a85"/></marker>
+<marker id="arrow-teal" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#0f7a68"/></marker>
+<marker id="arrow-blue" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#2f6fb5"/></marker>
+<marker id="arrow-orange" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#d9822b"/></marker>
+<marker id="arrow-purple" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#7c5cbf"/></marker>
+<marker id="arrow-red" viewBox="0 0 9 6" markerWidth="11" markerHeight="8" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L0,6 L9,3 z" fill="#c0504d"/></marker>
+</defs>
+<rect x="0" y="0" width="1500" height="88" rx="0" fill="#d9efe9"/>
+<rect x="0" y="0" width="9" height="88" rx="0" fill="#0f7a68"/>
+<text x="36" y="42" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="30" fill="#173a35" text-anchor="start" font-weight="bold">一条规则的完整解剖</text>
+<text x="36" y="72" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#52706c" text-anchor="start" font-weight="normal">pattern + operation + filters + lineProps：编译期拍平，请求期命中</text>
+<rect x="40" y="120" width="1420" height="82" rx="10" fill="#ffffff" stroke="#6b8a85" stroke-width="1.5"/>
+<text x="58" y="152" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="bold">规则原文</text>
+<text x="58" y="184" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="20" fill="#173a35" text-anchor="start" font-weight="bold">www.example.com/api   file://({ok})   includeFilter://m:POST   lineProps://important</text>
+<rect x="40" y="230" width="1420" height="148" rx="10" fill="#d9efe9" stroke="#0f7a68" stroke-width="1.5"/>
+<rect x="58" y="250" width="6" height="34" rx="3" fill="#0f7a68"/>
+<text x="78" y="274" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="22" fill="#173a35" text-anchor="start" font-weight="bold">pattern</text>
+<text x="260" y="274" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="20" fill="#0f7a68" text-anchor="start" font-weight="bold">www.example.com/api</text>
+<text x="78" y="312" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="normal">匹配哪些 URL</text>
+<text x="78" y="346" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">域名 / 路径 / 通配 / 正则 / 精确 $ / 否定 !</text>
+<text x="1440" y="274" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#0f7a68" text-anchor="end" font-weight="bold">lib/rules/rules.js:997-1120</text>
+<rect x="40" y="398" width="1420" height="148" rx="10" fill="#e4eefb" stroke="#2f6fb5" stroke-width="1.5"/>
+<rect x="58" y="418" width="6" height="34" rx="3" fill="#2f6fb5"/>
+<text x="78" y="442" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="22" fill="#173a35" text-anchor="start" font-weight="bold">operation</text>
+<text x="260" y="442" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="20" fill="#2f6fb5" text-anchor="start" font-weight="bold">file://({ok})</text>
+<text x="78" y="480" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="normal">命中后做什么</text>
+<text x="78" y="514" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">protocol://value；未知协议回退 rule 桶</text>
+<text x="1440" y="442" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#2f6fb5" text-anchor="end" font-weight="bold">lib/rules/rules.js:1281-1407</text>
+<rect x="40" y="566" width="1420" height="148" rx="10" fill="#eee7f8" stroke="#7c5cbf" stroke-width="1.5"/>
+<rect x="58" y="586" width="6" height="34" rx="3" fill="#7c5cbf"/>
+<text x="78" y="610" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="22" fill="#173a35" text-anchor="start" font-weight="bold">filters</text>
+<text x="260" y="610" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="20" fill="#7c5cbf" text-anchor="start" font-weight="bold">includeFilter://m:POST</text>
+<text x="78" y="648" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="normal">进一步收窄条件</text>
+<text x="78" y="682" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">m / i / h / b / s / chance 等属性过滤</text>
+<text x="1440" y="610" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#7c5cbf" text-anchor="end" font-weight="bold">lib/rules/rules.js:1549-2009</text>
+<rect x="40" y="734" width="1420" height="148" rx="10" fill="#fbecd9" stroke="#d9822b" stroke-width="1.5"/>
+<rect x="58" y="754" width="6" height="34" rx="3" fill="#d9822b"/>
+<text x="78" y="778" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="22" fill="#173a35" text-anchor="start" font-weight="bold">lineProps</text>
+<text x="260" y="778" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="20" fill="#d9822b" text-anchor="start" font-weight="bold">lineProps://important</text>
+<text x="78" y="816" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="18" fill="#173a35" text-anchor="start" font-weight="normal">修饰这条规则的行为</text>
+<text x="78" y="850" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">提升到同类协议数组首位（保持相对序）</text>
+<text x="1440" y="778" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#d9822b" text-anchor="end" font-weight="bold">lib/rules/rules.js:1400-1407</text>
+<rect x="40" y="908" width="690" height="92" rx="10" fill="#ffffff" stroke="#0f7a68" stroke-width="1.5"/>
+<text x="58" y="942" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#0f7a68" text-anchor="start" font-weight="bold">编译期（改规则时）</text>
+<text x="58" y="976" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">parseText → parseRule → 按协议分桶 _rules[protocol]</text>
+<rect x="770" y="908" width="690" height="92" rx="10" fill="#ffffff" stroke="#7c5cbf" stroke-width="1.5"/>
+<text x="788" y="942" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="19" fill="#7c5cbf" text-anchor="start" font-weight="bold">请求期（每次请求）</text>
+<text x="788" y="976" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#52706c" text-anchor="start" font-weight="normal">resolveRuleList → 命中 → resolveValue → req.rules</text>
+<line x1="734" y1="954" x2="764" y2="954" stroke="#6b8a85" stroke-width="2" fill="none" marker-end="url(#arrow-gray)"/>
+<text x="1472" y="1048" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="14" fill="#8aa5a0" text-anchor="end" font-weight="normal">Whistle 源码研读 · guide@3b85cebc4</text>
+</svg>
