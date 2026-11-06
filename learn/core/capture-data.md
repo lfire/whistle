@@ -129,4 +129,4 @@ cgi.getData(options, function (data) {
 
 ## 下一步
 
-[《规则引擎：解析与匹配》](/modules/rules-engine)：核心链路到此闭环，下一篇进入第四层，看规则文本如何被解析并匹配到每一次请求。
+[《规则引擎：解析与匹配》](/modules/rules-engine)：核心链路到此闭环，下一篇进入模块深潜，看规则文本如何被解析并匹配到每一次请求。

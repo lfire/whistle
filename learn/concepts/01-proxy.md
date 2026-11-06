@@ -1,11 +1,11 @@
 ---
-title: 第一层：代理与流量入口
+title: 代理与流量入口
 description: 用十张词条卡片讲清正向代理、PAC、上游代理、CONNECT、SOCKSv5 与 tunnel:// 伪 URL。
 ---
 
-# 第一层：代理与流量入口
+# 代理与流量入口
 
-一切抓包与改写都始于一个朴素问题：客户端到底把请求交给了谁。本层是「概念精解」五层递进的第一层，前置概念只需要 TCP 连接、客户端与服务器、以及[代理的形态](/domain/proxy-basics)里的基本模型。读完你能判断任意一条流量该落进 `request` 还是 `connect`，说清系统代理、PAC 与上游代理各管哪一段，也明白为什么 CONNECT 的应答一发出，代理就从「看得懂 HTTP」退化成「只搬字节」。
+一切抓包与改写都始于一个朴素问题：客户端到底把请求交给了谁。本篇是「概念精解」分层递进的起点（全站编号 32），前置概念只需要 TCP 连接、客户端与服务器、以及[代理的形态](/domain/proxy-basics)里的基本模型。读完你能判断任意一条流量该落进 `request` 还是 `connect`，说清系统代理、PAC 与上游代理各管哪一段，也明白为什么 CONNECT 的应答一发出，代理就从「看得懂 HTTP」退化成「只搬字节」。
 
 ## 本层概念地图
 
@@ -173,7 +173,7 @@ server.on('connect', function (req, reqSocket) {
 
 **为什么这样设计**：HTTPS 不能沿用明文转发，客户端必须先要一条「干净的」TCP 通路再在里面跑 TLS，CONNECT 用最小的报文换来了协议无关性；代价是代理一旦答应，就失去了解析后续内容的能力，想抓明文只能另做中间人。Whistle 把「答应」与「是否解密」拆成两步，正是为了在这个岔路口保留选择权。
 
-**容易混淆**：CONNECT 不是业务请求，也不是 Upgrade；它不返回业务数据，只返回隧道是否就绪。与 `Upgrade / 101` 的差别见[第二层](/concepts/02-http)与[辨析篇](/concepts/08-confusions)。
+**容易混淆**：CONNECT 不是业务请求，也不是 Upgrade；它不返回业务数据，只返回隧道是否就绪。与 `Upgrade / 101` 的差别见[HTTP 报文与连接语义](/concepts/02-http)与[辨析篇](/concepts/08-confusions)。
 
 **工程中的样子**：抓包列表里那些只有域名和 `tunnel://` 的条目，就是 CONNECT 之后未解密的隧道；完整判定过程见[CONNECT 判定与 TLS 解密](/core/connect-mitm)，证书侧的排查见[HTTPS、证书与鉴权排障](/scenarios/https-trust)。
 
@@ -307,4 +307,4 @@ w2 proxy 0
 
 ## 下一步
 
-[《第一层：HTTP 报文与连接语义》](/concepts/02-http)：流量进门之后，讲清请求行、Header、Body、分块与压缩、Keep-Alive、HTTP/2 伪头、ALPN、Upgrade 与帧，看代理究竟能读懂多少、又能改写多少。
+[《HTTP 报文与连接语义》](/concepts/02-http)：流量进门之后，讲清请求行、Header、Body、分块与压缩、Keep-Alive、HTTP/2 伪头、ALPN、Upgrade 与帧，看代理究竟能读懂多少、又能改写多少。

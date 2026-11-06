@@ -1,11 +1,11 @@
 ---
-title: 第三层：Node 运行时与内核骨架
+title: Node 运行时与内核骨架
 description: 把四类事件、Express 中间件、Stream 与 pipe、事件总线、进程模型与配置单例拆成对照源码的词典式词条。
 ---
 
-# 第三层：Node 运行时与内核骨架
+# Node 运行时与内核骨架
 
-本层是「概念精解」的运行时篇，前置是 [第二层：TLS、证书与信任](/concepts/03-tls) 交付的那份解密后明文。这里把 Whistle 赖以运转的 Node 术语——`http.Server` 的四类事件、Express 中间件、Stream 与 `pipe`、事件总线、cluster 与 pfork、单例配置——逐个拆成可对照源码的卡片。读完你能说清「为什么 `lib/init.js` 不是启动文件」、`sockets=256` 到底限的是什么，也能把 [一张图看懂全局架构](/architecture/overview) 与 [一次 HTTP 代理请求的旅程](/core/http-request) 的名词全部对上号。
+本层是「概念精解」的运行时篇，前置是 [TLS、证书与信任](/concepts/03-tls) 交付的那份解密后明文。这里把 Whistle 赖以运转的 Node 术语——`http.Server` 的四类事件、Express 中间件、Stream 与 `pipe`、事件总线、cluster 与 pfork、单例配置——逐个拆成可对照源码的卡片。读完你能说清「为什么 `lib/init.js` 不是启动文件」、`sockets=256` 到底限的是什么，也能把 [一张图看懂全局架构](/architecture/overview) 与 [一次 HTTP 代理请求的旅程](/core/http-request) 的名词全部对上号。
 
 ## 本层概念地图
 
@@ -453,4 +453,4 @@ function proxy(callback, _server) {
 
 ## 下一步
 
-[《第三层：抓包数据面与帧》](/concepts/05-capture)：运行时骨架清楚了，同层的下一篇看一次请求的字节怎样被采集、截断、缓存，再经约定式 CGI 与短轮询送到界面上，把 Stream 与有界缓存两条线索接起来。
+[《抓包数据面与帧》](/concepts/05-capture)：运行时骨架清楚了，同层的下一篇看一次请求的字节怎样被采集、截断、缓存，再经约定式 CGI 与短轮询送到界面上，把 Stream 与有界缓存两条线索接起来。

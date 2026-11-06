@@ -11,11 +11,11 @@
 <rect x="0" y="0" width="1600" height="88" rx="0" fill="#d9efe9"/>
 <rect x="0" y="0" width="9" height="88" rx="0" fill="#0f7a68"/>
 <text x="36" y="42" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="30" fill="#173a35" text-anchor="start" font-weight="bold">概念体系分层地图</text>
-<text x="36" y="72" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#52706c" text-anchor="start" font-weight="normal">五层递进 + 辨析 / 贯通 / 索引：从名词到工程直觉</text>
+<text x="36" y="72" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="17" fill="#52706c" text-anchor="start" font-weight="normal">分层递进 + 辨析 / 贯通 / 索引：从名词到工程直觉</text>
 <rect x="60" y="130" width="1320" height="116" rx="10" fill="#d9efe9" stroke="#0f7a68" stroke-width="1.5"/>
 <circle cx="100" cy="188.0" r="21" fill="#0f7a68"/>
 <text x="100" y="196.0" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="22" fill="#ffffff" text-anchor="middle" font-weight="bold">1</text>
-<text x="138" y="164" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#173a35" text-anchor="start" font-weight="bold">第一层 · 代理与流量入口</text>
+<text x="138" y="164" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#173a35" text-anchor="start" font-weight="bold">代理与流量入口</text>
 <text x="138" y="196" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#173a35" text-anchor="start" font-weight="normal">正向代理 · 系统代理 · PAC · CONNECT · SOCKS · tunnel://</text>
 <text x="138" y="226" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">回答「流量从哪进来」</text>
 <text x="1360" y="164" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#0f7a68" text-anchor="end" font-weight="bold">概念精解 · 01-proxy.md</text>
@@ -23,7 +23,7 @@
 <rect x="60" y="268" width="1320" height="116" rx="10" fill="#e4eefb" stroke="#2f6fb5" stroke-width="1.5"/>
 <circle cx="100" cy="326.0" r="21" fill="#2f6fb5"/>
 <text x="100" y="334.0" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="22" fill="#ffffff" text-anchor="middle" font-weight="bold">2</text>
-<text x="138" y="302" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#173a35" text-anchor="start" font-weight="bold">第一层 · HTTP 报文与连接</text>
+<text x="138" y="302" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#173a35" text-anchor="start" font-weight="bold">HTTP 报文与连接</text>
 <text x="138" y="334" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#173a35" text-anchor="start" font-weight="normal">请求行 · Header/Body · chunked · gzip · HTTP/2 · ALPN · Upgrade</text>
 <text x="138" y="364" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">回答「字节按什么格式组织」</text>
 <text x="1360" y="302" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#2f6fb5" text-anchor="end" font-weight="bold">概念精解 · 02-http.md</text>
@@ -31,7 +31,7 @@
 <rect x="60" y="406" width="1320" height="116" rx="10" fill="#eee7f8" stroke="#7c5cbf" stroke-width="1.5"/>
 <circle cx="100" cy="464.0" r="21" fill="#7c5cbf"/>
 <text x="100" y="472.0" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="22" fill="#ffffff" text-anchor="middle" font-weight="bold">3</text>
-<text x="138" y="440" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#173a35" text-anchor="start" font-weight="bold">第二层 · TLS / 证书 / 信任</text>
+<text x="138" y="440" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#173a35" text-anchor="start" font-weight="bold">TLS / 证书 / 信任</text>
 <text x="138" y="472" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#173a35" text-anchor="start" font-weight="normal">握手 · CA · 证书链 · SNI · SAN · MITM · pinning · mTLS</text>
 <text x="138" y="502" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">回答「加密如何被安全地拆开」</text>
 <text x="1360" y="440" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#7c5cbf" text-anchor="end" font-weight="bold">概念精解 · 03-tls.md</text>
@@ -39,7 +39,7 @@
 <rect x="60" y="544" width="1320" height="116" rx="10" fill="#fbecd9" stroke="#d9822b" stroke-width="1.5"/>
 <circle cx="100" cy="602.0" r="21" fill="#d9822b"/>
 <text x="100" y="610.0" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="22" fill="#ffffff" text-anchor="middle" font-weight="bold">4</text>
-<text x="138" y="578" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#173a35" text-anchor="start" font-weight="bold">第三层 · 运行时与抓包数据面</text>
+<text x="138" y="578" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#173a35" text-anchor="start" font-weight="bold">运行时与抓包数据面</text>
 <text x="138" y="610" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#173a35" text-anchor="start" font-weight="normal">四事件 · 中间件 · Stream · PipeStream · pfork · 旁路采样 · 帧</text>
 <text x="138" y="640" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">回答「进程里到底跑着什么」</text>
 <text x="1360" y="578" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#d9822b" text-anchor="end" font-weight="bold">概念精解 · 04/05</text>
@@ -47,7 +47,7 @@
 <rect x="60" y="682" width="1320" height="116" rx="10" fill="#fae6e5" stroke="#c0504d" stroke-width="1.5"/>
 <circle cx="100" cy="740.0" r="21" fill="#c0504d"/>
 <text x="100" y="748.0" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="22" fill="#ffffff" text-anchor="middle" font-weight="bold">5</text>
-<text x="138" y="716" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#173a35" text-anchor="start" font-weight="bold">第四 / 五层 · 规则与扩展</text>
+<text x="138" y="716" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#173a35" text-anchor="start" font-weight="bold">规则与扩展 · 工程化</text>
 <text x="138" y="748" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="16" fill="#173a35" text-anchor="start" font-weight="normal">DSL · pattern/operation · 分桶 · 热更新 · 插件 hook · CGI</text>
 <text x="138" y="778" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#52706c" text-anchor="start" font-weight="normal">回答「人的决策如何注入链路」</text>
 <text x="1360" y="716" font-family="PingFang SC, Microsoft YaHei, Helvetica Neue, Arial, sans-serif" font-size="15" fill="#c0504d" text-anchor="end" font-weight="bold">概念精解 · 06/07</text>

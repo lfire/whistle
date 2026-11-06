@@ -1,9 +1,9 @@
 ---
-title: 第一层：HTTP 报文与连接语义
+title: HTTP 报文与连接语义
 description: 用十三张词条卡片讲清报文结构、分块与压缩、连接复用、HTTP/2、ALPN、Upgrade 与帧。
 ---
 
-# 第一层：HTTP 报文与连接语义
+# HTTP 报文与连接语义
 
 流量进了代理之后，代理能看懂多少、能改多少，全由报文与连接的语义决定。本层承接[代理与流量入口](/concepts/01-proxy)的「进门」结论，前置概念是[Web 协议与流量形态](/domain/web-protocols)里对 HTTP、HTTPS、WebSocket 的基本印象。读完你能说清一条报文由哪几部分组成、为什么改写 body 前必须先删 `content-length`、chunked 与 gzip 到底差在哪一层，以及 HTTP/2 伪头、ALPN、Upgrade、SSE 与 TCP 字节流各自把连接带向了什么形态。
 
@@ -84,7 +84,7 @@ Host: www.example.com
 
 **为什么这样设计**：用少量数字统一表达结果，让客户端、代理、缓存各层无需解析正文就能决策；代价是语义高度压缩，2xx 只说成功、不保证业务成功，代理也无法仅凭状态码判断 body 是否被改写。把 `:status` 与状态行互转，正是为了让规则层始终面对同一个 `statusCode` 字段。
 
-**容易混淆**：状态码 200 ≠ CONNECT 的 `200 Connection Established`，后者只表示隧道就绪（见[第一层](/concepts/01-proxy)）；也别把 101 当成成功响应，它是协议切换。对照见[辨析篇](/concepts/08-confusions)。
+**容易混淆**：状态码 200 ≠ CONNECT 的 `200 Connection Established`，后者只表示隧道就绪（见[代理与流量入口](/concepts/01-proxy)）；也别把 101 当成成功响应，它是协议切换。对照见[辨析篇](/concepts/08-confusions)。
 
 **工程中的样子**：[弱网与异常注入](/scenarios/fault-injection)里用 `statusCode://500` 与 `replaceStatus://429` 把偶发错误固定成必现，配合 `chance:0.5` 验证客户端重试逻辑。
 
@@ -192,7 +192,7 @@ var statusCode = h2Headers[':status'];
 
 **为什么这样设计**：把协议选择塞进 TLS 握手，省掉一次额外往返，也让 h2 与 https 在端口上无法被外部区分；代价是协商结果绑定在握手阶段，代理必须提前声明自己支持的协议列表，且降级时要能把 h2 会话还原成 HTTP/1.x 请求（`lib/https/index.js:1013-1100`）。
 
-**容易混淆**：ALPN ≠ Upgrade，前者在 TLS 握手内协商、后者在 HTTP 报文里请求切换。ALPN 也 ≠ SNI：两者都在 ClientHello 里，但 ALPN 在 `application_layer_protocol_negotiation` 扩展列出 `h2` / `http/1.1` 由服务端选定，决定「说什么协议」；SNI 在 `server_name` 扩展只带目标域名，供服务端选证书，决定「找哪个站点」。一个定解析器、一个定证书，互不替代，对照见[第三层](/concepts/03-tls)与[辨析篇](/concepts/08-confusions)。
+**容易混淆**：ALPN ≠ Upgrade，前者在 TLS 握手内协商、后者在 HTTP 报文里请求切换。ALPN 也 ≠ SNI：两者都在 ClientHello 里，但 ALPN 在 `application_layer_protocol_negotiation` 扩展列出 `h2` / `http/1.1` 由服务端选定，决定「说什么协议」；SNI 在 `server_name` 扩展只带目标域名，供服务端选证书，决定「找哪个站点」。一个定解析器、一个定证书，互不替代，对照见[TLS、证书与信任](/concepts/03-tls)与[辨析篇](/concepts/08-confusions)。
 
 **工程中的样子**：[HTTPS、证书与鉴权排障](/scenarios/https-trust)里「客户端说 h2、源站只认 http/1.1」的兼容问题，排查起点就是这张 `SUPPORTED_PROTOS` 列表。
 
@@ -219,7 +219,7 @@ exports.isUpgrade = function (options, headers) {
 
 **为什么这样设计**：让 WebSocket 这类长连接复用现成的 HTTP 端口与代理链路，避免另开端口被防火墙拦住；代价是 101 之后连接不再有「请求/响应」结构，代理必须换一套帧级处理方式，且 Upgrade 头属于逐跳头、不能透传给下一段。
 
-**容易混淆**：Upgrade ≠ CONNECT，前者把连接升级成 WebSocket 等协议、代理仍参与解析，后者把连接降级成纯字节管道、代理默认不解析；101 ≠ 200，对照见[第一层](/concepts/01-proxy)与[辨析篇](/concepts/08-confusions)。
+**容易混淆**：Upgrade ≠ CONNECT，前者把连接升级成 WebSocket 等协议、代理仍参与解析，后者把连接降级成纯字节管道、代理默认不解析；101 ≠ 200，对照见[代理与流量入口](/concepts/01-proxy)与[辨析篇](/concepts/08-confusions)。
 
 **工程中的样子**：[隧道、WebSocket 与帧拦截](/core/tunnel-websocket)里逐帧查看与暂停，前提就是这条连接已经走完 Upgrade；[真机、移动端与远程页面调试](/scenarios/mobile-remote)里的 `frameScript` 也只在这类连接上生效。
 
@@ -346,4 +346,4 @@ www.example.com enable://h2
 
 ## 下一步
 
-[《第二层：TLS、证书与信任》](/concepts/03-tls)：既然 CONNECT 之后默认只有加密字节流，接下来讲清中间人、CA、根证书、SNI 与证书链，回答 Whistle 凭什么能解密、客户端又凭什么信任它。
+[《TLS、证书与信任》](/concepts/03-tls)：既然 CONNECT 之后默认只有加密字节流，接下来讲清中间人、CA、根证书、SNI 与证书链，回答 Whistle 凭什么能解密、客户端又凭什么信任它。

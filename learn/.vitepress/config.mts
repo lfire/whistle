@@ -128,14 +128,14 @@ export default defineConfig({
       { text: '实战速查', link: '/advanced/hands-on' }
     ],
     sidebar: [
-      { text: '开始之前', items: guide },
-      { text: '第一层 · 领域基础', items: domain },
-      { text: '第二层 · 全局架构', items: architecture },
-      { text: '第三层 · 核心链路', items: core },
-      { text: '第四层 · 模块深潜', items: modules },
-      { text: '专题 · 工程场景', items: scenarios },
-      { text: '第五层 · 进阶实践', items: advanced },
-      { text: '概念精解 · 由词及理', items: concepts }
+      { text: '导览与准备 · 01', items: guide },
+      { text: '领域基础 · 02–05', items: domain },
+      { text: '全局架构 · 06–08', items: architecture },
+      { text: '核心链路 · 09–12', items: core },
+      { text: '模块深潜 · 13–17', items: modules },
+      { text: '工程场景 · 18–27', items: scenarios },
+      { text: '进阶实践 · 28–30', items: advanced },
+      { text: '概念精解 · 31–41', items: concepts }
     ],
     search: {
       provider: 'local',

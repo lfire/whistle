@@ -1,9 +1,9 @@
 ---
-title: 第二层：TLS、证书与信任
+title: TLS、证书与信任
 description: 把对称加密、X.509 证书、SNI、证书链、两段 TLS 与信任锚逐个拆成对照源码的词典式词条。
 ---
 
-# 第二层：TLS、证书与信任
+# TLS、证书与信任
 
 本层是「概念精解」的密码学与信任篇，前置是 [代理与 CONNECT](/concepts/01-proxy)、[HTTP 报文与隧道](/concepts/02-http) 建立的连接模型。这里把 HTTPS 抓包背后那一长串专业名词——从对称加密、公钥私钥，到 X.509、证书链、SNI、两段 TLS——逐个拆成可对照源码的卡片。读完你能说清「装了根证书为什么还不解密」，能判断证书固定与 mTLS 属于哪一层问题，也能把 [TLS 中间人领域篇](/domain/tls-mitm) 与 [证书体系模块篇](/modules/certificates) 真正串起来。
 
@@ -424,4 +424,4 @@ www.example.com/path tlsOptions://key=/certs/client.key&cert=/certs/client.crt
 
 ## 下一步
 
-[《第三层：Node 运行时与内核骨架》](/concepts/04-runtime)：证书与握手讲清了「明文怎么来」，下一篇回到 Node 本身，看 `http.Server` 的四类事件、Stream 与 `pipe`、事件总线、进程模型和配置单例如何把这份明文接住并送进规则链。
+[《Node 运行时与内核骨架》](/concepts/04-runtime)：证书与握手讲清了「明文怎么来」，下一篇回到 Node 本身，看 `http.Server` 的四类事件、Stream 与 `pipe`、事件总线、进程模型和配置单例如何把这份明文接住并送进规则链。
