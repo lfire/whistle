@@ -44,29 +44,29 @@ npm test                 # node test/index.test.js，遍历 82 个 units
 # Composer 单元覆盖 cgi-bin/composer 的构造与重放
 ```
 
-三段分别对应过滤、动作与回归：`fc:` 把构造流量从业务流量里隔离出来，快捷键串起保存、导入导出与重放，`npm test` 则把 Composer 的 POST 流程固化进 82 个 units。值得注意的是 Import 与 Export 并非简单读写文本：`.saz` 要走 zip 解压与 `fiddlerMeta` 模板，`.har`、`.txt`、`.json` 才按文本解析，这也是把互操作放进 service 子进程的原因。换句话说，界面上的每个按钮都能在 `cgi-bin/` 找到同名文件，重活则统一收进 `lib/service/` 子进程；集成测试因此可以直接对 CGI 发请求，而不必驱动浏览器界面。
+三段分别对应过滤、动作与回归：`fc:` 把构造流量从业务流量里隔离出来，快捷键串起保存、导入导出与重放，`npm test` 则把 Composer 的 POST 流程固化进 82 个 units。值得注意的是 Import 与 Export 并非简单读写文本：`.saz` 要走 zip 解压与 `fiddlerMeta` 模板，`.har`、`.txt`、`.json` 才按文本解析（`biz/webui/htdocs/src/js/index.js:3630-3645`），这也是把互操作放进 service 子进程的原因。取数类按钮大多对应 `cgi-bin/` 下的同名文件（`get-data`、`get-matched-rules`、`sessions`），但 `composer` 是例外：`biz/webui/lib/index.js:540` 显式注册 `app.post('/cgi-bin/composer')`，经 `sendToService`（`:79-91`）把请求转进 `lib/service/` 子进程；集成测试因此可以直接对这个 CGI 发请求，而不必驱动浏览器界面。
 
 ## 背后的设计思想
 
 - [零复制优先](/core/capture-data)：`lib/util/data-server.js:319-333` 的 `handleRequest` 给 `data` 补上 id 与版本后，直接 `reqData[id] = data`，不做克隆。内核采样与 UI 轮询读的是同一对象引用，因此抓包列表、详情面板与导出内容天然一致；代价是任何一处原地改写都会立刻反映到全局，不能假设拿到的是快照。
 - [内存有界优先于数据完整](/core/capture-data)：`lib/util/data-server.js:21-26` 把缓存定在 600 条、溢出 1800 条、单次上报 100 条，`lib/inspectors/data.js:8-11` 给请求与响应体设 2MB 上限、大对象 16MB。偶现请求能被存下来，但超阈正文只留元信息、旧会话按界淘汰，宁可少存也不撑爆常驻内存。
-- [service 子进程隔离重活](/architecture/process-config)：`lib/service/index.js:1,10` 用 `pfork.fork` 把 `service.js` fork 成独立子进程，SAZ 的 zip 解析、会话 gzip 落盘与 Composer 重放这类重活不占主代理线程，子进程异常也不会拖垮抓包主链路。
-- [约定优于配置](/modules/webui)：`biz/webui/lib/index.js:387-402` 的 `cgiHandler` 把 `req.path` 拼成 `../cgi-bin/xxx.js` 再 `require`，`get-data`、`get-matched-rules`、`sessions`、`composer` 的文件名即接口名。新增一个查询能力不必登记路由表，放一个同名文件即可。
+- [service 子进程隔离重活](/architecture/process-config)：`lib/service/index.js:1` 引入 `pfork.fork`，`:10` 把 `SCRIPT` 指向 `service.js`，`:51` 的 `loadService` 真正 fork 出子进程并缓存 `curChild`。SAZ 的 zip 解析、会话 gzip 落盘与 Composer 重放这类重活经 `sendToService` 转进去，不占主代理线程；`lib/service/index.js:58-60` 监听子进程 `close` 后置空 `curChild`，下次请求会重新拉起，子进程异常也不会拖垮抓包主链路。
+- [约定优于配置](/modules/webui)：`biz/webui/lib/index.js:387-402` 的 `cgiHandler` 把 `req.path` 拼成 `../cgi-bin/xxx.js` 再 `require`，`get-data`、`get-matched-rules`、`sessions` 的文件名即接口名，新增一个查询能力放一个同名文件即可，不必登记路由表。例外是 `composer`：`biz/webui/lib/index.js:540` 单独注册 POST 路由，因为它要承载上传体并直接 `sendToService`（`:79-91`）转进子进程，不是纯查询。
 
 ## 源码链路
 
 按「入口 → 规则解析 → 应用点 → 回写/上报」展开，重点看同一份 `data` 如何被四处复用。
 
-1. **入口 · 旁路采样**：`lib/inspectors/data.js:279-302` 包装 `stream.write` 与 `stream.end`，累加 `reqData.size`、触发 `updateEvent`，最后仍 `write.apply(this, arguments)` 原样透传，抓包不改道。见 [抓包数据的采集与上报](/core/capture-data)。
+1. **入口 · 旁路采样**：`lib/inspectors/data.js:279-310` 包装 `stream.write`（`:281-302`）与 `stream.end`（`:303-310`），累加 `reqData.size`、触发 `updateEvent`，最后仍 `write.apply(this, arguments)` 原样透传，抓包不改道。见 [抓包数据的采集与上报](/core/capture-data)。
 2. **规则解析 · 原地登记**：`lib/util/data-server.js:319-333` 的 `handleRequest` 分配 `data.id`、写入 `data.version`，把同一个 `data` 放进 `reqData[id]`，为后续按 id 查询与命中登记建立索引。见 [抓包数据的采集与上报](/core/capture-data)。
-3. **应用点 · 保存与 SAZ 互操作**：`lib/service/service.js:90-115` 的 `saveSessions` 对会话 `gzip(JSON.stringify(sessions))` 后写入 `SAVED_SESSIONS_PATH`；`lib/service/extract-saz.js:108-278` 用 `AdmZip` 解析 SAZ，`lib/service/generate-saz.js:105-181` 按 `fiddlerMeta` 模板生成 Fiddler SAZ。见 [进程模型与配置系统](/architecture/process-config)。
+3. **应用点 · 保存与 SAZ 互操作**：`lib/service/service.js:96-115` 的 `saveSessions` 对会话 `gzip(JSON.stringify(sessions))` 后写入 `SAVED_SESSIONS_PATH`；`lib/service/extract-saz.js:108-278` 用 `new AdmZip(buffer)`（`:109`）解析 SAZ，`lib/service/generate-saz.js:105-181` 按 `getFiddler2Meta`（`:101`）渲染 `fiddlerMeta` 模板生成 Fiddler SAZ。见 [进程模型与配置系统](/architecture/process-config)。
 4. **应用点 · 构造并回打自身代理**：`lib/service/composer.js:345-513` 的 `handleRequest` 解析 URL、头与 body；`lib/service/composer.js:519-524` 的 `setup` 把 `PROXY_OPTS` 设为 Whistle 自身 host 与 port，`:242-243` 令 `options.host` / `options.port` 指向它，于是重放请求重新走一遍规则链；`MAX_REQ_COUNT = 100`（`lib/service/composer.js:19,118-120`）由 `getReqCount` 钳制重放次数。见 [一次 HTTP 代理请求的旅程](/core/http-request)。
-5. **回写/上报 · 轮询与流式响应**：`biz/webui/cgi-bin/get-data.js:60` 调 `proxy.getData(...)` 返回抓包数据；`htdocs/src/js/data-center.js:1158-1159` 按 `hasNewData ? 100 : 900` 毫秒自适应轮询；`lib/service/compose-data.js:3-4` 用 `LRU({ max: 120 })` 承载重放的流式响应。见 [Web 管理界面](/modules/webui)。
-6. **查询 · 命中规则与补详情**：`cgi-bin/get-matched-rules.js:6` 调 `lib/util/data-server.js:632` 的 `proxy.getTestItem` 返回 `realUrl` 与 `rules`；`lib/util/data-server.js:624` 的 `getItem` 按 id 补单个请求详情，`lib/util/data-server.js:886` 的 `getData` 才是主界面数据源。见 [规则引擎](/modules/rules-engine)。
+5. **回写/上报 · 轮询与流式响应**：`biz/webui/cgi-bin/get-data.js:60` 调 `proxy.getData(...)`（`lib/util/data-server.js:886`）返回抓包数据；前端 `biz/webui/htdocs/src/js/data-center.js:1157-1159` 把 `setTimeout(load, hasNewData ? 100 : 900)` 挂在下一次轮询上，有新数据就加快、空闲就放慢；`lib/service/compose-data.js:3-4` 用 `LRU({ max: 120, maxAge: 60000 })` 承载重放的流式响应。注意这是前端的 100/900 毫秒轮询，与服务端 `lib/service/data-center.js:8` 的 `MAX_COUNT = 100`（`:99` 用于裁剪已保存会话列表）不是一回事。见 [Web 管理界面](/modules/webui)。
+6. **查询 · 命中规则与补详情**：`biz/webui/cgi-bin/get-matched-rules.js:6` 按 `testId` 调 `lib/util/data-server.js:632` 的 `proxy.getTestItem`，再把 `realUrl` 与 `rules` gzip 返回（`:10-13`）；`lib/util/data-server.js:624` 的 `getItem` 按 id 补单个请求详情并把 req/res 转 base64，`lib/util/data-server.js:886` 的 `getData` 才是主界面数据源。见 [规则引擎](/modules/rules-engine)。
 
 ## 边界与坑
 
-- **缓存 600 条、溢出 1800 条、单次最多 100 条**：`lib/util/data-server.js:10-11` 把默认 `reqCacheSize` 定为 600，`:21-26` 由此推出 `OVERFLOW_LENGTH = MAX_LENGTH * 3`、`COUNT = 100`。超过界线的会话会被淘汰，不要把抓包列表当永久存储。
+- **缓存 600 条、溢出 1800 条、单次最多 100 条**：`docs/docs/cli.md:47` 的 `-R/--reqCacheSize` 标默认 600，源码 `lib/util/data-server.js:10-12` 再强制不低于 600，两者一致；`:21-26` 由此推出 `MAX_LENGTH = config.reqCacheSize`、`OVERFLOW_LENGTH = MAX_LENGTH * 3`、`COUNT = 100`（`:904` 在 `getData` 里钳制单次返回条数）。另有 `-F/--frameCacheSize` 官方 `docs/docs/cli.md:48` 写 512，被 `lib/util/data-server.js:14-16` 抬到 600，别和抓包条数混为一谈。超过界线的会话会被淘汰，不要把抓包列表当永久存储。
 - **超过 2MB 的 body 只留元信息**：`lib/inspectors/data.js:8-11` 把请求体与响应体上限设为 2MB、大对象 16MB；`docs/docs/rules/enable.md:25` 的 `bigData` 可把抓包显示限制从 2M 放宽到 16M，超限内容仍不保证完整。
 - **API 分页每次最多 120 条**：`lib/util/data-server.js:34` 的 `MAX_COUNT = 120`，`:36-42` 的 `formatApiOptions` 用上限钳制 `count`，批量拉取必须自行翻页。
 - **Composer 界面历史 64 条、服务端 100 条**：`docs/docs/gui/composer.md:34` 写明界面最多保存 64 条，而 `lib/service/composer.js:24,88-90` 的 `MAX_HISTORY_LEN = 100` 才是服务端裁剪上限，两者不要混为一谈。

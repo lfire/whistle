@@ -39,8 +39,8 @@ description: 以概念词典的方式讲透规则文本、编译分桶、值体�
 > 决定「这条规则命中哪些 URL」的表达式。
 
 **打个比方**：像信封上的收件地址，邮局只看这一栏决定往哪个分拣口送；地址写法可以是精确门牌、整条街通配，也可以是一段特征描述（正则）。
-**在 Whistle 里**：`lib/rules/rules.js:929-938` 归一化出 `curUrl`、`domainUrl`、`pureUrl` 三种 URL 供不同匹配使用；`:997-1120` 按标志位走五条分支，`getPathRule`（`:947-967`）把 `matcher` 与剩余 `filePath` 拼成最终 URL 并支持路径透传。
-**为什么这样设计**：同一条规则要兼顾带端口、去端口、去查询串的比较，预生成三种 URL 比在热循环里反复裁切更省；代价是三种形态在命中时必须保持一致。
+**在 Whistle 里**：`lib/rules/rules.js:929-938` 的 `resolveRuleList` 预生成 `curUrl`、`domainUrl`（`removePort` 去端口）、`url`（`getPureUrl` 去查询串）与 `_domainUrl` 四种形态供不同分支使用；`:997-1120` 按标志位走五条分支，`getPathRule`（`:947-967`）把 `matcher` 与剩余 `filePath` 拼成最终 URL 并支持路径透传。
+**为什么这样设计**：同一条规则要兼顾带端口/去端口、带查询串/去查询串的比较，请求期一次性预处理成几组 URL、命中时直接取用，比在热循环里反复裁切更省；代价是这几种形态在命中时必须保持一致。
 **容易混淆**：pattern 是匹配表达式，operation 是指令，二者位置可整体调换（见速览表「位置调换」），见 [指令体系](/modules/protocol-catalog)。
 **工程中的样子**：[本地环境切换](/scenarios/local-env) 用域名 pattern 把流量整体指向本地端口。
 
@@ -75,7 +75,7 @@ description: 以概念词典的方式讲透规则文本、编译分桶、值体�
 > 一组可命名、可被整行引用、可分组管理的规则文本。
 
 **打个比方**：像把常用便签装订成一册，需要时写「按第 3 册办」即可，不必每次把十几行重抄一遍；册子还能分门别类放，各人各管一册。
-**在 Whistle 里**：整行 `${key}` 由 `lib/rules/rules.js:42` 的 `RULE_KEY_RE` 识别、在 `getLines`（`:410-450`）展开成另一份规则集；整行 `{key}` 由 `:43` 的 `VALUE_KEY_RE` 换成 Values 内容，二者都用局部字典防重复展开。分组判定见 `lib/rules/util.js:198-208` 的 `selectedList`。
+**在 Whistle 里**：整行 `${key}` 由 `lib/rules/rules.js:42` 的 `RULE_KEY_RE` 识别、在 `getLines`（`:410-450`）展开成另一份规则集；整行 `{key}` 由 `:43` 的 `VALUE_KEY_RE` 换成 Values 内容，二者都用局部字典防重复展开。分组判定用 `util.isGroup`（`lib/util/index.js:363`）在 `lib/rules/util.js:147-149` 完成，选中列表由 `:198-208` 的 `getSelectedRulesList` 读取。
 **为什么这样设计**：复用与隔离兼顾——公共规则抽成集，团队按组启用；代价是任一被引用集变化都要整份重编译。
 **容易混淆**：`${key}` 规则集引用 ≠ `${method}` 模板变量，二者语法相近、时机完全不同，见 [概念辨析](/concepts/08-confusions)。
 **工程中的样子**：[协作配置](/scenarios/collab-config) 用分组让不同成员各管一册规则。
@@ -148,16 +148,16 @@ description: 以概念词典的方式讲透规则文本、编译分桶、值体�
 
 **打个比方**：像在一格书架里从前往后抽，抽到第一本就走；「多命中」是把这一格全抱走，「后置优先」是把书架反过来摆，「弱规则」则是有人占座时主动让位。
 **在 Whistle 里**：`lib/rules/rules.js:997` 的循环自上而下、`--index < 0` 即构造结果并 `return`；`lib/rules/protocols.js:186-227` 的 `multiMatchs` 列出 40 个允许多命中的协议，`rules.js:2273-2296` 对它们改用 `getRuleList`；`backRulesFirst` 由 `lib/rules/util.js:64-66` 读取、`:46-52` 的 `reverseRules` 反转行序；`filterWeakRule`（`lib/util/index.js:3741-3753`）在存在 `host` 或 `proxy` 时删掉弱 `rule`。
-**为什么这样设计**：规则集通常几十到几百行，线性扫描比维护有序索引更省；四种机制都是把「顺序」当唯一优先级模型后的有限补丁，不额外建索引。
+**为什么这样设计**：规则集通常几十到几百行，线性扫描比维护有序索引更省。`resolveRuleList`（`lib/rules/rules.js:929`）从 `list` 头部逐条取规则，命中且 `checkFilter()` 通过时 `--index < 0`（`:1019`）即构造结果并 `return`；`multiMatchs` 里的协议改走 `getRuleList`（`:2273-2296`）收齐全部命中再挂到 `rule.list`。四种机制都是把「顺序」当唯一优先级模型后的有限补丁，不额外建索引。
 **容易混淆**：首条命中是「同协议内」，多命中只对 `multiMatchs` 里的 40 项生效，见 [指令体系](/modules/protocol-catalog)。
 **工程中的样子**：[本地环境切换](/scenarios/local-env) 靠行序决定哪条 host 规则先命中。
 
 ### ignore / skip
-> 按协议名屏蔽掉指定协议的命中结果。
+> `ignore` 按协议名删掉已命中的结果；`skip` 按 pattern/operation 跳过当前规则、继续匹配后面的同类规则。
 
 **打个比方**：像给书架贴「这几格今天不借」，并非关掉整个图书馆；其它格子照常开放，只是被贴的几格取不到书。
-**在 Whistle 里**：`lib/rules/protocols.js:140` 的 `skip: 'ignore'` 表明本版本二者是别名关系；`lib/util/index.js:2090-2139` 的 `ignoreRules` 遍历 keys 并 `delete rules[name]`，把指定协议从 `req.rules` 移除；`lib/rules/rules.js:1125-1160` 的 `resolveProps` 还处理 `skip://` 形式的匹配器级屏蔽。
-**为什么这样设计**：以「删结果」而非「停匹配」实现屏蔽，其余协议仍能各自取首条命中并填进 `req.rules`；因为 `skip` 只是 `ignore` 的别名，它不携带「跳过后续匹配」的语义，忽略之后匹配照常继续。
+**在 Whistle 里**：`lib/rules/protocols.js:140` 的 `skip: 'ignore'` 只是**协议名**别名——`skip://...` 与 `ignore://...` 都进 `ignore` 桶；差别在 matcher 的写法，由 `resolveProps`（`lib/rules/rules.js:1125-1160`，经 `resolveFilter` `:2208` 以 `isIgnore=true` 调用）分流。普通 `ignore://file|host` 走 `EXACT_IGNORE_RE` 分支写 `result['ignore|...']`，最终 `ignoreRules`（`lib/util/index.js:2090-2139`）`delete rules[name]`；而 `skip://operation=...` / `skip://pattern=...` 的 matcher 带 `skip://` 前缀（`SKIP_RE`，`rules.js:96`），走另一分支写 `req._skipProps`（`:1138-1147`）。
+**为什么这样设计**：两条屏蔽路径作用点不同。`ignoreRules` 在 `resolveRules` 收尾（`lib/rules/rules.js:2297`）删掉已取到的首条命中，该协议**不再**尝试同类型后续规则（官方 `docs/docs/rules/ignore.md:28-29`）；`req._skipProps` 则在匹配循环（`:997-1001`）里由 `checkSkip`（`lib/util/index.js:2011-2021`）逐条 `continue`，跳过当前规则后**继续**在同类列表里往下匹配（`docs/docs/rules/skip.md` 的示例即命中第二条 `file` 规则）。别名说的是「协议名」、`_skipProps` 说的是「matcher 的 `skip://` 前缀」，二者不矛盾；其余协议始终各自取首条命中、不受影响。
 **容易混淆**：ignore/skip ≠ 终止整条规则链，也 ≠ 否定匹配（`!pattern`），见 [概念辨析](/concepts/08-confusions)。
 **工程中的样子**：[故障注入](/scenarios/fault-injection) 用 `ignore://*` 临时关掉一批改写规则。
 
@@ -259,14 +259,14 @@ proxy://127.0.0.1:8080 www.example.com api.example.com
 ## 常见误解
 
 - **URL 匹配不用 LRU**。`regUrlCache` / `hostCache`（`lib/rules/rules.js:64-65`）只是两个普通对象，且在每次 `parseText` 结束时被整体清空（`:1804-1805`），只缓存同一次编译内的正则 URL 解析结果。lru-cache 用在别处：模板编译 `tplCache`（`lib/rules/index.js:20`）、证书缓存与插件动态规则缓存。见 [规则引擎](/modules/rules-engine)。
-- **`ignore` 与 `skip` 在本版本是别名关系**。`lib/rules/protocols.js:140` 明确 `skip: 'ignore'`，二者作为操作协议完全等价，都不携带「跳过后续匹配」的语义。正确理解是：`ignoreRules`（`lib/util/index.js:2090-2139`）在所有协议各自取完首条命中后，遍历并把点名协议的命中项 `delete rules[name]`，**忽略之后其余协议照常保留、匹配并未中止**；把它读成「命中即停」会误判规则为何仍生效。见 [概念辨析](/concepts/08-confusions)。
-- **`statusCode` / `file` 不在 `protocols` 数组**。`lib/rules/protocols.js:1-75` 的 73 项里没有它们；前者经 `status → statusCode`（`:143`）归并后被 `lib/rules/rules.js:1311-1314` 标成 `isSpec`，由 `lib/util/index.js:3576-3599` 在发请求前短路返回；后者由 `:78` 的 `RULE_RE` 与 `lib/handlers/file-proxy.js:236` 按 `options.protocol` 分发。见 [指令体系](/modules/protocol-catalog)。
+- **`ignore` 与 `skip` 只在协议名层面是别名，语义并不等价**。`lib/rules/protocols.js:140` 的 `skip: 'ignore'` 让两者共用 `ignore` 桶，但 `resolveProps`（`lib/rules/rules.js:1125-1160`）按 matcher 是否带 `skip://` 前缀分流：普通 `ignore://` 由 `ignoreRules`（`lib/util/index.js:2090-2139`）`delete rules[name]` 删掉已取的首条命中，该协议不再匹配同类型其它规则；`skip://` 则写 `req._skipProps`，在匹配循环（`:997-1001`）逐条跳过、继续匹配后面的同类规则。区别在于「同类型其它规则还试不试」，其余协议照常保留、匹配链并未中止；这正是官方 `ignore.md:28-29` 与 `skip.md` 的差别。见 [概念辨析](/concepts/08-confusions)。
+- **`statusCode` / `redirect` / `file` / `tpl` / `rawfile` 都不在 `protocols` 数组**。`lib/rules/protocols.js:1-75` 的 73 项里没有它们：`status → statusCode`（`:143`）与 `redirect` 归并后被 `lib/rules/rules.js:1311-1314` 标成 `isSpec`(1/2)，由 `lib/util/index.js:3576-3599` 在发请求前短路返回；`file` / `rawfile` / `tpl` / `dust` / `jsonp` 由 `lib/rules/protocols.js:78` 的 `RULE_RE` 经 `protoMgr.isFileProxy`（`:279-283`）识别，再由 `lib/handlers/file-proxy.js:233-238` 按 `options.protocol` 分发。见 [指令体系](/modules/protocol-catalog)。
 - **`important` 仅对同类协议生效**。`lib/rules/rules.js:1400-1406` 把规则插到「该协议数组」第一个非 important 元素之前，跨协议的桶互不影响；`lib/util/index.js:2163-2193` 的 `mergeRule` 也只在同桶合并时优先保留 important。见 [规则引擎](/modules/rules-engine)。
 - **Values ≠ 内嵌值**。Values 是全局命名存储，由 `lib/rules/rules.js:43` 的 `VALUE_KEY_RE` 与 `resolveValue`（`:811-852`）引用；内嵌值是写在规则文件 ```key``` 块里、由 `lib/util/index.js:202-241` 抽取并拼上文件名隔离作用域的临时块。见 [概念辨析](/concepts/08-confusions)。
 - **`${key}` 规则集 ≠ `${method}` 模板变量**。前者由 `lib/rules/rules.js:42` 的 `RULE_KEY_RE` 在编译期经 `getLines`（`:410-450`）整行展开成另一份规则集；后者由 `:76-77` 的 `TPL_VAR_RE` 在求值期经 `:721-789` 替换成请求信息。语法相近、时机完全不同，见 [概念辨析](/concepts/08-confusions)。
 - **mflag ≠ setModified**。`_mflag` 是 `Rules.prototype.parse` / `append`（`lib/rules/rules.js:2051-2110`）维护的编译侧版本标记，前端据此判断是否重拉；`setModified`（`lib/config.js:1126-1134`）是配置侧打 `mrulesClientId` / `mrulesTime` 的修改戳。二者分属编译与配置两条线，见 [规则引擎](/modules/rules-engine)。
 - **`tunnel://` ≠ 真实协议**。不解密的 CONNECT 被记成 `tunnel://host:port`（`lib/tunnel.js:75`）只是记账用的伪 URL，`lib/rules/rules.js:22` 的 `WEB_PROTOCOL_RE` 才让它参与匹配；它不在 73 项 `protocols` 数组里，也没有对应 inspector，见 [隧道、WebSocket 与帧拦截](/core/tunnel-websocket)。
-- **别名只在解析期存在**。`lib/rules/protocols.js:131-154` 的 `aliasProtocols` 在 `parseRule` 判定协议时归并，编译后的 rule 对象与运行期 `req.rules` 里只有正式名；`contains`（`:289-306`）也只认归并后的名字。见 [指令体系](/modules/protocol-catalog)。
+- **别名只在解析期存在**。`lib/rules/protocols.js:131-154` 的 `aliasProtocols` 在 `parseRule` 判定协议时归并，编译后的 rule 对象与运行期 `req.rules` 里只有正式名；但 `contains`（`:289-306`）恰恰也接受 `aliasProtocols[name]`（`:292`），并连带认 `PROXY_RE`、ws/web 伪协议与 `isFileProxy`（`:279-283`），用来拦住插件占用这些名字，并非「只认归并后的名字」。见 [指令体系](/modules/protocol-catalog)。
 
 ## 小结
 
@@ -278,4 +278,4 @@ proxy://127.0.0.1:8080 www.example.com api.example.com
 
 ## 下一步
 
-[《概念精解：扩展机制》](/concepts/07-extension)：规则语言已经能描述匹配、值、优先与更新，下一篇转向「语言之外」——插件与脚本怎样注册协议、注入动态规则，把 Whistle 的能力边界继续往外推。
+[《第五层：扩展机制与工程化》](/concepts/07-extension)：规则语言已经能描述匹配、值、优先与更新，下一篇转向「语言之外」——插件与脚本怎样注册协议、注入动态规则，把 Whistle 的能力边界继续往外推。

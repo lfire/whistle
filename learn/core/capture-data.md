@@ -74,6 +74,8 @@ SSE 是另一个特例。`data.js:98-135` 的 `parseFrame` 默认以 `\n\n`（`S
 
 `lib/util/data-server.js:87-95` 的 `enable()` 只监听 `request` 与 `frame` 两个事件，写入的是一套**自实现的有界缓存**，源码里没有 LRU 结构：`ids[]` 保存有序 id，`reqData{}` 按 id 存对象，`framesCache[]` 存帧。
 
+别把「不是 LRU」推广成全站结论：规则引擎的 `regUrlCache` / `hostCache`（`lib/rules/rules.js:64-65`）也只是普通对象，在规则文本解析函数末尾被整体重置为空（`:1804-1805`），靠「重建而非逐条淘汰」保证规则一变、旧匹配结果立即失效；`lru-cache` 在站内另有用处——模板与客户端证书（`lib/rules/index.js:20-21`）、证书缓存（`lib/https/ca.js:39-41`）、插件动态规则（`lib/plugins/index.js:46`），以及 `lib/https/index.js:33` 的 `tunnelTmplData`。两处不用 LRU 的原因并不相同：抓包缓存要按会话结束时间分级淘汰，URL 匹配缓存要的是整批失效而非「最近最少使用」。
+
 ```js
 // lib/util/data-server.js:10-30（节选）
 var CLEAR_INTERVAL = 6000;
@@ -86,9 +88,11 @@ var reqData = {};
 var framesCache = [];
 ```
 
-`reqCacheSize` 最小 600（`:10-12`），于是 600 条是常规水位、1800 条是溢出水位（`OVERFLOW_LENGTH`）、溢出后保留 360 条（`PRESERVE_LEN`），`proxy.getData` 单次最多返回 100 条（`COUNT`，`:904`）。`clearCache`（`:147-203`）每 `CLEAR_INTERVAL = 6000` 毫秒跑一次：按结束时间淘汰已完成会话，溢出时 `abort(true)` 并删除条目。
+`reqCacheSize` 最小 600（`:10-12`）——CLI `-R`（`bin/whistle.js:174`、`docs/docs/cli.md:47`）标注的默认也是 600，两者一致。`proxy.getData` 单次最多返回 100 条（`COUNT`，`:26`，在 `:904` 钳制）；另有 `MAX_COUNT = 120`（`:34`）经 `formatApiOptions`（`:36-50`）限定对外 API（`getSessionsForApi` / `getFramesForApi`，`:818`、`:650`）的单次返回量，比 `COUNT` 大，别当作同一数字。
 
-帧缓存另有瘦身策略。`:103-106` 定义 `MAX_BUF_LEN1..4` 为 512 / 256 / 128 / 64KB，`:129-145` 的 `clearFrames` 按帧龄分级，把旧帧的 `bin` 逐步截断；`:156-157` 在帧数溢出时直接 `splice(0, overflow + 60)`。也就是说大帧不会永久占着内存，越旧留存越少。
+淘汰语义要按 `clearCache`（`:147-203`）逐段读，不能望文生义。它每 `CLEAR_INTERVAL = 6000` 毫秒跑一次：`ids.length <= MAX_LENGTH(600)` 时直接返回、一条不删（`:169-171`）；超过 600 后才按已结束会话的 `endTime` 清理，宽限为 `CACHE_TIME`（`:19`，2 分钟）。当 `len >= OVERFLOW_LENGTH(1800)` 时进入溢出分支，先算 `overflow = len - MAX_CACHE_SIZE`（`MAX_CACHE_SIZE = 1200`，`:23`）把最老的一批无条件淘汰，相当于先砍回 1200 条；再把 `preserveLen = len - PRESERVE_LEN`（`PRESERVE_LEN = 360`，`:24`）之后的尾部 360 条改用 `MAX_CACHE_TIME`（`:20`，6 分钟）宽限，其余仍按 2 分钟（`:176-188`）。命中淘汰的条目一律 `data.abort && data.abort(true)` 并 `delete reqData[id]`（`:193-194`），并非只在溢出时才调用。可见 `PRESERVE_LEN` 是「尾部宽限条数」而非「溢出后保留条数」；分级宽限是为了让近期会话多留一会儿供 UI 增量拉取，同时给零复制模型的常驻内存设一个硬上限。
+
+帧缓存另有瘦身策略。容易被混作 `reqCacheSize` 的 `frameCacheSize` 是另一路配置：CLI `-F`（`bin/whistle.js:175`、`docs/docs/cli.md:48`）标注默认 512，但 `lib/util/data-server.js:14-16` 在值小于 720 时强制设为 600，`:25` 的 `MAX_FRAMES_LENGTH` 因此实际也是 600 条——「官方 512 / 源码 600」的差异落在帧缓存上，不是请求缓存。`:103-106` 定义 `MAX_BUF_LEN1..4` 为 512 / 256 / 128 / 64KB，`:129-145` 的 `clearFrames` 按帧龄分级，把旧帧的 `bin` 逐步截断；`:156-157` 在帧数溢出时直接 `splice(0, overflow + 60)`。也就是说大帧不会永久占着内存，越旧留存越少。
 
 ```js
 // lib/util/data-server.js:342-345
@@ -100,7 +104,7 @@ function handleFrame(data) {
 
 ## 上报通道：gzip 短轮询与原地更新
 
-界面取数走的是标准 HTTP 请求。`biz/webui/cgi-bin/get-data.js:28-60` 用 `util.sendGzip(req, res, {...})` 返回 gzip 压缩的 JSON（底层是 `zlib.gzip`，`lib/util/common.js:1477`），其中 `:60` 调用 `proxy.getData(...)`。前端 `biz/webui/htdocs/src/js/data-center.js:1157-1159` 依据 `hasNew` 决定下一次轮询：有数据 100 毫秒、无数据 900 毫秒。
+界面取数走的是标准 HTTP 请求。`biz/webui/cgi-bin/get-data.js:28-60` 用 `util.sendGzip(req, res, {...})` 返回 gzip 压缩的 JSON（底层是 `zlib.gzip`，`lib/util/common.js:1477`），其中 `:60` 调用 `proxy.getData(...)`。前端 `biz/webui/htdocs/src/js/data-center.js:1157-1159` 依据 `hasNew` 决定下一次轮询：有数据 100 毫秒、无数据 900 毫秒。注意别把它与服务端 `lib/service/data-center.js:8` 的 `MAX_COUNT = 100` 混为一谈——后者在 `:99` 用 `slice(0, MAX_COUNT)` 裁剪上报历史列表，是条数上限；这里的 100 / 900 是轮询间隔（毫秒），两个同名文件语义毫无关系。
 
 ```js
 // biz/webui/htdocs/src/js/data-center.js:1157-1159（节选）
@@ -119,7 +123,7 @@ cgi.getData(options, function (data) {
 
 - 采集旁路于转发：`data.js:279-323` 覆盖 `write` / `end` 采样，`proxy.emit('request', reqEmitter, data)` 后由 `send` / `response` / `end` / `abort` 推进。
 - 阈值覆盖 360KB、1MB、2MB、16MB、256KB 与 1MB 帧；超阈把 `reqBody` 置 `false`，保留元信息；SSE 按 `\n\n` 分帧。
-- 缓存是自实现的有界结构（`ids[]` + `reqData{}` + `framesCache`），600 / 1800 / 360 与单次 100 条共同限流，帧按 512/256/128/64KB 瘦身。
+- 缓存是自实现的有界结构（`ids[]` + `reqData{}` + `framesCache`）：≤600 不清理、>600 按 2 分钟淘汰、≥1800 先砍到 1200 且尾部 360 条享 6 分钟宽限，单次拉取 100 条，帧按 512/256/128/64KB 瘦身。
 - 上报是 gzip 压缩的 HTTP JSON 短轮询，有数据 100ms、无数据 900ms；帧、会话、注入帧各有独立 cgi 接口。
 - `data` 对象原地更新、UI 读同一引用，换来零复制，也带来内存与可见性风险。
 

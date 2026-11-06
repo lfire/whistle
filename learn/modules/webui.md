@@ -92,6 +92,8 @@ app.all('/cgi-bin/*', function(req, res, next) {
 
 前端 `biz/webui/htdocs/src/js/data-center.js:88-94` 定义 `CGI_URL = 'cgi-bin/'` 与 rules / values / plugins / certs / service / socket 六组前缀，`:444-450` 列出 `getData`、`getLogs`、`getInitial`、`getMatchedRules` 四个取数接口；`cgi.js:61` 的 `$.ajax(opts)` 封装统一处理 auth 参数、排队与 abort。服务端 `config.setModified`（`lib/config.js:1126`）打的版本标记，最终由 `data-center.js:903` 的 `checkDataChanged` 比对决定是否重拉。
 
+两个同名文件要分清：上面的 `checkDataChanged` 与 100 / 900 ms 轮询都在浏览器端 `biz/webui/htdocs/src/js/data-center.js`，而 `lib/service/data-center.js:8` 是 service 子进程的抓包缓存，`MAX_COUNT = 100` 限制缓存条数，二者分处前后端、不共享代码。抓包缓存容量还受 CLI 参数影响：`docs/docs/cli.md:47-48` 标注 `--reqCacheSize` 默认 600、`--frameCacheSize` 默认 512，`lib/util/data-server.js:10-16` 又对二者设了强制下限（`reqCacheSize < 600` 抬到 600、`frameCacheSize < 720` 时设为 600），所以命令行标注的默认值与运行时实际生效值未必一致，排查缓存问题时以 `config.reqCacheSize` 为准。
+
 ## 前端栈、weinre 与轮询取舍
 
 前端是 webpack 1 打包的 React 应用：根 `package.json:80-115` 的 devDependencies 固定 React 15 / react-dom 15 / react-virtualized 9 / jQuery 4 / Bootstrap 3 / CodeMirror 5 与 Babel 6，`npm run dev` 即 `webpack --config ./biz/webui/htdocs/src/webpack.config -w`（`package.json:68`）。入口 `biz/webui/htdocs/src/js/index.js:1-19` 引入样式与各组件，`index.js:75` 定义四 Tab `['network','rules','values','plugins']`，`:4869` 把 `<Index />` 挂到 `#container`；构建产物 `biz/webui/htdocs/js` 被 `.gitignore` 排除，仓库里只见源码；界面运行时加载的是构建后的 `js/index.js`，而服务端 `biz/webui/lib/index.js:609-673` 同时保留 `/preview.html` 与首页注入钩子，使同一份 HTML 能按查询参数切换内嵌模式。

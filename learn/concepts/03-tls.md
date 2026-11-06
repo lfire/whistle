@@ -14,11 +14,11 @@ description: 把对称加密、X.509 证书、SNI、证书链、两段 TLS 与�
 ::: cols 20|40|40
 | 层次 | 词条群 | 主要源码落点 |
 |---|---|---|
-| 密码学底座 | 对称/非对称、公钥私钥 | `https/ca.js:42` |
-| 握手协商 | 握手、Hello、套件 | `https/index.js:9` |
-| 证书与信任 | CA、链、锚、X.509 | `https/ca.js:476` |
-| 域名与协议 | CN、SAN、SNI、ALPN | `https/ca.js:241` |
-| 校验与解密 | 校验、MITM、两段 TLS | `tunnel.js:168` |
+| 密码学底座 | 对称/非对称、公钥私钥 | `lib/https/ca.js:42` |
+| 握手协商 | 握手、Hello、套件 | `lib/https/index.js:9` |
+| 证书与信任 | CA、链、锚、X.509 | `lib/https/ca.js:476` |
+| 域名与协议 | CN、SAN、SNI、ALPN | `lib/https/ca.js:241` |
+| 校验与解密 | 校验、MITM、两段 TLS | `lib/tunnel.js:168` |
 :::
 
 表中落点是各层的粗略锚点，逐个词条的真实行号见下方卡片。想按工程链路反查，可配合 [CONNECT 判定与 TLS 解密](/core/connect-mitm) 与 [证书体系的实现细节](/modules/certificates)；想只查缩写含义，可跳到 [术语速查](/advanced/reference) 或 [概念索引](/concepts/index)。
@@ -56,9 +56,9 @@ description: 把对称加密、X.509 证书、SNI、证书链、两段 TLS 与�
 
 **打个比方**：像两个陌生人接头，先对暗号确认彼此身份，再商量用哪套密码本、把这次通话的临时密钥定下来。暗号对完，后面说正事就不必每次再自我介绍。
 
-**在 Whistle 里**：`lib/https/index.js:1232` 以首字节是否为 22 判断这是不是 TLS 握手记录，`lib/https/index.js:1295` 从 ClientHello 里取域名；根 `index.js:32-41` 覆写 `tls.checkServerIdentity`，把校验异常改成可返回的错误对象而非抛出。
+**在 Whistle 里**：首包判定是反向回退（`lib/https/index.js:1231-1234`）：先算 `isHttpH2`（是否为 h2c preface），若既不是 h2c、首字节又不是 `22`（TLS 握手记录），就 `return next(chunk)` 把字节交回纯透传；只有 TLS 握手记录或 h2c preface 才继续往下解密。随后 `lib/https/index.js:1295` 的 `checkSNI(chunk)` 从 ClientHello 里取域名；根 `index.js:32-41` 覆写 `tls.checkServerIdentity`，把校验异常改成可返回的错误对象而非抛出。
 
-**为什么这样设计**：一次协商换来整条连接的安全上下文，避免每个请求重复认证；代价是握手失败会直接断连，且首包必须被代理读走才能识别。
+**为什么这样设计**：一次协商换来整条连接的安全上下文，避免每个请求重复认证；代价是握手失败会直接断连，且首包必须被代理读走才能识别形态——`lib/https/index.js:1184` 用 `readOneChunk` 嗅探第一包，判定后再由 `lib/https/index.js:1190` 把这段字节原样写回，否则客户端的 ClientHello 就丢了。
 
 **容易混淆**：握手不是「每个请求一次」，一条 keep-alive 连接只握一次；与 HTTP 请求头的差别见 [HTTP 词条](/concepts/02-http)。
 
@@ -84,7 +84,7 @@ description: 把对称加密、X.509 证书、SNI、证书链、两段 TLS 与�
 
 **在 Whistle 里**：出站侧套件可由 `tlsOptions://` 规则指定；入站侧 ALPN 与协议档位由 `lib/https/ca.js:713-714` 的 `allowHTTP1` 配合 h2 支持列表决定（`lib/https/h2.js:10`）。
 
-**为什么这样设计**：把互操作的算法选择标准化，老旧客户端与新浏览器可各取所支持的组合；代价是套件过多会带来协商成本，弱套件还须主动禁用。
+**为什么这样设计**：把互操作的算法选择标准化，老旧客户端与新浏览器可各取所支持的组合；代价是套件协商失败要能回退——`lib/https/h2.js:174-181` 在 `util.isCiphersError(e)` 时用 `tlsOptions` 规则里的套件重建连接，`lib/rules/index.js:682-735` 把 `tlsOptions://` 的 `ciphers`、`secureProtocol` 等字段解析成 TLS options。套件过多会拉长协商，弱套件还须主动禁用。
 
 **容易混淆**：套件是「算法清单」，证书是「身份凭据」，二者不在同一层；规则写法见 [指令体系](/modules/protocol-catalog)。
 
@@ -123,7 +123,7 @@ description: 把对称加密、X.509 证书、SNI、证书链、两段 TLS 与�
 
 **打个比方**：像总公司的地区分部公章，总部把签发权授给分部，日常办证由分部盖；某家分部出问题，只吊销它的章，不必惊动总部母版。
 
-**在 Whistle 里**：常规签发是「根 → 叶」两级，不设中间层；唯一例外是兼容特定 Android 客户端的 emudhra 链，`lib/https/emudhra.js:15-17` 从 pem 里解码出中间证书并拼进 `chain`。
+**在 Whistle 里**：常规签发是「根 → 叶」两级，不设中间层；唯一例外是兼容特定 Android 客户端的 emudhra 链，`lib/https/emudhra.js:9-17` 从 pem 解码出证书并拼成完整链，`lib/https/emudhra.js:38` 把这条链附在叶证书之后返回。
 
 **为什么这样设计**：公共 PKI 靠中间层把根私钥隔离离线、按需吊销；Whistle 为简化实现选择直签，只在兼容场景引入现成链，代价是少了一层吊销粒度。
 
@@ -136,7 +136,7 @@ description: 把对称加密、X.509 证书、SNI、证书链、两段 TLS 与�
 
 **打个比方**：像每家门店挂出来的营业执照，写明「本店叫这个名字」，由总公司盖章颁发。顾客验的是这张照，追的是背后那枚总章。
 
-**在 Whistle 里**：`lib/https/ca.js:205-266` 的 `createSelfCert()` 按域名现签：`:221` 把 CN 设为该域名，`:227-229` 置 `cA: false`，`:241-252` 写 SAN，`:263` 复用根私钥 PEM，有效期走 36 天短档。
+**在 Whistle 里**：`lib/https/ca.js:205-266` 的 `createSelfCert()` 按域名现签：`:221` 把 CN 设为该域名，`:227-229` 置 `cA: false`，`:241-252` 写 SAN，`:263` 复用根私钥 PEM；有效期由 `lib/https/ca.js:48-49,565-567` 定为 `notBefore` 提前 7 天、`notAfter` 为 36 天。
 
 **为什么这样设计**：按域名即时签发、短寿命、复用同一把根私钥，兼顾缓存命中与浏览器寿命限制；代价是每个新域名首次访问都要生成一次证书。
 
@@ -153,7 +153,7 @@ description: 把对称加密、X.509 证书、SNI、证书链、两段 TLS 与�
 
 **为什么这样设计**：无需向外部 CA 申请即可立刻拥有签发能力，代价是它默认不被任何系统信任，必须由用户主动安装才能生效。
 
-**容易混淆**：自签不等于不安全，只是「信任需要手动建立」；与证书固定的差别见 [易混淆辨析](/concepts/08-confusions)。
+**容易混淆**：自签不等于不安全，只是「信任需要手动建立」。别把「源站自签证书」与「本地自签根 CA」混为一谈：前者是代理 → 源站这一段的对端证书，`rejectUnauthorized=false` 时默认放行；后者是 Whistle 自己造的信任锚，决定入站伪造证书能否被客户端信任。与证书固定的差别见 [易混淆辨析](/concepts/08-confusions)。
 
 **工程中的样子**：`w2 ca` 的本质就是把这张自签根证书变成受信任的锚，见 [能力边界](/scenarios/boundaries)。
 
@@ -190,7 +190,7 @@ description: 把对称加密、X.509 证书、SNI、证书链、两段 TLS 与�
 
 **在 Whistle 里**：`lib/https/ca.js:559` 用 node-forge 的 `pki.createCertificate()` 建对象，`:225-258` 通过 `setExtensions` 写入 basicConstraints、keyUsage、subjectAltName 等标准扩展。
 
-**为什么这样设计**：统一结构让浏览器、操作系统、Node 的 TLS 栈能互认同一张证书；代价是字段与扩展名晦涩，改动必须严格合标准，否则直接被拒。
+**为什么这样设计**：统一结构让浏览器、操作系统、Node 的 TLS 栈能互认同一张证书；Whistle 在 `lib/https/ca.js:225-258` 用 `setExtensions` 一次写入 basicConstraints、keyUsage、extKeyUsage、subjectAltName 与 authorityKeyIdentifier，少了 SAN 或 basicConstraints 就会校验失败。代价是字段名晦涩、顺序固定，改动必须严格合标准，否则直接被拒。
 
 **容易混淆**：X.509 是「内容结构」，PEM/DER 是「编码格式」，不是一回事；见 [术语速查](/advanced/reference)。
 
@@ -232,7 +232,7 @@ description: 把对称加密、X.509 证书、SNI、证书链、两段 TLS 与�
 
 **容易混淆**：SAN 是证书里「能对上哪些名字」，SNI 是握手里「我要找哪个名字」，见 [易混淆辨析](/concepts/08-confusions)。
 
-**工程中的样子**：`tlsOptions://key=...&cert=...` 提供客户端证书时，服务端同样按 SAN 匹配，见 [HTTPS 排障现场](/scenarios/https-trust)。
+**工程中的样子**：`tlsOptions://key=...&cert=...` 是 Whistle 出站时作为客户端向源站出示的证书，服务端按签发链与 `clientAuth` 用途校验，并不按 SAN 比对域名；SAN 只在客户端校验服务端证书时用于匹配域名。写法见 `docs/docs/rules/cipher.md`，现场见 [HTTPS 排障现场](/scenarios/https-trust)。
 
 ## 三、域名指示与协议协商
 
@@ -241,7 +241,7 @@ description: 把对称加密、X.509 证书、SNI、证书链、两段 TLS 与�
 
 **打个比方**：像信封上写的收件人姓名，邮局不必拆信就知道该把信投进哪家的信箱；一栋楼里住着很多户，全靠这个姓名分信。
 
-**在 Whistle 里**：`lib/https/index.js:9` 引入 `sni` 包，`:1295` 的 `checkSNI(chunk)` 从首包取出域名，`lib/https/ca.js:616-624` 的 `SNICallback` 再据此生成证书上下文。
+**在 Whistle 里**：`lib/https/index.js:9` 引入 `sni` 包，`:1295` 的 `checkSNI(chunk)` 从首包取出域名；`lib/https/ca.js:616-624` 的 `SNICallback` 拿到 servername 后调 `getOrCreateCert` 取缓存或现签证书，首次用 `createSecureContext`（`lib/https/ca.js:620`）把 key/cert 编译成 `_ctx` 挂在证书对象上，再 `cb(null, ctx)` 交回 TLS 层，后续同域名直接复用 `_ctx`。
 
 **为什么这样设计**：同一 IP 托管多个站点时，服务端必须在握手早期知道域名才能选对证书；代价是域名以明文暴露，且 IP 直连的客户端往往不发 SNI。
 
@@ -321,9 +321,9 @@ description: 把对称加密、X.509 证书、SNI、证书链、两段 TLS 与�
 
 **打个比方**：像只认熟人脸的门卫，哪怕来人拿着最权威机关开的最新介绍信，只要脸对不上就一律不放行。换一张再合法的证书也没用。
 
-**在 Whistle 里**：这类客户端换证书必然握手失败，因此 `lib/tunnel.js:26-27` 把 Cronet UA 与 Apple、Microsoft 等系统域名列入黑名单，`lib/tunnel.js:199-200` 命中即放行解密。
+**在 Whistle 里**：这类客户端换证书必然握手失败，因此 `lib/tunnel.js:26-27` 把 Cronet UA 与 Apple、Microsoft 等系统域名列入黑名单；`lib/tunnel.js:199-200` 命中时让 `isEnableIntercept()` 返回 `false`，`lib/tunnel.js:202-213` 的 `isIntercept()` 随之返回 `false`，隧道不拆开、按纯字节透传——这是「避开」而不是解密。
 
-**为什么这样设计**：应用用 pinning 主动防御中间人，安全收益很高；代价是证书轮换必须随应用发版，调试工具只能绕开而非突破。
+**为什么这样设计**：应用用 pinning 主动防御中间人，安全收益很高；代价是证书轮换必须随应用发版。代理无法为这类连接换发被信任的证书，唯一可行的是识别并放行、退回纯透传，而不是突破 pinning。
 
 **容易混淆**：pinning 不是证书校验，前者只认写死的凭据、后者按信任库验链，见 [易混淆辨析](/concepts/08-confusions)。
 
@@ -334,47 +334,47 @@ description: 把对称加密、X.509 证书、SNI、证书链、两段 TLS 与�
 
 **打个比方**：像进保密单位，不只门卫要出示证件证明「这里是真单位」，访客也得掏出自己的证件证明「我是被允许的人」，少任何一张都进不去。
 
-**在 Whistle 里**：`lib/https/index.js:1315-1318` 依据 `enable.clientCert` 计算 `requestCert`，`lib/https/ca.js:583` 用域名前置 `:` 标记需要客户端证书，出站侧由 `tlsOptions://key=...&cert=...` 提供凭据。
+**在 Whistle 里**：入站侧（浏览器 → 代理，Whistle 充当服务端索要客户端证书）由 `lib/https/index.js:1315-1318` 依据 `enable.clientCert` 计算 `requestCert`，再经 `lib/https/ca.js:715-722` 写进内部 TLS server 的 `options`，`lib/https/index.js:1270` 用 serverKey 前置 `:` 标记需要客户端证书、`lib/https/ca.js:583` 再据此解析。出站侧（代理 → 源站，Whistle 充当客户端出示证书）是另一条链：`lib/rules/index.js:742` 的 `getClientCert` 解析 `tlsOptions://key=...&cert=...`，`lib/https/index.js:368` 的 `setClientCert` 把凭据写进出站 TLS 的 `options`。
 
-**为什么这样设计**：高安全接口要求双方都持证，单向 TLS 只验证服务端不够；代价是代理也必须持有合法客户端证书，否则一换证书就握手失败。
+**为什么这样设计**：高安全接口要求双方都持证，单向 TLS 只验证服务端不够；代价是两段 TLS 各自都要处理证书——入站要备好 `requestCert` 与信任设置（`lib/https/ca.js:715-722`），出站要持有源站认可的客户端证书（`lib/https/index.js:368`），任一侧拿不出凭据就握手失败。
 
-**容易混淆**：mTLS 不是单向 TLS 的加强版开关，它多了一整条客户端证书校验链，见 [易混淆辨析](/concepts/08-confusions)。
+**容易混淆**：mTLS 不是单向 TLS 的加强版开关，它多了一整条客户端证书校验链；更要分清「客户端证书」与「服务端证书」——前者由客户端持有、供服务端验，后者由服务端持有、客户端按 SAN 与信任链验，两张证书的方向与校验者正好相反，见 [易混淆辨析](/concepts/08-confusions)。
 
 **工程中的样子**：`www.example.com/path tlsOptions://key=/certs/client.key&cert=/certs/client.crt`，见 [HTTPS 排障现场](/scenarios/https-trust)。
 
 ## 五、速览表：证书工程词
 
-以下词条不单独展开，读代码时用来对齐称呼；落点列给出 Whistle 中最接近的实现位置，纯格式类词（PEM、DER、PFX）对应的是 node-forge 或规则侧处理。表内源码落点为省略 `lib/` 前缀的简写，正文一律用完整 `lib/xxx.js:行号`。
+以下词条不单独展开，读代码时用来对齐称呼；落点列给出 Whistle 中最接近的实现位置，纯格式类词（PEM、DER、PFX）对应 node-forge 编码或出站客户端证书分支。CSR 在本工程没有对应实现——动态签发直接用根私钥签名（`lib/https/ca.js:260`），不经过证书申请。
 
 ::: cols 16|30|30|24
 | 名词 | 一句话 | 源码落点 | 易混淆 |
 |---|---|---|---|
-| CSR | 签发前提交的申请 | `https/ca.js:481` | 非证书本身 |
-| Basic Constraints | 标明能否签发 | `https/ca.js:227` | 非密钥用途 |
-| AKI/SKI | 标识签发与主体密钥 | `https/ca.js:186` | 非序列号 |
-| 有效期 | 证书生效与过期区间 | `https/ca.js:558` | 非会话时长 |
-| 会话复用 | 缓存握手上下文 | `https/ca.js:618` | 非证书缓存 |
-| PEM | 文本编码的证书 | `https/ca.js:264` | 与 DER 不同 |
-| DER | 二进制 ASN.1 编码 | `https/emudhra.js:14` | 与 PEM 不同 |
-| PFX/P12 | 含私钥的打包格式 | `https/ca.js:478` | 非 PEM 明文库 |
-| SHA-256 | 证书签名摘要算法 | `https/ca.js:543` | 非对称密钥 |
+| CSR | 签发申请，本工程未用 | 无直接实现 | 非证书本身 |
+| Basic Constraints | 标明能否签发 | `lib/https/ca.js:227` | 非密钥用途 |
+| AKI/SKI | 标识签发与主体密钥 | `lib/https/ca.js:186,255` | 非序列号 |
+| 有效期 | 证书生效与过期区间 | `lib/https/ca.js:558` | 非会话时长 |
+| 上下文缓存 | 复用 SecureContext 结果 | `lib/https/ca.js:618` | 非会话 ticket |
+| PEM | 文本编码的证书 | `lib/https/ca.js:264` | 与 DER 不同 |
+| DER | 二进制 ASN.1 编码 | `lib/https/emudhra.js:14` | 与 PEM 不同 |
+| PFX/P12 | 含私钥的打包格式 | `lib/util/index.js:3551` | 非 PEM 明文库 |
+| SHA-256 | 证书签名摘要算法 | `lib/https/ca.js:543` | 非对称密钥 |
 :::
 
 ::: cols 16|30|30|24
 | 名词 | 一句话 | 源码落点 | 易混淆 |
 |---|---|---|---|
-| RSA 2048 | 根密钥固定长度 | `https/ca.js:42` | 非签名算法 |
-| node-forge | 纯 JS 的 PKI 库 | `https/ca.js:1` | 非 Node 内置 |
-| createSecureContext | 生成 TLS 上下文 | `https/ca.js:10` | 非签发证书 |
-| SNICallback | 按域名回证书上下文 | `https/ca.js:616` | 非 SNI 解析 |
+| RSA 2048 | 根密钥固定长度 | `lib/https/ca.js:42` | 非签名算法 |
+| node-forge | 纯 JS 的 PKI 库 | `lib/https/ca.js:1` | 非 Node 内置 |
+| createSecureContext | 生成 TLS 上下文 | `lib/https/ca.js:10` | 非签发证书 |
+| SNICallback | 按域名回证书上下文 | `lib/https/ca.js:616` | 非 SNI 解析 |
 | 信任库 | 系统预置根的集合 | `bin/ca/index.js:69` | 非签发缓存 |
-| 证书序列号 | 证书唯一编号 | `https/ca.js:207` | 非 AKI/SKI |
-| ECDSA | 椭圆曲线签名 | `https/emudhra.js:26` | 非 RSA |
-| emudhra | 公开披露的兼容链 | `https/emudhra.js:6` | 非可信凭据 |
-| `--mode safe` | 打开出站严格校验 | `config.js:809` | 非解密开关 |
+| 证书序列号 | 证书唯一编号 | `lib/https/ca.js:207` | 非 AKI/SKI |
+| ECDSA | 椭圆曲线签名 | `lib/https/emudhra.js:26` | 非 RSA |
+| emudhra | 公开披露的兼容链 | `lib/https/emudhra.js:6` | 非可信凭据 |
+| `--mode safe` | 打开出站严格校验 | `lib/config.js:809` | 非解密开关 |
 :::
 
-`lib/https/ca.js:42` 的 `KEY_SIZE = 2048` 与 `:543` 的 `forge.md.sha256.create()` 分别定死密钥长度与摘要算法；`:558-573` 把有效期分成十年与 36 天两档，`:618` 把生成过的 `_ctx` 挂在证书对象上避免重复建上下文。emudhra 一行注释明确它是 mitmproxy 提交中公开披露的密钥与链，只用于兼容特定 Android 客户端，绝不能当作可信凭据，详见 [证书体系](/modules/certificates)。
+`lib/https/ca.js:42` 的 `KEY_SIZE = 2048` 与 `:543` 的 `forge.md.sha256.create()` 分别定死根密钥长度与签名摘要；`:48-49` 定义 `MIN_DATE = 7 天`、`MAX_DATE = 36 天`，`:558-573` 据此把有效期分成两档——叶证书 `notBefore` 提前 7 天（容忍客户端时钟偏差）、`notAfter` 为 36 天，根证书 `notBefore` 提前 1 年、`notAfter` 为十年；`:618` 把生成过的 `_ctx` 挂在证书对象上避免重复建上下文。emudhra 一行注释明确它是 mitmproxy 提交中公开披露的密钥与链，只用于兼容特定 Android 客户端，绝不能当作可信凭据，详见 [证书体系](/modules/certificates)。
 
 ## 与工程实际结合
 
@@ -398,7 +398,7 @@ www.example.com disable://capture
 www.example.com/path tlsOptions://key=/certs/client.key&cert=/certs/client.crt
 ```
 
-`enable://captureIp` 补的是 IP 直连不发 SNI 的缺口（`lib/https/index.js:1295`）；`disable://capture` 让 pinning 与 mTLS 流量退回纯透传（`lib/tunnel.js:168-213`）；`tlsOptions` 提供客户端证书（`lib/https/index.js:1315-1318`）。逐条现象对应表见 [HTTPS 排障现场](/scenarios/https-trust)，判定链源码见 [CONNECT 判定与 TLS 解密](/core/connect-mitm)。
+`enable://captureIp` 补的是 IP 直连不发 SNI 的缺口（`lib/https/index.js:1295`）；`disable://capture` 让 pinning 与 mTLS 流量退回纯透传（`lib/tunnel.js:168-213`）；`tlsOptions` 提供的是出站客户端证书，由 `lib/rules/index.js:742` 的 `getClientCert` 解析、再由 `lib/https/index.js:368` 的 `setClientCert` 应用到出站 TLS 连接，与入站 `requestCert`（`lib/https/index.js:1315-1318`）不是一回事。逐条现象对应表见 [HTTPS 排障现场](/scenarios/https-trust)，判定链源码见 [CONNECT 判定与 TLS 解密](/core/connect-mitm)。
 
 **手机与远程设备。** 根证书要从下载接口取回再手动信任，装完还需在 iOS 上开启完全信任、在 Firefox 上单独放行系统证书库；这一步对应 [信任锚](#信任锚trust-anchor) 词条。操作见 [真机、移动端与远程页面调试](/scenarios/mobile-remote)，安装入口源码见 `bin/ca/index.js:69-81`。
 
@@ -406,12 +406,12 @@ www.example.com/path tlsOptions://key=/certs/client.key&cert=/certs/client.crt
 
 ## 常见误解
 
-1. **装了根证书 ≠ 一定解密。** `w2 ca` 只建立了信任锚，解密还要过 `lib/tunnel.js:168-213` 的 `isIntercept()`：策略头、`disable://capture`、全局抓包开关、`lib/tunnel.js:26-27` 的系统黑名单，以及 `lib/https/index.js:1232` 的首包回退，任一命中都会退回纯透传。抓包列表只有 `Tunnel to` 时应先查这几层，见 [CONNECT 判定与 TLS 解密](/core/connect-mitm)。
+1. **装了根证书 ≠ 一定解密。** `w2 ca` 只建立了信任锚，解密还要过 `lib/tunnel.js:168-213` 的 `isIntercept()`：策略头、`disable://capture`、全局抓包开关、`lib/tunnel.js:26-27` 的系统黑名单，以及 `lib/https/index.js:1231-1234` 的首包回退，任一命中都会退回纯透传。抓包列表只有 `Tunnel to` 时应先查这几层，见 [CONNECT 判定与 TLS 解密](/core/connect-mitm)。
 2. **SNI ≠ SAN。** SNI 是客户端在 ClientHello 里明文写「我要找谁」（`lib/https/index.js:1295`），SAN 是证书里写「我能对上哪些名字」（`lib/https/ca.js:241-252`）。前者驱动选证书，后者用于校验匹配，方向相反、载体不同，详见 [易混淆辨析](/concepts/08-confusions)。
-3. **证书校验 ≠ 证书固定。** 校验是「按信任库逐级验签」（`lib/config.js:65`、`lib/config.js:809-810`），固定是「只认写死的那张」（`lib/tunnel.js:199-200` 的黑名单正是为绕开它）。前者可被 `--mode safe` 收紧，后者换任何合法证书都失败。
-4. **根证书 ≠ 叶证书。** 根 `cA:true`、十年、只负责签（`lib/https/ca.js:512-513`、`:570`）；叶 `cA:false`、36 天、只承载流量（`lib/https/ca.js:227-229`）。拿叶证书再签下一张会直接被拒，字段差异见 [证书体系](/modules/certificates)。
+3. **证书校验 ≠ 证书固定。** 校验是「按信任库逐级验签」（`lib/config.js:65`、`lib/config.js:809-810`），固定是「只认写死的那张」；`lib/tunnel.js:199-200` 的黑名单只是让这些域名避开解密、退回透传，并不能绕过固定。前者可被 `--mode safe` 收紧，后者换任何合法证书都失败。
+4. **根证书 ≠ 叶证书。** 根 `cA:true`、`notAfter` 十年、只负责签（`lib/https/ca.js:512-513`、`:570`）；叶 `cA:false`、`notBefore` 提前 7 天 / `notAfter` 36 天、只承载流量（`lib/https/ca.js:227-229`、`:565-567`）。拿叶证书再签下一张会直接被拒，字段差异见 [证书体系](/modules/certificates)。
 5. **入站伪造证书 ≠ 出站不校验。** 两段 TLS 各自独立信任：入站靠本地根证书（`lib/https/ca.js:630-636`），出站由 `rejectUnauthorized` 单独决定（`lib/config.js:65`）。开了 `--mode safe` 不会改变入站签发，装了根证书也不会替出站把关，见 [TLS 中间人](/domain/tls-mitm)。
-6. **MITM ≠ 破解加密，mTLS ≠ 单向 TLS。** MITM 是两次合法握手换出中间明文（`lib/https/index.js:1102-1111`），没有破解任何算法；mTLS 多了一整条客户端证书校验链（`lib/https/index.js:1315-1318`），代理若无合法客户端证书，换证书会立刻握手失败，见 [HTTPS 排障现场](/scenarios/https-trust)。
+6. **MITM ≠ 破解加密，mTLS ≠ 单向 TLS。** MITM 是两次合法握手换出中间明文（`lib/https/index.js:1102-1111`），没有破解任何算法；mTLS 多了一整条客户端证书校验链（入站 `lib/https/index.js:1315-1318`、出站 `lib/https/index.js:368`），代理若无合法客户端证书，换证书会立刻握手失败，见 [HTTPS 排障现场](/scenarios/https-trust)。
 
 ## 小结
 

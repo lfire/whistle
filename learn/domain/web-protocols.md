@@ -21,13 +21,13 @@ HTTP/1.1 允许一条 TCP 连接顺序承载多个请求（keep-alive），但**
 
 ### HTTP/2：伪头、多路复用与 ALPN
 
-HTTP/2 把报文拆成 HEADERS / DATA 帧，用 stream id 标识归属，多个 stream 可以在同一条连接上并发交错，从而消除应用层的队头阻塞。头部不再写 `GET /path HTTP/1.1` 这类起始行，而是用 `:method`、`:path`、`:authority`、`:scheme` 等伪头表示；这些以冒号开头的字段在降级到 HTTP/1.1 时必须被剔除或翻译成 `Host`。
+HTTP/2 把报文拆成 HEADERS / DATA 帧，用 stream id 标识归属，多个 stream 可以在同一条连接上并发交错，从而消除应用层的队头阻塞。头部不再写 `GET /path HTTP/1.1` 这类起始行，而是用 `:method`、`:path`、`:authority`、`:scheme` 等伪头表示；这些以冒号开头的字段在降级到 HTTP/1.1 时必须被剔除或翻译成 `Host`。反过来，出站重建 h2 请求也要造伪头：`lib/https/h2.js:276-278` 把 `options.path` / `method` / `headers.host` 写成 `:path` / `:method` / `:authority`，响应状态则从 `:301` 的 `:status` 读出——与入站降级（`lib/https/index.js:1030-1043`）恰好是相反方向。
 
-协议的选择发生在 TLS 握手的 ALPN 阶段（前一篇提过 `lib/https/h2.js:10` 的 `SUPPORTED_PROTOS`）。Whistle 的入站侧用 `lib/https/h2.js:353-367` 的 `getServer` 创建 `http2.createSecureServer`，出站侧用 `lib/https/h2.js:247-258` 的 `http2.connect` 建连；另有 `getHttpServer`（`lib/https/h2.js:369-380`）以 `allowHTTP1: true` 处理明文 h2c。两类服务器通过 `lib/https/ca.js:609-611` 的固定端口 `42900` / `43900` 挂载，供 hagent 复用。
+协议的选择发生在 TLS 握手的 ALPN 阶段（前一篇提过 `lib/https/h2.js:10` 的 `SUPPORTED_PROTOS`）。`SUPPORTED_PROTOS` 不止是常量：`lib/https/h2.js:159,223` 把它作为 `ALPNProtocols` 写进出站 TLS 选项，客户端在 ClientHello 里声明 `h2` / `http/1.1`；入站是否启用 h2 则由 `lib/https/ca.js:714` 的 `options.allowHTTP1 = enableH2` 控制，它决定 `getServer` 走 `http2.createSecureServer`（`lib/https/h2.js:355`）还是普通 `https.createServer`（`:363`）。Whistle 的入站侧用 `lib/https/h2.js:353-367` 的 `getServer` 创建 `http2.createSecureServer`，出站侧用 `lib/https/h2.js:247-258` 的 `http2.connect` 建连；另有 `getHttpServer`（`lib/https/h2.js:369-380`）以 `allowHTTP1: true` 处理明文 h2c。两类服务器通过 `lib/https/ca.js:609-611` 的固定端口 `42900` / `43900` 挂载，供 hagent 复用。
 
 ### SSE：单向长流
 
-SSE（Server-Sent Events）仍是普通 HTTP 响应，`Content-Type: text/event-stream`，但服务器不结束响应，而是持续写出以空行分隔的 `data:` 事件块。它和 chunked 一样是「流式」，只是多了约定的分帧格式；抓包工具若不按事件边界切分，界面上会看到一坨粘在一起的字节。
+SSE（Server-Sent Events）仍是普通 HTTP 响应，`Content-Type: text/event-stream`，但服务器不结束响应，而是持续写出以空行分隔的 `data:` 事件块。它和 chunked 一样是「流式」，只是多了约定的分帧格式。Whistle 在抓包展示层用 `SSE_SEP = Buffer.from('\n\n')`（`lib/inspectors/data.js:14`）作分隔符：`lib/inspectors/data.js:337` 识别出 `text/event-stream` 后，`:348-349` 调用 `parseFrame`（定义在 `:98-126`，用 `buf.indexOf(SSE_SEP)` 循环切分并逐块 `emitFrame`）把累积的 `resBody` 切成一条条事件；若不按事件边界切分，界面上就会看到一坨粘在一起的字节。
 
 ## Upgrade、帧与 TCP 隧道
 
@@ -83,7 +83,7 @@ if (host) {
 
 ## 改写 body 的代价
 
-「把响应里的字符串换掉」听起来简单，实现上是一整条 Transform 流水线。`lib/init.js:87-155` 的 `addTransforms` 给 `req` / `res` 挂上 `addTextTransform` / `addZipTransform`；`lib/inspectors/rules.js:73-119` 的 `getDecoder` 读到压缩体时先 `util.getUnzipStream` 解压，`lib/inspectors/rules.js:122-133` 的 `getEncoder` 再用 `util.getZipStream` 按协商出的编码压回去（`lib/util/index.js:1593-1605` 提供 gzip 等流）。也就是说，一次改写至少付出「解压 → 替换 → 压缩」两次编解码与一次全量缓冲。
+「把响应里的字符串换掉」听起来简单，实现上是一整条 Transform 流水线。`lib/init.js:87-155` 的 `addTransforms` 给 `req` / `res` 挂上 `addTextTransform` / `addZipTransform`；`lib/inspectors/rules.js:73-120` 的 `getDecoder` 读到压缩体时先 `util.getUnzipStream` 解压，`lib/inspectors/rules.js:122-133` 的 `getEncoder` 再用 `util.getZipStream` 按协商出的编码压回去（`lib/util/index.js:1591-1602` 的 `getZipStream` 提供 gzip / br / deflate / zstd 流）。也就是说，一次改写至少付出「解压 → 替换 → 压缩」两次编解码与一次全量缓冲。
 
 随之而来两个必然后果：
 

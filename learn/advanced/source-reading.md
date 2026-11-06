@@ -5,7 +5,7 @@ description: 四条阅读路线、调试开关、断点清单与测试体系，�
 
 # 源码阅读与调试路线
 
-读完前四层后，最常见的困境不是看不懂语法，而是改动一落地却不知道该从哪个文件开始追。本篇把仓库拆成四条互不重叠的阅读路线，每条给出文件顺序与它回答的问题，再补齐调试开关、断点清单和测试体系。所有引用均以 `guide` 分支 `3b85cebc4` 为准，路径为仓库相对路径；建议把仓库与文档并排打开，遇到行号就跳过去看一眼再回来。
+读完前四层后，最常见的困境不是看不懂语法，而是改动一落地却不知道该从哪个文件开始追。本篇把仓库拆成四条互不重叠的阅读路线，每条给出文件顺序与它回答的问题，再补齐调试开关、断点清单和测试体系。所有引用均以 `guide` 分支 `3b85cebc4`（v2.10.13）为准——其后提交仅涉及文档站，业务源码零改动，因此行号仍然有效；路径为仓库相对路径，建议把仓库与文档并排打开，遇到行号就跳过去看一眼再回来。
 
 ## 四条阅读路线
 
@@ -17,7 +17,7 @@ description: 四条阅读路线、调试开关、断点清单与测试体系，�
 
 ### 路线二 · HTTPS 解密链
 
-回答「CONNECT 进来后凭什么决定解密」。顺序：`lib/tunnel.js:44` 的 `server.on('connect')` → `lib/tunnel.js:168-213` 的 `isIntercept()` 判定 → `lib/https/index.js:1184-1234` 的 `readOneChunk` 首包嗅探 → `lib/https/ca.js:47-49,566-570` 生成叶证书 → `lib/https/index.js:1105` 把解密后的明文重新 `server.emit('request')` → 回到路线一的 inspector 链。判定里 `disable.intercept`、`policy === 'capture'`、`hasCustomCerts()` 三个分支最值得细看，它们决定了「隧道直通」还是「中间人代签」。
+回答「CONNECT 进来后凭什么决定解密」。顺序：`lib/tunnel.js:44` 的 `server.on('connect')` → `lib/tunnel.js:168-213` 的 `isIntercept()` 判定 → `lib/https/index.js:1184-1234` 的 `readOneChunk` 回调做首包嗅探（函数本体在 `lib/util/index.js:3618-3637`）→ `lib/https/ca.js:47-49,566-570` 生成叶证书 → `lib/https/index.js:1105` 把解密后的明文重新 `server.emit('request')` → 回到路线一的 inspector 链。判定里 `disable.intercept`、`policy === 'capture'`、`hasCustomCerts()` 三个分支最值得细看，它们决定了「隧道直通」还是「中间人代签」。首包判定是反向写法：`lib/https/index.js:1232` 的 `if (!isHttpH2 && chunk[0] != 22) return next(chunk);` 表示首字节既不是 TLS 握手记录（0x16=22）也不是 h2c preface 就回退透传，只有这两类才继续走解密，不要读成源码里有 `chunk[0] === 22` 的正面放行。
 
 ### 路线三 · 规则链
 
@@ -31,22 +31,22 @@ description: 四条阅读路线、调试开关、断点清单与测试体系，�
 
 `w2 run` 与 `w2 start` 是两种截然不同的运行方式。`w2 run` 走 `bin/whistle.js:106-112` 的 `runCallback`，前台运行、`debugMode` 生效、子进程 stdio 继承到当前终端，日志与断点都能直接看到；`w2 start` 走 `bin/whistle.js:113` 的 `startCallback`，由 `starting` 托管为 detached 后台进程，CLI 退出后业务进程仍在。`--inspect` 与 `--inspectBrk` 仅 `w2 run` 支持：`bin/whistle.js:93-103` 在 `start` / `restart` 收到这两个选项时直接报错退出，并提示改用 `w2 run`（选项定义在 `188-189` 行）。
 
-`PFORK_MODE` 控制插件子进程形态：`inline` 让 `lib/plugins/index.js:632,657` 把插件跑在当前进程，便于单步；`bind` 由 `index.js:218` 在 `debugMode` 下自动设置。`w2 status` 读取 `~/.startingAppData`（`bin/util.js:124,145-171`）列出各实例的 PID、端口与 `storage`，多实例排错时先跑它。日志走 `lib/util/logger.js:8` 的 fatal / error / warn / info / debug 五级；`lib/util/perf.js:28-39` 统计 `httpQps`、`tunnelQps`、`wsQps`、`maxRss`、`cpuPercent`，判断性能问题时比猜更可靠。`--mode` 开关集中在 `lib/config.js:704-885`：`debug`、`capture`（816 行）、`strict`、`pureProxy`、`network`、`rules`、`plugins` 等可组合，705 行用 `|`、`,`、`&` 分隔多个模式。
+`PFORK_MODE` 控制插件子进程形态：`inline` 由 `lib/plugins/index.js:632` 据 `config.inspectMode || PFORK_MODE === 'inline'` 判定，pfork 随即把插件跑在当前进程便于单步（`--inspect` 由 `lib/config.js:604-606` 自动置该值）；`bind` 由 `index.js:218` 在 `debugMode` 下自动设置，效果之一是让 `lib/plugins/index.js:657` 把加载错误打到终端。`w2 status` 读取 `~/.startingAppData`（`bin/util.js:124,145-171`）列出各实例的 PID、端口与 `storage`，多实例排错时先跑它。日志走 `lib/util/logger.js:8` 的 fatal / error / warn / info / debug 五级；`lib/util/perf.js:15-39,63-70` 统计 `httpQps`、`tunnelQps`、`wsQps`、`maxRss`、`cpuPercent`，判断性能问题时比猜更可靠。`--mode` 开关集中在 `lib/config.js:704-885`：`debug`、`capture`（816 行）、`strict`、`pureProxy`、`network`、`rules`、`plugins` 等可组合，705 行用 `|`、`,`、`&` 分隔多个模式；`safe`（809-810 行）单独把出站 `rejectUnauthorized` 打开，与入站解密无关。
 
 ### 断点建议清单
 
 - `lib/index.js:40-60`：四类入口的装配点（request / connect / upgrade / TLS），先看中间件链怎么拼。
 - `lib/tunnel.js:168-213`：解密判定 `isIntercept()`，HTTPS 抓不到明文时第一个该停的地方。
-- `lib/https/index.js:1184-1234`：`readOneChunk` 首包嗅探，区分 HTTP、HTTP/2 与 TLS 握手首字节。
+- `lib/https/index.js:1184-1234`：`readOneChunk` 回调做首包嗅探（函数见 `lib/util/index.js:3618`），区分 HTTP、HTTP/2 与 TLS 握手首字节。
 - `lib/inspectors/rules.js:29-45`：规则命中 `resolveRules`，确认 `req.rules` 是否被正确填充。
 - `lib/inspectors/data.js:185`：抓包上报 `proxy.emit('request', ...)`，Network 空白时查这里。
 - `lib/util/data-server.js:92-95`：`request` / `frame` 事件绑定缓存，是采集与展示之间的接缝。
 
-前两个断点分别对应「入口」与「判定」，中间两个对应「规则」与「采集」，最后两个是旁路。按这个顺序单步一次，比读十遍静态代码更能建立时序感。
+前两个断点分别对应「入口」与「判定」，中间两个对应「规则」与「采集」，最后两个是旁路。单步时按「输入 → 动作 → 输出」看：`lib/tunnel.js:168-213` 的输入是 CONNECT 的 headers、`policy` 与 `disable` 开关，动作是五个局部函数逐层判定，输出一个布尔值决定走 MITM 还是 `net.connect` 纯透传；`lib/inspectors/rules.js:29-45` 则输入规则文本编译结果，输出填好协议的 `req.rules` 供后续 inspector 消费。按这个顺序单步一次，比读十遍静态代码更能建立时序感。
 
 ## 测试体系与最小复现
 
-`npm test` 即 `npm run lintfix && node test/index.test.js`（`package.json` 的 scripts）：先用 eslint 自动修复，再跑主测试文件。`test/index.test.js:17` 读取 `test/units/` 下的全部用例，断言用 `should`（`test/index.test.js:7`）；覆盖率脚本 `npm run cov` 才走 tape 与 istanbul。fixtures 集中在 `test/assets/`：`certs/` 下有 `root.key`、`test.crt` 等证书，`files/` 与 `rules/` 提供规则素材，另有一个顶层 `test/rules.txt`。这些证书让 HTTPS 与 MITM 用例无需联网即可复现。
+`npm test` 即 `npm run lintfix && node test/index.test.js`（`package.json:70`）：先用 eslint 自动修复，再跑主测试文件。`test/index.test.js:17` 读取 `test/units/` 下的全部用例，断言用 `should`（`test/index.test.js:7`）；覆盖率脚本 `npm run cov` 才走 tape 与 istanbul。fixtures 集中在 `test/assets/`：`certs/` 下有 `root.key`、`test.crt` 等证书，`files/` 与 `rules/` 提供规则素材，另有一个顶层 `test/rules.txt`。这些证书让 HTTPS 与 MITM 用例无需联网即可复现。
 
 复现问题的最小做法是：从 `test/units/` 里挑一个最接近的用例（例如 `reqHeaders.test.js`）复制改名，只改请求 URL 与期望值，用 `startWhistle` 返回的 `proxy` 监听 `request` 观察数据，确认失败后再回到源码定位。这样既避免启动完整浏览器，也能把问题压缩到一条链路。`npm run dev` 是 `webpack --config ./biz/webui/htdocs/src/webpack.config -w`，只做前端资源的 watch 编译，改 `biz/webui/htdocs/src/` 下的界面代码时用它，与内核调试互不干扰。
 

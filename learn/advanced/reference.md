@@ -5,7 +5,7 @@ description: 把术语、源码路径、配置项、CLI 命令、阈值与内部
 
 # 术语、路径与配置速查
 
-第五层的前两篇解决「动手」与「怎么读」，本篇只解决「忘了去哪查」。内容全部来自 `guide` 分支 `3b85cebc4`（v2.10.13）的当前源码，按术语、路径、配置、命令、阈值与内部头分组，每组拆成小表并标注列宽，避免一张巨表把长短列挤在一起。默认值随版本可能调整，遇到不一致时以 `package.json` 与 `lib/config.js` 为最终依据。
+第五层的前两篇解决「动手」与「怎么读」，本篇只解决「忘了去哪查」。内容全部来自 `guide` 分支 `3b85cebc4`（v2.10.13）的当前源码——其后提交仅涉及文档站，业务源码零改动，行号与阈值仍然有效；按术语、路径、配置、命令、阈值与内部头分组，每组拆成小表并标注列宽，避免一张巨表把长短列挤在一起。默认值随版本可能调整，遇到不一致时以 `package.json` 与 `lib/config.js` 为最终依据。
 
 > 本页是**速查表**：只给术语的一句话对齐与数值。若要建立完整理解（形象类比、设计取舍、易混淆辨析、工程实例），请看 [概念精解](/concepts/index)；那里另有 [全量术语索引](/concepts/glossary) 覆盖 360 余条。
 
@@ -34,7 +34,7 @@ description: 把术语、源码路径、配置项、CLI 命令、阈值与内部
 | ALPN | 协商 h2 与 http1.1 的扩展 |
 | SAN | 证书里的多域名扩展 |
 | CA | 签发证书的信任根机构 |
-| 根证书 | 被系统信任的自签 CA |
+| 根证书 | 需手动安装的自签 CA |
 | 证书固定 | 客户端只认指定证书 |
 | mTLS | 双向校验客户端证书 |
 :::
@@ -95,8 +95,8 @@ description: 把术语、源码路径、配置项、CLI 命令、阈值与内部
 |---|---|---|
 | `port` | 8899 | 代理主端口 |
 | `uiport` | 同 port | Web UI 端口 |
-| `sockets` | 256 | 每域名缓存连接 |
-| `timeout` | 360000(ms) | 请求超时 |
+| `sockets` | 256 | 每域名 maxSockets |
+| `timeout` | 360000(ms) | 连接空闲超时 |
 | `host` | 不绑定 | 监听地址 |
 | `httpPort` | 未启用 | 独立 HTTP 端口 |
 | `httpsPort` | 未启用 | 独立 HTTPS 端口 |
@@ -120,7 +120,11 @@ description: 把术语、源码路径、配置项、CLI 命令、阈值与内部
 | `middlewares` | 空 | 启动中间件列表 |
 :::
 
-默认值主要取自 `package.json:4-9`（`port`、`sockets`、`timeout`）与 `lib/config.js:1035-1048`（`sockets` 到 agent 的换算）、`lib/util/data-server.js:10-35`（缓存下限）。`uiport` 默认等于 `port`（`lib/config.js:495`）；`httpPort`、`httpsPort`、`socksPort` 不传即不创建独立监听（`lib/index.js:96-124,151`）。`frameCacheSize` 若低于 720，会被 `lib/util/data-server.js:14-16` 校正为 600。命令行侧对应开关集中在 `bin/whistle.js:153-189`，其中 `-R` 与 `-F` 分别调整两个缓存值。
+默认值主要取自 `package.json:7-9`（`port`、`sockets`、`timeout`）与 `lib/config.js:1035-1048`（`sockets` 到 agent 的换算）、`lib/util/data-server.js:10-35`（缓存下限）。`uiport` 默认等于 `port`（`lib/config.js:495`）；`httpPort`、`httpsPort`、`socksPort` 不传即不创建独立监听（`lib/index.js:96-124,151`）。
+
+两个数值开关最易读错。`sockets=256` 不是监听端口数：`lib/config.js:1039-1048` 把它换算成 `HttpAgent` / `HttpsAgent` 的 `maxSockets`（每目标域名可复用的连接池上限），而 `:1046` 的 `disableAgent = !newAgentConf && !useAgent` 在默认路径把 agent 直接置为 `false`，以规避 Node 11 以上的连接缓存缺陷——即这个值默认并不生效，监听端口另由上面三个选项决定。`timeout=360000` 在 `bin/whistle.js:170` 的帮助里写作 request timeout，实际由 `lib/index.js:44-45` 写进 `server.timeout`（连接空闲超时）并把 `requestTimeout` 置 0，不是单个请求的总时限。
+
+缓存也要两处对照：官方 CLI（`docs/docs/cli.md:47-48`、`bin/whistle.js:174-175`）把 `-R reqCacheSize` 标为 600、`-F frameCacheSize` 标为 512，但源码 `lib/util/data-server.js:10-16` 给两者都设了下限——`reqCacheSize < 600` 校正为 600，`frameCacheSize < 720` 校正为 600。所以 `-F` 的 512 不会生效，两条缓存实际都是 600 起步；命令行侧对应开关集中在 `bin/whistle.js:153-189`。
 
 ### CLI · 进程与状态
 
@@ -143,7 +147,7 @@ description: 把术语、源码路径、配置项、CLI 命令、阈值与内部
 | `root` | 输出安装根目录 | 可带子路径 |
 | `proxy` | 设置系统代理 | `proxy 0` 关闭 |
 | `ca` | 安装管理根证书 | HTTPS 前置 |
-| `install` | 安装插件 | 支持本地路径 |
+| `install` | 安装插件 | 支持本地 tgz |
 | `uninstall` | 卸载插件 | 按包名 |
 | `use` | 加载规则文件 | 同 `add` |
 | `exec` | 执行插件命令 | 注入 .bin |
@@ -157,10 +161,12 @@ description: 把术语、源码路径、配置项、CLI 命令、阈值与内部
 
 ### 关键阈值
 
+下面这些数值都是硬边界而非可调优参数：越界后或丢数据、或回退透传、或拒绝请求。表内只留结论，机制与代价放在表后注记，便于一页查完再去深究。
+
 ::: cols 22|46|32
 | 数值 | 含义 | 出处(短) |
 |---|---|---|
-| 600 条 | 请求抓包缓存上限 | `data-server.js:10` |
+| 600 条 | 请求抓包缓存上限 | `data-server.js:10,21` |
 | 1800 条 | 溢出清理阈值(3×) | `data-server.js:22` |
 | 100 条 | 单次拉取上限 | `data-server.js:26` |
 | 100/900 ms | 有/无新数据轮询间隔 | `data-center.js:1159` |
@@ -173,7 +179,9 @@ description: 把术语、源码路径、配置项、CLI 命令、阈值与内部
 | 6 s | 插件发现刷新 | `plugins/index.js:36` |
 :::
 
-出处列是短相对路径，省略了 `lib/`、`biz/webui/htdocs/src/js/` 等前缀，完整路径见前文各表。600 / 1800 / 100 三条由 `lib/util/data-server.js:10-26` 共同决定：缓存上限 600，超过 `MAX_LENGTH * 3` 触发溢出清理，单次 `getData` 最多返回 100 条；前端再按 100 / 900ms 短轮询把增量拉走（`biz/webui/htdocs/src/js/data-center.js:1159`）。1MB 帧、2MB 体、16MB 大数据分别对应 `MAX_FRAME_PAYLOAD`、`MAX_REQ_BODY_SIZE` 与 `BIG_DATA_SIZE`，都在 `lib/inspectors/data.js:7-13` 定义。
+出处列是短相对路径，省略了 `lib/`、`biz/webui/htdocs/src/js/` 等前缀，完整路径见前文各表。600 / 1800 / 100 由 `lib/util/data-server.js:10-26` 共同决定：缓存水位 600，达到 `OVERFLOW_LENGTH = MAX_LENGTH * 3`（1800）触发溢出清理——前 `len - MAX_CACHE_SIZE`（1200）条强制淘汰，最新 `PRESERVE_LEN = 360` 条改用更长的 `MAX_CACHE_TIME` 保留（`:21-24,176-188`）；单次 `getData` 最多返回 `COUNT = 100` 条（`:904`），另有 `MAX_COUNT = 120`（`:34`）作为 `formatApiOptions` 的分页默认。前端 100 / 900ms 是 `biz/webui/htdocs/src/js/data-center.js:1157-1159` 的短轮询间隔（有新数据加快、空闲放慢），与 `lib/service/data-center.js:8` 的 `MAX_COUNT = 100`（临时文件批量上限）是两回事，两个同名 `data-center.js` 不可混为一谈。
+
+1MB 帧对应 `MAX_FRAME_PAYLOAD`，定义在 `lib/util/index.js:4012`，`lib/inspectors/data.js:13` 只是引用；2MB 体与 16MB 大数据分别是 `MAX_REQ_BODY_SIZE` / `MAX_RES_BODY_SIZE`（`:9-10`）与 `BIG_DATA_SIZE`（`:11`），都在 `lib/inspectors/data.js` 定义，且 `--mode strict` 下 2MB 会收紧到 256KB。36 天是叶证书：`lib/https/ca.js:558-573` 的短周期分支取 `notBefore = now - 7 天`、`notAfter = now + 36 天`，为绕开浏览器对长有效期证书的限制；根证书走另一分支（`notBefore = now - 1 年`、`notAfter = now + 10 年`），不要混写。22s 是 `lib/plugins/load-plugin.js:1158-1160` 的 `socket.ping()` 心跳间隔，用来保活插件 ws 连接；6s 是 `lib/plugins/index.js:544-550` 的 `setTimeout(refreshPlugins, INTERVAL)`，插件目录改动靠它重新发现，两者一个管连接、一个管目录。
 
 ### 内部头与常量
 

@@ -55,7 +55,7 @@ www.example.com/path file:///User/xxx/important1.html
 www.example.com/path file:///User/xxx/important2.html lineProps://important
 ```
 
-`skip` 跳过指定规则后继续匹配，`ignore` 则不再匹配同类型其它规则（来源 `docs/docs/rules/skip.md`、`ignore.md`）：
+`skip` 与 `ignore` 共用同一套协议实现（`skip` 是 `ignore` 的别名），但效果不同：`skip` 跳过指定规则后继续匹配剩余同类规则，`ignore` 命中的协议整体不再匹配（来源 `docs/docs/rules/skip.md`、`ignore.md`；分流机制见「边界与坑」）：
 
 ```txt
 # 来源：docs/docs/rules/skip.md
@@ -89,9 +89,9 @@ w2 start -p 8011 -S 8011
 
 **配置即代码、可热替换。** 见 [配置即代码、可热替换](/modules/rules-engine)。无论规则来自界面编辑、`@` 远程文件、`w2 add` 还是插件接口，最终都落到 `lib/rules/util.js:58-106` 的同一个监听器里：把当前选中的规则、Default、Mock、Service、Shadow 依次拼成一个 `rulesList`，再整体交给 `rules.parse`。系统没有为「谁改了哪一行」维护增量 diff，任何来源变化都走一次全量重编译，代价可控而语义统一；也正因如此，规则文本才能像代码一样放进仓库、被 `@` 引用、被脚本生成，改完即生效而不必重启。
 
-**修改戳 + 已有轮询搭便车，不做长连接广播。** 见 [抓包数据的采集与上报](/core/capture-data)。`lib/config.js:1126-1134` 的 `setModified` 只把 `mrulesTime` / `mvaluesTime` 写成时间戳，不推送任何规则正文；`biz/webui/cgi-bin/get-data.js:41-44` 把它塞进本来就要返回的轮询响应，前端 `htdocs/src/js/data-center.js:903-928` 比对后自行重拉。省掉一条独立的推送通道，是多端同步能保持轻量的关键，也让「别人改了规则我这边自动刷新」几乎零成本。
+**修改戳 + 已有轮询搭便车，不做长连接广播。** 见 [抓包数据的采集与上报](/core/capture-data)。`lib/config.js:1126-1134` 的 `setModified(clientId, isRules)` 用 `isRules` 区分 Rules / Values，只把 `mrulesClientId`、`mrulesTime`（Values 对应 `mvaluesClientId`、`mvaluesTime`）四个修改戳写进内存，时间戳取 `Date.now()`，不推送任何规则正文；`biz/webui/cgi-bin/get-data.js:41-44` 把它们并入本来就要返回的轮询响应，前端 `htdocs/src/js/data-center.js:903-928` 的 `checkDataChanged` 比对 `clientId` 与时间戳、变化时 `trigger('rulesChanged')` 自行重拉。省掉一条独立的推送通道，是多端同步能保持轻量的关键，也让「别人改了规则我这边自动刷新」几乎零成本。
 
-**装配与启动分离、顺序即优先级。** 见 [装配与启动分离](/architecture/process-config) 与 [顺序即优先级](/modules/rules-engine)。`w2 add` 只把规则写进存储，不必重启正在跑的进程；`w2 start -S` 则换一个目录重新装配整套状态。规则本身不设优先级字段，行序就是优先级，`lib/rules/rules.js:997` 的线性扫描首条命中即返回，`important` 只是这一模型上的有限补丁，而非另一套排序机制。
+**装配与启动分离、顺序即优先级。** 见 [装配与启动分离](/architecture/process-config) 与 [顺序即优先级](/modules/rules-engine)。`w2 add` 只把规则写进存储，不必重启正在跑的进程；`w2 start -S` 则换一个目录重新装配整套状态。规则本身不设优先级字段，行序就是优先级：`lib/rules/rules.js:997` 自上而下线性扫描，按 `hasIndex`（`:934`）取命中项、`:1029-1030` 首条即返回。`important` 不是另一套排序机制——`lib/util/index.js:2163-2192` 的 `mergeRule` 用 `isImportant` 把带 `lineProps.important` 的规则在**同一协议分组**内前置（`importants.concat(normals)`），因此只压过同协议的其它行（`docs/docs/rules/lineProps.md:25`），不会跨协议抢优先级。
 
 **多实例靠目录隔离，而非进程内状态。** 见 [进程模型与配置系统](/architecture/process-config)。`-S` 在 `lib/config.js:1067-1091` 把 `baseDir` 重定向到 `custom_dirs/<storage>`，连同 `rulesDir`、`valuesDir`、`propertiesDir` 一并换掉；规则、Values、证书与会话各自一套，因此实例之间不需要任何进程内互斥，运维上也只需保证端口与目录唯一即可横向扩展。
 
@@ -107,9 +107,9 @@ w2 start -p 8011 -S 8011
 ## 边界与坑
 
 - **首条命中，`important` 有作用域。** `lib/rules/rules.js:997` 自上而下线性扫描，命中的第一条同类规则即生效；`docs/docs/rules/lineProps.md` 明确 `important`「仅对同类协议的操作生效」，不能跨协议压过别的规则。
-- **`ignore` 与 `skip` 语义不同。** `docs/docs/rules/ignore.md` 指出被 `ignore` 忽略的规则「不会继续匹配同类型的其他规则」，若想跳过一条后继续尝试剩余同类规则，应改用 `skip`（`docs/docs/rules/skip.md`）。
+- **`ignore` 与 `skip` 是同一协议、不同分支，不是两套机制。** `lib/rules/protocols.js:140` 把 `skip` 注册成 `ignore` 的别名，两类规则都落进 `_rules.ignore` 列表，再由 `lib/rules/rules.js:1125-1160` 的 `resolveProps(req, rules, vals, true)` 按操作值分流：以 `skip://` 开头的值（`SKIP_RE`，`:96`）经 `EXACT_SKIP_RE`（`:93`）写进 `req._skipProps`（`:1138-1146`），线性扫描 `:997-1001` 命中即 `continue`，只跳过这一条、继续匹配后面的同类规则；不带该前缀的 `ignore://file|host` 则落到 `result`（`:1149-1159`），由 `util.isIgnored(filter, protocol)`（`lib/rules/index.js:165,196,288`）让该协议类型整体失效。所以 `docs/docs/rules/ignore.md:29` 那句「`ignore` 忽略后不再匹配同类其它规则、`skip` 会继续匹配」是准确的，但差异来自 `skip://` 值触发的 `_skipProps` 分支，若把两者当成两个独立协议就会与 `protocols.js:140` 自相矛盾。
 - **插件内置规则优先级更低。** `docs/docs/extensions/usage.md` 说明插件 `rules.txt` 是全局规则且「优先级低于 Rules 界面配置的规则」；`docs/docs/rules/operation.md` 另提醒 `http/https/ws/wss/tunnel/host/enable` 等协议禁止从文件或远程 URL 获取操作内容。
-- **`file` 等协议会让 `proxy` 失效。** `docs/docs/rules/lineProps.md` 记载默认配置了 `file` 时 `proxy` 自动失效，需要 `lineProps://weakRule` 或 `proxyHost` 才恢复，最容易在「本地文件替换 + 上游代理」组合里踩空。
+- **`file` 等协议会让 `proxy` 失效。** `docs/docs/rules/file.md:112` 与 `docs/docs/rules/lineProps.md:38` 记载：同时配置 `file` 与 `proxy` 时默认 `proxy` 失效，需用 `lineProps://weakRule` / `enable://weakRule` 恢复——`lib/util/index.js:3741-3753` 的 `filterWeakRule` 此时 `delete req.rules.rule` 删掉 `file` 主规则，让 `proxy` 接管。`lineProps://proxyHost` 解决的是 `host` 与 `proxy` 共存（`docs/docs/rules/lineProps.md:34-35`、`lib/rules/index.js:84-95`），是另一处优先级问题，不能混用；「本地文件替换 + 上游代理」最容易踩空。
 - **轮询、目录与导入上限。** 远程规则是定时轮询而非实时推送（`lib/util/http-mgr.js:17-18,38-45`）；`docs/docs/cli.md` 强调多实例共享存储目录会「数据覆盖或损坏」；Rules/Values 导入体在 `biz/webui/cgi-bin/util.js:10,82` 被 `MAX_OBJECT_SIZE = 6MB` 截断，超限直接报 `The file size can not exceed 6MB`。
 
 ## 小结

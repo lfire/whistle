@@ -51,7 +51,7 @@ description: 用精确的 16 步链路，串起请求归一化、规则改写、
 
 第 1 步的 `server.on('request', app)` 位置很关键：它写在 `lib/index.js:208-211` 的 `biz/init` 回调里，说明端口虽已监听，但应用要等初始化完成才接请求。进入应用后，`lib/init.js:157` 这个每请求中间件先做流包装与客户端信息解析（第 2-4 步），它给 `req` / `res` 装上的 `addTextTransform`、`addZipTransform`、`res.response` 等能力，是后面所有改写动作的支点。
 
-第 5-6 步由 `biz/index.js` 承担。`util.getFullUrl(req)` 依据 `req.isHttps` 与 `Host` 还原出完整 URL，`biz/index.js:133-163` 再用一组正则识别 Web UI 路径、插件路径、`weinre` 与 `log` / `cgi` 内部应用：命中就 `util.transformReq` 转发到本地端口或直接交给 `handleUIReq`，未命中才 `next()` 进入规则链。把界面流量挡在用户规则之前，是为了避免管理请求被用户写的 `host` / `path` 规则误伤。
+第 5-6 步由 `biz/index.js` 承担。`util.getFullUrl(req)` 依据 `req.isHttps` 与 `Host` 还原出完整 URL，`biz/index.js:133-163` 再用一组正则识别 Web UI 路径、插件路径、`weinre` 与 `log` / `cgi` 内部应用：命中就 `util.transformReq` 转发到本地端口或直接交给 `transformUI`（`:150,:159`）渲染，未命中才 `next()` 进入规则链。把界面流量挡在用户规则之前，是为了避免管理请求被用户写的 `host` / `path` 规则误伤。
 
 ### 分配 reqId 与解析规则
 
@@ -66,7 +66,7 @@ if (ruleUrl !== req.fullUrl && util.isUrl(ruleUrl)) {
 req.options = util.parseUrl(ruleUrl || req.fullUrl);
 ```
 
-这一步是「代理」二字的落点：`req.options` 后续会被 `http.request` 直接当作目标地址，因此 `ruleUrl` 优先于 `fullUrl`，正是 `host` / `xhost` 等改地址规则生效的根源。`rules.js:10` 的 `MAX_PAYLOAD_SIZE = 256KB` 也在此阶段限制需要读取正文的场景，避免为解析规则而无限缓冲请求体；只有命中 `reqScript` 或 body 过滤时，`:200-209` 才会通过 `req.getPayload` 预读一小段正文，其余情况直接 `setupRules(req, next)` 放行。
+这一步是「代理」二字的落点：`req.options` 后续会被 `http.request` 直接当作目标地址，因此 `ruleUrl` 优先于 `fullUrl`，正是 `host` / `xhost` 等改地址规则生效的根源。`rules.js:10` 的 `MAX_PAYLOAD_SIZE = 256KB` 也在此阶段限制需要读取正文的场景，避免为解析规则而无限缓冲请求体；只有命中 `body` 过滤或存在 `reqReadPort`（pipe 插件读端口）时，`:200-209` 才走 `req.getPayload`，其中 `hasReqScript` 命中会把预算从 1 字节放大到不限（`:204` 的 `payloadSize = 0`），其余情况直接 `setupRules(req, next)` 放行。细看 `:202-209` 其实是三条路径：有 `body` 过滤时 `payloadSize` 取 256KB，预读正文供规则求值；只有 `reqReadPort` 而无正文过滤时，`:204` 把预算退化成 `0` 或 `1` 两个长度哨兵，仅够触发一次读取；两条路径都在 `getPayload` 回调里把解码结果写入 `req._reqBody`（`:207`）后再 `setupRules`。而没有任何过滤或读端口的普通请求根本不缓冲正文、直接 `setupRules`（`:211`）——`MAX_PAYLOAD_SIZE` 约束的只是「为规则求值而预读」这一条路径，不是全链路的请求体上限。
 
 值得注意的是 `reqId` 的分配时机：它早于一切改写与采集，因此 `data.js` 构造的抓包对象、`socket-mgr` 的帧上下文、前端展示的会话 id 全都指向同一个值。若把这一步挪到出站之后，隧道与 WebSocket 的帧就无从归并到这次请求上。
 

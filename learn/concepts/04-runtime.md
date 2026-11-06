@@ -76,7 +76,7 @@ function handleClientError(err, socket) {
 
 **为什么这样设计**：把原生对象包装成统一抽象，后面所有 inspector 只面对同一组字段与方法，不必关心请求是从明文 HTTP 还是解密后的 HTTPS 来的；代价是包装层增加了理解成本。
 
-**容易混淆**：包装后的 `req` 不完全等同于原生 `IncomingMessage`，它多了 `addTextTransform`、`src` 等自定义方法，详见 [易混淆辨析](/concepts/08-confusions)。
+**容易混淆**：包装后的 `req` 不完全等同于原生 `IncomingMessage`，它多了 `addTextTransform`（`lib/init.js:90`）、`addZipTransform`（`:99`）等方法；`src`（`:254`）是包装后 `res` 注入源站响应的方法，别算到 `req` 头上，详见 [易混淆辨析](/concepts/08-confusions)。
 
 **工程中的样子**：`res.response` 是规则改写响应体的最终出口，见 [一次 HTTP 代理请求的旅程](/core/http-request)。
 
@@ -201,7 +201,7 @@ pipeStream(res, resRead)
 
 **打个比方**：像统一规格的货箱，里面装的是字节，不关心是文字、图片还是加密数据；贴不贴标签（编码）是上层的事。
 
-**在 Whistle 里**：`lib/https/index.js:1139` 用 `Buffer.from(statusLine)` 构造隧道响应，`:1144` 用 `Buffer.concat` 拼接首包，`lib/https/index.js:1232` 直接读 `chunk[0]` 判断首字节是不是 TLS 记录。
+**在 Whistle 里**：`lib/https/index.js:1139` 用 `Buffer.from(statusLine)` 构造隧道响应，`:1144` 用 `Buffer.concat` 拼接首包，`:1232` 读 `chunk[0]` 做反向判定 `if (!isHttpH2 && chunk[0] != 22) return next(chunk)`——首字节不是 22（TLS 握手记录）且不是 h2c preface 就回退透传，只有这两类才继续解密。
 
 **为什么这样设计**：代理层处理的是未解析的原始字节，首包嗅探、二进制拼接都必须绕开字符串编码；代价是长度与偏移要自己算，越界容易读到脏数据。
 
@@ -227,7 +227,7 @@ pipeStream(res, resRead)
 
 **打个比方**：像只有固定格子的收件架，格子满了就把最旧一批整批清走，宁可丢旧的也保证架子不被压塌。它不关心哪格最近被碰过。
 
-**在 Whistle 里**：`lib/util/data-server.js:21-26` 定义 `MAX_LENGTH`、`OVERFLOW_LENGTH = MAX_LENGTH * 3`、`COUNT = 100`，`:10-16` 把低于下限的配置校正为 600，`:34` 把单页夹到 `MAX_COUNT = 120`。
+**在 Whistle 里**：`lib/util/data-server.js:21-26` 定义 `MAX_LENGTH`、`OVERFLOW_LENGTH = MAX_LENGTH * 3`、`COUNT = 100`，`:10-16` 把低于下限的配置校正为 600，`:34` 把单页夹到 `MAX_COUNT = 120`。官方 CLI 的 `-R reqCacheSize` 默认 600、`-F frameCacheSize` 默认 512（`docs/docs/cli.md:47-48`），而源码 `:10-16` 对二者都设了下限——`reqCacheSize < 600`、`frameCacheSize < 720` 均归 600，于是 CLI 的 512 会被抬到 600，实际起步都是 600。
 
 ```js
 // lib/util/data-server.js:21-26
@@ -239,7 +239,7 @@ var MAX_FRAMES_LENGTH = config.frameCacheSize;
 var COUNT = 100;
 ```
 
-**为什么这样设计**：抓包会话会随长时间运行无限增长，硬上限是让代理能整夜跑而不撑爆内存的兜底，不是性能优化；代价是超出部分会被丢弃、历史不能无限回看。
+**为什么这样设计**：抓包会话会随长时间运行无限增长，硬上限是让代理能整夜跑而不撑爆内存的兜底，不是性能优化；代价是超出部分会被丢弃、历史不能无限回看。具体由 `clearCache`（`lib/util/data-server.js:147-203`）每 6 秒（`CLEAR_INTERVAL = 6000`）跑一次：`ids.length` 不到 600 直接返回；超过 600 时按 `CACHE_TIME`(2 分钟) 清已结束条目；一旦达到 `OVERFLOW_LENGTH`(1800)，先删最前 `len - MAX_CACHE_SIZE`(1200) 条，尾部 `PRESERVE_LEN`(360) 条改用 `MAX_CACHE_TIME`(6 分钟) 宽限。帧缓存另按 `MAX_FRAMES_LENGTH` 溢出 `splice`、并按 512/256/128/64KB 分级瘦身（`:103-145`）。
 
 **容易混淆**：它不是 LRU，淘汰策略是「溢出批量清理」而非「淘汰最久未用」，见 [抓包数据的采集与上报](/core/capture-data)。
 
@@ -250,7 +250,7 @@ var COUNT = 100;
 
 **打个比方**：像每隔一会儿去信箱看一眼，有信就取、没有就回，间隔还会根据上次有没有信自动调快或调慢。它不占着线不走。
 
-**在 Whistle 里**：`htdocs/src/js/data-center.js:1157-1159` 调 `cgi.getData`，按 `hasNewData` 把下一次间隔设为 100ms 或 900ms；服务端 `lib/util/data-server.js:26` 的 `COUNT = 100` 限住单次返回条数。
+**在 Whistle 里**：`htdocs/src/js/data-center.js:1157-1159` 调 `cgi.getData`，按 `hasNewData` 把下一次间隔设为 100ms 或 900ms；服务端 `lib/util/data-server.js:26` 的 `COUNT = 100` 限住单次返回条数。注意别把几个 100 混起来：前端 `data-center.js` 的是轮询间隔，服务端 `lib/service/data-center.js:8` 的 `MAX_COUNT = 100` 是保存会话列表上限，与 `COUNT`、`lib/util/data-server.js:34` 的 `MAX_COUNT = 120` 各不相干。
 
 ```js
 // htdocs/src/js/data-center.js:1157-1159
@@ -386,7 +386,7 @@ cgi.getData(options, function (data) {
 | uiMiddleware | 注入自定义中间件 | `index.js:42` | 非插件 hook |
 :::
 
-`lib/config.js:1035-1048` 把 `sockets` 换算成 `agentConfig.maxSockets`，并在 Node 11 以上默认 `disableAgent` 关掉连接缓存；`lib/index.js:85` 的 `whistleStarted` 由计数回调在所有端口监听完成后才发出，`lib/index.js:42` 的 `config.middlewares` 是外部注入自定义中间件的唯一入口。把这些短词与前面的卡片对照记，读 [一张图看懂全局架构](/architecture/overview) 时不会被相近缩写带偏。
+`lib/config.js:1035-1048` 把 `sockets` 换算成 `agentConfig.maxSockets`，默认 `disableAgent` 时直接把 agent 置为 `false`（`:1046-1048`）；`lib/index.js:85` 的 `whistleStarted` 由计数回调在所有端口监听完成后才发出，`lib/index.js:42` 的 `config.middlewares` 是外部注入自定义中间件的唯一入口。把这些短词与前面的卡片对照记，读 [一张图看懂全局架构](/architecture/overview) 时不会被相近缩写带偏。
 
 ## 与工程实际结合
 
@@ -436,7 +436,7 @@ function proxy(callback, _server) {
 ## 常见误解
 
 1. **`lib/init.js` 不是启动初始化，而是每请求中间件。** 它被 `lib/index.js:40` 放进 `middlewares` 数组、`lib/index.js:50-51` `app.use` 到 Express 链上，`lib/init.js:157` 导出的函数签名是 `(req, res, next)`。真正的启动装配在 `index.js:143-148` 与 `lib/index.js:36-61`，两者别混，见 [从 w2 start 到端口监听](/architecture/startup)。
-2. **`sockets=256` 不是监听端口数，也不是并发上限。** 它是 `lib/config.js:1035-1048` 换算出的每域名 keep-alive 连接池 `maxSockets`；独立监听端口由 `lib/index.js:96-150` 的 `httpPort` / `httpsPort` 决定。Node 11 以上还会被 `lib/config.js:1046` 默认关掉 agent 缓存。
+2. **`sockets=256` 不是监听端口数，也不是并发上限。** 256 来自 `package.json:8`，`docs/docs/cli.md:34` 称「每域名最大缓存连接数」；`lib/config.js:1035-1048` 把它换算成 `agentConfig.maxSockets`，监听端口另由 `lib/index.js:96-150` 的 `httpPort` / `httpsPort` 决定。默认 `disableAgent`（`:1046`，注释称 Node 11 以上连接缓存有问题）直接把 `httpAgent` / `httpsAgent` 置 `false`（`:1047-1048`），此时 `sockets` 不生效，只有自定义 `agentConfig` 或 `--mode agent`（`:726`）才用到它。
 3. **`proxyEvents` ≠ 每条请求的 `reqEmitter`。** 前者是 `lib/index.js:39` 建的进程内单例总线，随进程存活；后者是请求级发射器，随请求销毁。测试里 `proxy.on('_request', ...)` 订的是总线事件，不是某条请求的私有通道，见 [易混淆辨析](/concepts/08-confusions)。
 4. **pfork ≠ cluster，detached 进程 ≠ CLI 进程。** cluster 是 `index.js:199-213` 的多 worker 端口共享，pfork 是 `lib/service/index.js:47-85` 与 `lib/plugins/index.js:633` 的隔离子进程；`w2 start` 的 CLI 拉起 detached 后台实例后自身退出，`bin/util.js:123-150` 靠 PID 文件反查，见 [进程模型与配置系统](/architecture/process-config)。
 5. **LRU ≠ 自实现有界缓存，短轮询 ≠ 长连接/SSE。** 前者是 `lib/https/ca.js:39-41` 按「最久未用」淘汰的 lru-cache 实例，后者是 `lib/util/data-server.js:21-26` 靠溢出阈值批量清理的定长结构；前端 `htdocs/src/js/data-center.js:1159` 每次都是独立短请求，不是 WebSocket 或 SSE，见 [抓包数据的采集与上报](/core/capture-data)。
@@ -453,4 +453,4 @@ function proxy(callback, _server) {
 
 ## 下一步
 
-[《第四层：抓包数据的采集与上报》](/concepts/05-capture)：运行时骨架清楚了，下一篇看一次请求的字节怎样被采集、截断、缓存，再经约定式 CGI 与短轮询送到界面上，把 Stream 与有界缓存两条线索接起来。
+[《第三层：抓包数据面与帧》](/concepts/05-capture)：运行时骨架清楚了，同层的下一篇看一次请求的字节怎样被采集、截断、缓存，再经约定式 CGI 与短轮询送到界面上，把 Stream 与有界缓存两条线索接起来。

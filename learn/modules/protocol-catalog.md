@@ -9,7 +9,7 @@ description: 从协议名数组、别名与派生集合出发，讲清一条指�
 
 ## 73 个协议名与派生集合
 
-`lib/rules/protocols.js:1-75` 的 `protocols` 数组共 73 项，从 `G`、`style`、`host`、`rule` 一直到 `cipher`、`sniCallback`，它是全站唯一的「合法协议名」清单。`lib/rules/protocols.js:131-154` 的 `aliasProtocols` 负责把用户习惯的写法归并进来：`status` → `statusCode`、`skip` → `ignore`、`pathReplace` → `urlReplace`、`hosts` / `xhost` → `host`、`P` → `G`，以及 `html` / `js` / `css` 分别落到 `htmlAppend` / `jsAppend` / `cssAppend`。别名只在解析期生效，运行期看到的始终是归并后的名字。
+`lib/rules/protocols.js:1-75` 的 `protocols` 数组共 73 项，从 `G`、`style`、`host`、`rule` 一直到 `cipher`、`sniCallback`，它是全站唯一的「合法协议名」清单。`lib/rules/protocols.js:131-154` 的 `aliasProtocols` 负责把用户习惯的写法归并进来：`status` → `statusCode`、`skip` → `ignore`、`pathReplace` → `urlReplace`、`hosts` / `xhost` → `host`、`P` → `G`，以及 `html` / `js` / `css` 分别落到 `htmlAppend` / `jsAppend` / `cssAppend`。别名只在解析期用于分桶与协议名归一，`rule.matcher` 仍保留原始前缀——`skip://` 正是靠这个前缀在运行期被 `resolveProps`（`rules.js:1125-1160`）单独摘进 `req._skipProps`，走「跳过当前规则、继续匹配」的语义，与 `ignore://` 的「整类屏蔽」不同；机制差异见 [《规则引擎》](/modules/rules-engine) 的过滤器小节。
 
 由主数组再派生出几组集合：`pureResProtocols`（`:82-111`）是纯响应协议，`reqProtocols`（`:156-158`）从中剔除后供请求阶段使用，`toolProtocols`（`:76`）只有 `log` 与 `weinre`，`multiMatchs`（`:186-227`）列出 40 个允许多命中的协议。分桶由 `resetRules` 完成，每个协议名一个数组：
 
@@ -96,7 +96,7 @@ function resetRules(rules) {
 | 指令 | 作用 | 实现 | 阶段 |
 |---|---|---|---|
 | filter / ignore | 屏蔽协议 | util:2090 | 匹配 |
-| enable / disable | 开关能力 | protocols.js:14 | 全局 |
+| enable / disable | 开关能力 | util:2213-2222 | 全局 |
 | rulesFile | 动态规则 | rules/index.js:437 | 请求 |
 | resScript | 响应脚本 | rules/index.js:462 | 响应 |
 | reqDelay | 请求延迟 | data.js:544 | 请求 |

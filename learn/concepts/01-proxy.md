@@ -67,7 +67,7 @@ initDataServer(proxyEvents);
 
 **打个比方**：像小区的总门禁。所有住户出门都先经过这一个门，门卫按统一规则放行；你不必给每个应用单独交代，但也没法让某一家人绕过它——除非另开一张通行证。它管的是「出门这一下」，不管出了门之后走哪条路。
 
-**在 Whistle 里**：`bin/proxy.js:2` 引入的 `set-global-proxy` 负责写入操作系统代理设置，`enableProxy` 与 `disableProxy` 分别对应开启与关闭（`bin/proxy.js:19-40`）；`w2 proxy 0` 这类命令走的就是这条路径。`bin/proxy.js:5` 的 `BYPASS_RE` 还处理 bypass 排除名单，让指定地址不走系统代理。
+**在 Whistle 里**：`bin/proxy.js:2` 引入的 `set-global-proxy` 负责写入操作系统代理设置，`enableProxy` 与 `disableProxy` 分别对应开启与关闭（`bin/proxy.js:23-46`）；`w2 proxy 0` 这类命令走的就是这条路径。`bin/proxy.js:6` 的 `BYPASS_RE` 识别 `-x` / `--bypass` 参数，`bin/proxy.js:56-59` 再把紧随的值写进 `options.bypass`，让指定地址不走系统代理。
 
 ```bash
 # 来源：docs/docs/cli.md、bin/proxy.js:2
@@ -156,15 +156,16 @@ function getFullUrl(req) {
 
 **打个比方**：像请接线员把两根电话线直接焊在一起。你说完「帮我接通某某号码」就退场，之后两边说什么、用什么语言，接线员一概不翻译也不记录，只保证线路通着。它建立的是通道，不是一次通话内容。
 
-**在 Whistle 里**：`lib/tunnel.js:44` 的 `server.on('connect', ...)` 是总闸门，注释里写明它同时服务 `ws`、`wss`、`https proxy`；`lib/tunnel.js:53-56` 从 `req.url` 或 `Host` 取出目标，`lib/tunnel.js:65` 在没带端口时补默认 `443`，`lib/tunnel.js:75` 再改写成 `tunnel://` 伪 URL 并发出 `_request` 事件。是否解密则由 `lib/tunnel.js:168-213` 的 `isIntercept()` 判定。
+**在 Whistle 里**：`lib/tunnel.js:44` 的 `server.on('connect', ...)` 是总闸门，注释里写明它同时服务 `ws`、`wss`、`https proxy`；`lib/tunnel.js:53-56` 从 `req.url` 或 `Host` 取出目标，`lib/tunnel.js:65` 在没带端口时补默认 `443`，`lib/tunnel.js:75-76` 再改写成 `tunnel://` 伪 URL 并发出 `_request` 事件。是否解密则由 `lib/tunnel.js:168-213` 的 `isIntercept()` 判定。
 
 ```js
-// lib/tunnel.js:44-75 · CONNECT 入口与伪 URL（节选）
+// lib/tunnel.js:44-76 · CONNECT 入口与伪 URL（节选）
 server.on('connect', function (req, reqSocket) {
   var headers = req.headers;
   var tunnelUrl = util.setProtocol(
     util.isTunnelHost(req.url) ? req.url : headers.host, true);
-  options.port = port || 443;                  // 默认 443
+  var options = parseUrl(tunnelUrl);
+  options.port = options.port || 443;          // 默认 443
   tunnelUrl = req.fullUrl = 'tunnel://' + options.host;
   proxy.emit('_request', tunnelUrl);
 });
@@ -182,7 +183,7 @@ server.on('connect', function (req, reqSocket) {
 
 **打个比方**：像地铁闸机亮起绿灯。灯只表示「通道开了，可以往前走」，不代表你要去的店开门、也不代表货架上有货；走过去之后发生什么，闸机一概不知。把绿灯当成「办成事」是典型的误会。
 
-**在 Whistle 里**：应答被抽成常量 `ESTABLISHED_CTN`，由 `setEstablished(socket)` 直接写回（`lib/util/index.js:369-375`）；内容只有状态行与 `Proxy-Agent`，没有 body、没有 `Content-Length`。SOCKS 回连时 `lib/index.js:184-186` 也只检查 `res.statusCode != 200` 就销毁连接，非 200 一律视为隧道建立失败。
+**在 Whistle 里**：应答被抽成常量 `ESTABLISHED_CTN`，由 `setEstablished(socket)` 直接写回（`lib/util/index.js:369-375`）；内容只有状态行与 `Proxy-Agent`，没有 body、没有 `Content-Length`。调用点在 `lib/tunnel.js:281`：判定需要拦截、把 socket 交给 `dispatch` 之后才写回这个 200，客户端收到后才开始在隧道里发 TLS ClientHello。SOCKS 回连时 `lib/index.js:184-186` 也只检查 `res.statusCode != 200` 就销毁连接，非 200 一律视为隧道建立失败。
 
 ```js
 // lib/util/index.js:369-375
@@ -250,14 +251,14 @@ client.end();
 ::: cols 20|30|28|22
 | 名词 | 一句话 | 源码落点 | 易混淆 |
 |---|---|---|---|
-| 透明代理 | 客户端无感知的拦截转发 | `lib/index.js:96` | 与正向代理 |
+| 独立端口 | httpPort/httpsPort 直连入口 | `lib/index.js:96` | 与正向代理 |
 | origin-form | `GET /path` 式请求行 | `lib/util/common.js:1263` | 与绝对 URI |
 | HTTPS 代理 | 独立 TLS 监听入口 | `lib/index.js:124` | 与 CONNECT |
 | Proxifier | 强制进程走代理的工具 | `lib/tunnel.js:210` | 与系统代理 |
 | ZeroOmega | 浏览器代理切换扩展 | `lib/rules/index.js:273` | 与 PAC 脚本 |
 | 二级 CONNECT | 隧道里再发一次 CONNECT | `lib/util/patch.js:100` | 与上游代理 |
 | 代理认证 | 上游要求 Proxy-Authorization | `lib/config.js:182` | 与业务鉴权 |
-| bypass | 系统代理排除名单 | `bin/proxy.js:5` | 与规则排除 |
+| bypass | 系统代理排除名单 | `bin/proxy.js:6` | 与规则排除 |
 | IPv6 地址 | 目标地址需加方括号 | `lib/tunnel.js:68` | 与域名 |
 | 端口缺省 443 | CONNECT 未带端口时补齐 | `lib/tunnel.js:65` | 与默认 80 |
 :::

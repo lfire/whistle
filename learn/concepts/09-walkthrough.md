@@ -69,7 +69,7 @@ HTTPS 代理请求不会以 `GET /path` 开头，而是先来一条 `CONNECT hos
 
 **出现概念**：`HTTP/1.1 200 Connection Established`、先应答后识别、`setEstablished`。
 
-**源码**：`lib/tunnel.js:281` 在发起解密尝试之后立刻调用 `util.setEstablished(reqSocket)`，实现在 `lib/util/index.js:373`；它写出的是最简 200，不带任何业务头。注意它与 `:729-826` 的 `sendEstablished` 是两种实现：后者用于纯透传分支，还要叠加 `resHeaders`、`replaceStatus` 等响应规则。
+**源码**：`lib/tunnel.js:281` 在发起解密尝试之后立刻调用 `util.setEstablished(reqSocket)`，实现在 `lib/util/index.js:369-375`（`:369-372` 是常量 `ESTABLISHED_CTN`，`:373-375` 是 `setEstablished` 函数）；它写出的是最简 200，不带任何业务头。注意它与 `:729-826` 的 `sendEstablished` 是两种实现：后者用于纯透传分支，还要叠加 `resHeaders`、`replaceStatus` 等响应规则。
 
 **为什么**：CONNECT 的语义是「隧道已打通」，客户端只有拿到 200 才会继续 TLS 握手。若等解密结果再应答，客户端会一直阻塞；而先应答后识别，代理必须在同一条 socket 上把已读走的首包再喂回去，否则握手就缺了第一段。
 
@@ -280,6 +280,7 @@ var data = {
   ttfb: getTTFB(),
   abort: function (clear) {
     if (clear === true) {
+      reqBody = resBody = false;
       cleared = true;
     } else {
       req.emit('error', new Error('Aborted'));
@@ -361,10 +362,10 @@ proxy.emit('request', reqEmitter, data);
 
 **出现概念**：短轮询、gzip JSON、`sendGzip`、`hasNew`、100 / 900ms、命中查询。
 
-**源码**：`biz/webui/cgi-bin/get-data.js:28,60` 用 `util.sendGzip` 返回压缩 JSON 并调 `proxy.getData(...)`；`htdocs/src/js/data-center.js:1157-1159` 依据 `hasNew` 决定 `setTimeout(load, hasNewData ? 100 : 900)`；`cgi-bin/get-matched-rules.js:6` 用 `proxy.getTestItem(testId)` 回查某次请求命中了哪些规则。
+**源码**：`biz/webui/cgi-bin/get-data.js:28,60` 用 `util.sendGzip` 返回压缩 JSON 并调 `proxy.getData(...)`；`biz/webui/htdocs/src/js/data-center.js:1157-1159` 依据 `hasNew` 决定 `setTimeout(load, hasNewData ? 100 : 900)`；`biz/webui/cgi-bin/get-matched-rules.js:6` 用 `proxy.getTestItem(testId)` 回查某次请求命中了哪些规则。
 
 ```js
-// htdocs/src/js/data-center.js:1157-1159
+// biz/webui/htdocs/src/js/data-center.js:1157-1159
 cgi.getData(options, function (data) {
   var hasNewData = data && data.data && data.data.hasNew;
   setTimeout(load, hasNewData ? 100 : 900);
@@ -444,7 +445,7 @@ h2c 明文 preface 由 `HTTP2_RE`（`lib/https/index.js:1118,1231`）识别，�
 - 最容易读反的三处：`chunk[0] != 22` 是「非 TLS 即回退」的反向写法；200 先于解密而非解密成功；`rejectUnauthorized` 只管出站、不管入站。
 - 一条规则横跨编译期与请求期：先被 `parseText` 结构化，再在第 18、19 步命中求值，最后在第 20 或 26 步被消费。
 - 换流量形态时，差异集中在前 14 步的切入方式；从第 15 步起，HTTP、HTTPS 与 h2 基本共用同一条 Express 主干。
-- 抓包 `data` 对象是贯穿阶段五、六的同一引用，零复制换来便利，也要求 600 / 1800 / 360 这组有界缓存兜底。
+- 抓包 `data` 对象是贯穿阶段五、六的同一引用，零复制换来便利，也要求 600 常规水位 / 1800 溢出阈值 / 1200 溢出后回砍水位，以及尾部 360 条 6 分钟宽限这组分级清理来兜底。
 
 ## 下一步
 

@@ -62,7 +62,7 @@ www.test.com/cgi-bin/test file://{result.json}
 
 ## 背后的设计思想
 
-- [短路转发](/core/http-request)：命中 `file`、`tpl`、`statusCode` 后，handler 直接构造响应并 `delete rules.proxy`、`delete rules.host`，请求根本不拨出站 socket。契约先行的前提正是「Mock 不发网络请求」——后端不存在也能返回 200，故障注入也不会真把上游打挂。
+- [短路转发](/core/http-request)：`file` / `tpl` 由 `lib/handlers/file-proxy.js:259-260` 删掉 `rules.proxy` 与 `rules.host` 后，用 `rule.value` 直接构造 200 响应；`statusCode` 则在 `lib/inspectors/res.js:1313-1319` 于出站前取 `getStatusCodeFromRule` 的结果 `res.response(...)` 并置 `Connection: close`，连 file-proxy 这一层都不到。两条路径都不拨出站 socket，后端不存在也能返回结果，故障注入也不会真把上游打挂。
 - [配置即代码、可热替换](/modules/rules-engine)：规则文本与 Values 都是可编辑的文本，`lib/rules/util.js:58-106` 监听变更并整份重编译。因此把契约从内联值挪到 Values、再挪到本地文件，只是换一处存储，不需要重启进程；`w2 add` 导入 `.whistle.js` 走的是同一条更新链。
 - [内存有界优先于数据完整](/core/capture-data)：容量分档不是文档建议而是实现约束。抓包侧 `lib/inspectors/data.js:8-11` 把请求体、响应体上限设为 2MB、大对象上限 16MB；合并改写也只对小于 2MB 的 body 自动生效。宁可截断，也不让一份巨型 Mock 撑爆常驻内存。
 - [解析期与请求期分离](/modules/rules-engine)：`lib/rules/rules.js:1745-1806` 的 `parseText` 只把一行文本结构化成 rule 对象，`resolveValue` 与 `{key}` 引用要到命中之后才求值成 `value`。所以内联值、Values、模板在编译期被拍平成统一对象，请求期只面对同一种结构，热路径上不做 IO。
@@ -72,7 +72,7 @@ www.test.com/cgi-bin/test file://{result.json}
 按「入口 → 规则解析 → 应用点 → 回写/上报」展开，Mock 的短路位置是这条链的关键。
 
 1. **入口与编译**：`lib/rules/rules.js:1745-1806` 的 `parseText` 逐行 `removeComment`、`split`、`formatShorthand`；`lib/rules/rules.js:225-266` 的 `formatShorthand` 把裸 `()` 内联值补成 `file://` 协议，`{key}` 补成 Values 引用。见 [规则引擎](/modules/rules-engine)。
-2. **分桶**：`lib/rules/protocols.js:256-265` 的 `resetRules` 为每个协议预建数组，`file`、`tpl`、`rawfile`、`statusCode`、`resBody`、`resMerge` 各入各桶，另有 `_bodyFilters` 专用桶。见 [指令体系与分发链路](/modules/protocol-catalog)。
+2. **分桶**：`lib/rules/protocols.js:256-265` 的 `resetRules` 只给 `protocols` 数组内的协议预建数组（`resBody`、`resMerge` 在其中），另建 `_localRule`、`_bodyFilters`、`_clientCerts` 专用桶，并把 `rules.rule.isRuleProto` 置真。`file` / `tpl` / `rawfile` 并不在协议数组里，由 `RULE_RE`（`lib/rules/protocols.js:78`）配合 `isFileProxy`（`:279-283`）在 handler 阶段识别；`status` 经 alias 映射成 `statusCode`（`:143`），它与 `redirect` 在 `lib/rules/rules.js:1311-1322` 被打上 `isSpec` 标记后统一落进 `rules.rule` 桶，靠 `isRuleProto` 区分。见 [指令体系与分发链路](/modules/protocol-catalog)。
 3. **命中**：`lib/inspectors/rules.js:29-45` 的 `setupRules` 调 `resolveRules`、`util.filterWeakRule`，再把 `req.options` 定稿；首条命中由 `lib/rules/rules.js:997` 自上而下遍历返回，`includeFilter://m:GET`、`chance:0.5` 由过滤器在 `checkFilter` 阶段判定。见 [一次 HTTP 代理请求的旅程](/core/http-request)。
 4. **应用点（短路）**：`lib/handlers/file-proxy.js:233-269` 判定 `isFileProxy` 后删掉 proxy 与 host，用 `rule.value` 直接构造 200 响应；`statusCode` 则由 `lib/util/index.js:3576-3599` 的 `getStatusCodeFromRule` 直接产出 `{ statusCode, headers }`，不经后端。见 [指令体系与分发链路](/modules/protocol-catalog)。
 5. **响应改写**：`lib/inspectors/res.js` 承担 `resBody`、`resMerge` 等响应阶段的替换与合并，`lib/handlers/file-proxy.js:250-253` 顺带处理 OPTIONS 预检与 CORS 包装；204/304 之类无响应体的请求在此被跳过。见 [一次 HTTP 代理请求的旅程](/core/http-request)。
@@ -84,11 +84,11 @@ www.test.com/cgi-bin/test file://{result.json}
 - **statusCode 默认空响应体、401 会弹认证框**：`docs/docs/rules/statusCode.md:133-145` 说明默认内容为空，需配合 `resBody` 才有正文；返回 401 默认触发浏览器登录框，要用 `disable://userLogin` 或 `lineProps://disableUserLogin` 关闭。
 - **204/304 无响应体时注入类不生效**：`docs/docs/rules/resBody.md:6` 与 `docs/docs/rules/cssPrepend.md:3` 都标注「204、304 等无响应内容体的请求不受影响」，`resBody`、`htmlAppend`、`jsPrepend` 等注入与替换规则会被跳过。
 - **GET/HEAD 无请求体时 reqBody 不生效**：`docs/docs/rules/reqBody.md:3` 写明 GET、HEAD 等无内容体的请求不受影响，`docs/docs/gui/composer.md:24` 也从界面侧确认 GET/HEAD/OPTIONS 会自动忽略请求体。
-- **resMerge / reqMerge 自动合并仅限 body 小于 2MB**：`docs/docs/rules/resMerge.md:52` 与 `reqMerge.md:52` 规定超限跳过，需加 `enable://resMergeBigData` / `enable://reqMergeBigData` 或 `lineProps://enableBigData`；源码阈值见 `lib/inspectors/req.js:19,163` 的 `MAX_REQ_SIZE` 与 `BIG_MAX_REQ_SIZE`。
+- **resMerge / reqMerge 自动合并仅限 body 小于 2MB**：`docs/docs/rules/resMerge.md:52` 与 `reqMerge.md:52` 规定超限跳过，需加 `enable://resMergeBigData` / `enable://reqMergeBigData` 或 `lineProps://enableBigData`；请求侧阈值是 `lib/inspectors/req.js:19-20,163` 的 `MAX_REQ_SIZE`（2MB）与 `BIG_MAX_REQ_SIZE`（16MB），响应侧对应 `lib/inspectors/res.js:21-22,1010` 的 `MAX_RES_SIZE` / `BIG_MAX_RES_SIZE`，两侧都是把默认 2MB 放宽到 16MB，而不是取消限制。
 
 ## 小结
 
-- Mock 的本质是短路转发：`file`、`tpl`、`statusCode` 在 handler 里直接构造响应，请求不出网，后端未就绪也能联调。
+- Mock 的本质是短路转发：`file` / `tpl` 在 `lib/handlers/file-proxy.js` 构造响应，`statusCode` 在 `lib/inspectors/res.js:1313-1319` 出站前直接回码，请求不出网，后端未就绪也能联调。
 - 同一 URL 的条件化响应靠过滤器表达：`includeFilter://m:GET` 按方法、`b:` 按请求体正则、`chance:0.5` 按概率注入故障。
 - 内容容量按 2KB 与 200KB 分三档，内联、Values、本地文件各有归属，改动经 `lib/rules/util.js:58-106` 全量重编译即时生效。
 - 编译期只做结构化、请求期才求值，是内联值与 `{key}` 能共用同一 rule 对象的前提。

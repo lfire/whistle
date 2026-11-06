@@ -33,7 +33,7 @@ Whistle 把自己定位成「基于 Node.js 的跨平台网络抓包与调试工
 | 扩展 | 内置能力不够怎么办 | `plugins/`、`handlers/http-proxy.js` |
 :::
 
-「观察」是其余六类的地基：只有先把请求与响应采集成结构化对象并附上 `reqId`，才能在 UI 里点开详情、按规则过滤、把某次请求重放到 Composer。`lib/inspectors/data.js:55-185` 通过包装流的 `write`/`end` 旁路采样，不阻塞转发；`lib/util/data-server.js:10-35` 用有界缓存保存最近若干条记录。之所以是「最近若干条」而不是全量，是因为调试代理可能长期挂在一台开发机上，无上限缓存会先拖垮自己。
+「观察」是其余六类的地基：只有先把请求与响应采集成结构化对象并附上 `reqId`，才能在 UI 里点开详情、按规则过滤、把某次请求重放到 Composer。`lib/inspectors/data.js:55` 起的 `emitDataEvents` 先保存原始 `stream.write` / `stream.end`，在 `:279-310`（请求体）与 `:364-388`（响应体）把它们覆写成「累加字节、超过 `maxReqSize` / `maxResSize` 就把 `reqBody` / `resBody` 置为 false，最后 `return write.apply(this, arguments)`」——采样走旁路，原转发链路不受影响。`lib/util/data-server.js:10-12` 把 `reqCacheSize` 的下限锁死在 600（CLI 对应 `-R/--reqCacheSize`，见 `docs/docs/cli.md:47`），由此推出 `MAX_LENGTH` 与溢出线 `OVERFLOW_LENGTH = MAX_LENGTH * 3`（`:21-23`）；`clearCache()`（`:147-201`）每 6 秒（`:18,94`）按 `CACHE_TIME` 2 分钟 / `MAX_CACHE_TIME` 6 分钟淘汰超时或溢出的会话。之所以不是全量缓存，是因为调试代理可能长期挂在一台开发机上，无上限缓存会先拖垮自己。
 
 「匹配」与「改写」分离是关键设计。规则文本被编译成按协议分桶的结构（`lib/rules/rules.js:1745-1806`），请求到来时先算出命中集合 `req.rules`（`:2239-2299`），再由各个 inspector 在合适的时机读取自己的那一项。这样新增一种改写能力，只需要新增协议名和对应的消费点，不必改动匹配算法；反过来，优化匹配性能也不会影响改写逻辑。
 
@@ -60,7 +60,7 @@ Whistle 把自己定位成「基于 Node.js 的跨平台网络抓包与调试工
 | 时机 | 请求期与响应期分离 | `rules/protocols.js:155-161` |
 :::
 
-「顺序」意味着把一条宽泛的 `*.example.com` 写在前面，后面的精确规则可能永远不生效；`lineProps://important` 与 `backRulesFirst` 又提供了两种改变顺序的方式。「作用域」意味着你看不到的一条插件规则可能正在改写同一个头。「时机」意味着 `reqHeaders` 与 `resHeaders` 虽然名字对称，却分别在不同 inspector 里执行，不能互相覆盖。这三类问题的共同解法不是猜，而是先看 `req.rules` 最终命中了什么——UI 的「匹配的规则」入口正是由此而来（`biz/webui/cgi-bin/get-matched-rules.js`）。
+「顺序」意味着把一条宽泛的 `*.example.com` 写在前面，后面的精确规则可能永远不生效；`lineProps://important` 与 `backRulesFirst` 又提供了两种改变顺序的方式——后者的实现就在 `lib/rules/util.js:74-79`，它把后台规则 `unshift` 进 `rulesList` 头部，等价于整批插到最前，所以「顺序」本质是规则列表的拼接次序。「作用域」意味着你看不到的一条插件规则可能正在改写同一个头。「时机」意味着 `reqHeaders` 与 `resHeaders` 虽然名字对称，却分别在不同 inspector 里执行，不能互相覆盖。这三类问题的共同解法不是猜，而是先看 `req.rules` 最终命中了什么——UI 的「匹配的规则」入口正是由此而来（`biz/webui/cgi-bin/get-matched-rules.js`）。
 
 ## 能力边界
 

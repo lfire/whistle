@@ -35,6 +35,8 @@ w2 ca
 # 来源：docs/docs/cli.md（Linux 手动安装）
 sudo cp rootCA.crt /usr/local/share/ca-certificates/
 sudo update-ca-certificates
+# 来源：lib/config.js:809-810（另一件事：出站严格校验证书，启动期加 --mode safe）
+w2 start --mode safe
 ```
 
 解密必须显式开启。官方 enable.md 的示例误写成 enale://https，本站一律采用正确写法。
@@ -45,8 +47,8 @@ sudo update-ca-certificates
 www.example.com enable://https
 # 来源：docs/docs/faq.md（IP 直连默认不解密）
 ip[:port] enable://captureIp
-# 来源：docs/docs/rules/disable.md
-wwww.test.com/path disable://capture
+# 来源：docs/docs/rules/disable.md（官方示例 wwww 系笔误，本站用 www）
+www.test.com/path disable://capture
 ```
 
 证书固定与双向认证是解密的反面：要么跳过，要么提供客户端证书。
@@ -89,14 +91,14 @@ security.enterprise_roots.enabled=true
 
 [协议差异消化在入口层](/architecture/overview)：CONNECT、WebSocket 与普通 HTTP 在 tunnel.js 被归一成统一的伪 URL 与规则上下文，首包嗅探与 SNI 提取都在 https/index.js 的入口完成。上层 inspector 只面对明文 HTTP，才不用为每种入口形态重复实现鉴权与跨域逻辑。
 
-[两段 TLS 信任边界互不混淆](/domain/tls-mitm)：客户端到代理这一段信任 Whistle 根证书，代理到源站是另一段独立连接。出站默认把 rejectUnauthorized 设为 false，以兼容内网自签名证书；需要严格校验时再用 --mode safe 打开，两段各自的信任策略互不影响。
+[两段 TLS 信任边界互不混淆](/domain/tls-mitm)：客户端到代理这一段信任 Whistle 根证书，代理到源站是另一段独立连接。出站默认值在 `lib/config.js:65` 写死 `config.rejectUnauthorized = false`，只有 `--mode safe` / `rejectUnauthorized` 在 `lib/config.js:809-810` 把它改成 true，以兼容内网自签名证书；入站能否被信任取决于客户端是否安装并完全信任本地根 CA（iOS 还要开「完全信任」，`docs/docs/faq.md:92-94`），与出站校验开关互不牵连。
 
 ## 源码链路
 
 1. **入口 · CONNECT 登记**：`lib/tunnel.js:38-44` 注册 connect 事件，`lib/tunnel.js:26-27` 定义黑名单正则，`lib/tunnel.js:144-148` 读取策略头，为判定准备上下文。参见[CONNECT 判定与 TLS 解密](/core/connect-mitm)。
 2. **规则解析 · 解密判定**：`lib/tunnel.js:168-213` 的 isIntercept() 汇总开关、黑名单、自定义证书与策略头，决定是否拆开隧道。参见[CONNECT 判定与 TLS 解密](/core/connect-mitm)。
-3. **应用点 · 先回 200 再嗅探**：`lib/tunnel.js:248-301` 先回 200 建立隧道并读取首包，`lib/https/index.js:1184-1234` 用 readOneChunk 判断首包形态并回退，`lib/https/index.js:1295-1338` 提取 SNI。参见[隧道、WebSocket 与帧拦截](/core/tunnel-websocket)。
-4. **应用点 · 证书签发**：`lib/https/ca.js:582-607` 的 getOrCreateCert 按域名取缓存或签发证书，`lib/https/ca.js:616-624` 的 SNICallback 把它挂到 TLS 服务端。参见[证书体系](/modules/certificates)。
+3. **应用点 · 先回 200 再嗅探**：`lib/tunnel.js:264-282` 先 `dispatch` 读首包，再由 `util.setEstablished(reqSocket)`（`:281`）回写固定的 `HTTP/1.1 200 Connection Established`（常量 `ESTABLISHED_CTN` 见 `lib/util/index.js:369-375`）；`lib/https/index.js:1184-1234` 借 `readOneChunk`（`lib/util/index.js:3618-3635`）拿到首包后依次判断 CONNECT、明文 HTTP，最后在 `:1232` 用反向条件 `if (!isHttpH2 && chunk[0] != 22) return next(chunk)` 回退——即只有 TLS 握手记录（首字节 0x16 = 22）或 h2c preface 才继续解密，源码里并没有 `chunk[0] === 22` 的正面分支；`lib/https/index.js:1295-1338` 再 `checkSNI(chunk)` 提取域名，无 SNI 时回退到 `tunnelHostname`。参见[隧道、WebSocket 与帧拦截](/core/tunnel-websocket)。
+4. **应用点 · 证书签发**：`lib/https/ca.js:582-607` 的 `getOrCreateCert` 先查 `remoteCerts` / `cachePairs`，未命中才 `createSelfCert` 签发；叶证书有效期按 `lib/https/ca.js:48-49,558-573` 的 `MIN_DATE` / `MAX_DATE` 定为「提前 7 天生效、36 天后过期」。`lib/https/ca.js:616-624` 的 `SNICallback` 再用 `createSecureContext` 把它挂到 TLS 服务端。参见[证书体系](/modules/certificates)。
 5. **回写 · 根证书与出站策略**：`biz/webui/cgi-bin/rootca.js:4-12` 只提供证书下载；`lib/config.js:65` 默认 rejectUnauthorized 为 false，`lib/config.js:809-810` 在 --mode safe 时置为 true。参见[Web 管理界面](/modules/webui)与[进程模型与配置系统](/architecture/process-config)。
 6. **回写 · 明文阶段改写**：`lib/inspectors/req.js:150-152` 与 `lib/inspectors/req.js:465-467` 应用 auth 与 reqHeaders，`lib/inspectors/res.js:833`、`lib/inspectors/res.js:868` 应用 resCors。参见[指令体系与分发链路](/modules/protocol-catalog)。
 
@@ -104,9 +106,11 @@ security.enterprise_roots.enabled=true
 
 - 证书固定或 mTLS 客户端换证书会握手失败，官方建议对该域名 disable://capture，或按客户端 UA 只跳过特定设备（`docs/docs/faq.md`）；Android 可试 enable://emudhra（同文档）。
 - 系统域名与 Cronet UA 命中硬编码黑名单后一律跳过解密，宁可看不到也不让设备断网（`lib/tunnel.js:26-27`、`lib/tunnel.js:199-200`）。
+- 证书有效期分两套：动态签发的叶证书 `notBefore = now - 7 天`、`notAfter = now + 36 天`（`lib/https/ca.js:48-49,558-573` 的 `MIN_DATE` / `MAX_DATE`），是为避开 Apple / Chromium 对长期证书的限制；根证书走另一分支（`:569-570`）为 `now - 1 年` 到 `now + 10 年`，有效期约十年。安装根证书时看到的过期时间与浏览器校验的叶证书不是同一张，不要混写。
+- `enable://emudhra` 不是安全实践：`lib/https/emudhra.js:6-8` 注释明确所用的是 mitmproxy 公开披露的 eMudhra 中间 CA 私钥与证书链（`assets/emudhra.pem`），`docs/docs/rules/enable.md:26`、`docs/docs/faq.md:98` 也写明是「已公开泄露」的密钥。它只是为兼容特定 Android 客户端证书固定而签发动态证书的兜底方案，既不是可信根证书，也不应推广到普通 HTTPS 流量。
 - 出站 rejectUnauthorized 默认 false 仅限开发环境（`docs/docs/rules/cipher.md`），生产应加 --mode safe 开启校验（`lib/config.js:65`、`lib/config.js:809-810`）。
 - auth 只支持 Basic，Bearer 与 OAuth 需用 reqHeaders 自行设置（`docs/docs/rules/auth.md`）；resCors://* 不支持带 cookie，启用凭证时不得用 *，应改用 resCors://enable（`docs/docs/rules/resCors.md`）。
-- 自定义根证书不支持界面上传，需放入证书目录并重启（`docs/docs/gui/https.md`）；官方 enable.md 示例的 enale://https 是笔误（`docs/docs/rules/enable.md`）。
+- 自定义根证书不支持界面上传，需放入证书目录并重启（`docs/docs/gui/https.md:14`）；官方 `docs/docs/rules/enable.md:82` 示例的 `enale://https` 是笔误（应为 `enable://https`），`docs/docs/rules/disable.md` 示例里的 `wwww.*` 域名同样是照抄笔误，本站可复制配置一律用正确写法。
 
 ## 小结
 

@@ -2,7 +2,7 @@
 
 一套面向开发者的 Whistle 源码学习站点，基于 VitePress 构建，通过 GitHub Actions 自动发布到 GitHub Pages。
 
-- 源码基线：分支 `guide`，提交 `3b85cebc4`，`whistle v2.10.13`
+- 源码基线：分支 `guide`，提交 `3b85cebc4`，`whistle v2.10.13`；其后提交仅更新文档站，业务源码（`lib/`、`bin/`、`biz/` 等）零改动，站内行号仍有效
 - 站点地址：`https://<owner>.github.io/whistle/`（`base` 固定为 `/whistle/`）
 - 内容：41 篇正文 + 18 张自绘 SVG 架构图，五层逐级递进，外加「工程场景」与「概念精解」两大专题
 - 定位：讲「实现原理 + 源码细节 + 领域知识 + 工程场景 + 概念精解」，与仓库根目录 `docs/` 的官方使用文档互补

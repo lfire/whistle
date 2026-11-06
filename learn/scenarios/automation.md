@@ -117,9 +117,9 @@ startWhistle({ port: 18080, storage: 'ci_' }, (proxy) => {
 
 **约定优于配置。** 见 [约定优于配置](/modules/webui)。`biz/webui/lib/index.js:387-418` 把 `req.path` 直接拼成 `cgi-bin/xxx.js` 文件名去加载，没有注册表也没有路由表；测试因此只要 `util.request('http://local.whistlejs.com/cgi-bin/get-data')` 就能驱动状态机，自动化用例写起来与普通 HTTP 调用无异。`get-data`、`composer`、`sessions` 等接口都以文件名对外暴露，写用例时不必先维护一份接口清单，新增能力也无需同步改路由配置。
 
-**第三方代码与重活隔离。** 见 [第三方代码必须隔离](/modules/plugins)。插件经 `lib/plugins/index.js:633-647` 的 `p.fork` 跑在独立子进程，`docs/docs/extensions/npm.md` 也明确「强烈建议在独立子进程中运行 Whistle」；CI 里配合 `--no-global-plugins` 可把不确定的第三方代码彻底挡在回归之外。
+**第三方代码与重活隔离。** 见 [第三方代码必须隔离](/modules/plugins)。`lib/plugins/index.js:633-647` 的 `p.fork` 把 `config.getPluginData(moduleName)`、`script: PLUGIN_MAIN`、`value: plugin.path` 等参数交给独立子进程，子进程起来后在回调 `:648-650` 把监听端口 `ports` 交回主进程转发，主进程因此不必加载插件代码；`docs/docs/extensions/npm.md:2` 也明确「强烈建议在独立子进程中运行 Whistle」。CI 里配合 `--no-global-plugins`（`docs/docs/cli.md:59,327`）可把不确定的第三方代码彻底挡在回归之外。
 
-**内存有界优先。** 见 [内存有界优先](/core/capture-data)。长跑回归会持续产生会话，`lib/util/data-server.js:21-26` 用定长数组与溢出回收限住缓存，`lib/service/composer.js:19` 把重放夹到 100 次，`lib/util/data-server.js:34` 把单页夹到 120 条；这些阈值不是优化，而是让自动化可以整夜跑而不撑爆内存的兜底。
+**内存有界优先。** 见 [内存有界优先](/core/capture-data)。长跑回归会持续产生会话：`lib/util/data-server.js:21-26` 用 `MAX_LENGTH = config.reqCacheSize`（`:21`）与 `OVERFLOW_LENGTH = MAX_LENGTH * 3`、`MAX_CACHE_SIZE = MAX_LENGTH * 2`（`:22-23`）定出溢出水位，超出即回收旧会话，而 `reqCacheSize` 又被 `:10-12` 强制不小于 600；`lib/service/composer.js:19,118-120` 的 `getReqCount` 用 `MAX_REQ_COUNT = 100` 把 `repeatCount` 夹到 100 次；`:34` 的 `MAX_COUNT = 120` 经 `:36-51` 的 `formatApiOptions` 限定单页条数。这些阈值不是优化，而是让自动化可以整夜跑而不撑爆内存的兜底。
 
 ## 源码链路
 
@@ -135,7 +135,7 @@ startWhistle({ port: 18080, storage: 'ci_' }, (proxy) => {
 - **CI 必须用独立 `storage`。** `test/index.test.js:107` 用 `test_`，`docs/docs/extensions/npm.md` 的内部服务模式也建议「设置新存储目录」；否则回归会污染日常的 Rules、Values、证书与会话，甚至把别人的调试现场覆盖掉。
 - **`options.server` 与 `cluster` 互斥。** `index.js:207` 直接 `assert(!options.server, 'cannot exist options.server in cluster mode')`，想在 cluster 下复用外部 Server 会立即抛错，二者只能选一。
 - **分页与重放都有硬上限。** `lib/util/data-server.js:34` 的 `MAX_COUNT=120` 且 `:36-51` 表明不给 `startId` / `startTime` 只能取首页；`lib/service/composer.js:19,118-120` 把重放夹到 100 次，写用例时不要假设能一次拉全量或无限重放。
-- **`--inspect` 仅 `w2 run` 支持。** `bin/whistle.js:95-99` 对 `start` / `restart` 直接报 `Inspector mode only supported with w2 run command` 并退出；`docs/docs/cli.md` 的 `-h` 把它列为通用参数，容易误导成可给后台实例加调试端口。
+- **`--inspect` 仅 `w2 run` 支持。** `bin/whistle.js:95-99` 对 `start` / `restart` 直接报 `Inspector mode only supported with w2 run command` 并 `process.exit(1)`；`docs/docs/cli.md` 的 `-h` 把它列为通用参数，`:329-330` 甚至给出 `w2 start --inspect` 示例，都与源码冲突，实际只能 `w2 run --inspect`。
 - **`npm test` 与真实端口。** `package.json:70` 定义 `"test": "npm run lintfix && node test/index.test.js"`，即先跑 `eslint --fix` 再跑用例；`test/config.test.js:3` 固定真实端口 6666，本机已有服务占用会直接导致失败，CI 需保证端口空闲。
 
 ## 小结

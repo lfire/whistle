@@ -150,11 +150,11 @@ function handleRequest(req, data) {
 **工程中的样子**：[故障注入](/scenarios/fault-injection) 用 `enable://ignoreReceive` 屏蔽服务端推送。
 
 ### 心跳 PING / PONG
-> 每 22 秒写一次控制帧探活与保活。
+> 收到对端 ping 后按 22 秒续写控制帧，暂停或忽略期间靠它保活。
 
 **打个比方**：像长电话里每隔一阵「喂，还在吗」，不传内容，只为确认线没断、也让中间设备别把空闲连接掐掉。它本身不产生业务记录。
-**在 Whistle 里**：`lib/socket-mgr.js:8` 定 `INTERVAL = 22 * 1000`，`:11-12` 定 `PING` / `PONG` 两个 Buffer；`:366-375` 与 `:498-502` 定时写控制帧，`clearTimer`（`:284-289`）在既不暂停也不忽略时清掉定时器。
-**为什么这样设计**：被 pause 的连接不能因空闲被误判或断开；固定 22 秒是「够及时」与「不制造噪声」的折中，且暂停/忽略状态下暂停心跳，避免与状态机互相干扰。
+**在 Whistle 里**：`lib/socket-mgr.js:8` 定 `INTERVAL = 22 * 1000`，`:11-12` 定 `PING` / `PONG` 两个 Buffer；`:366-375` 收到 ping 立即回一次并起定时器，`:496-505` 按 22 秒间隔续写；`clearTimer`（`:284-289`）只在既不暂停也不忽略时清掉定时器，所以正常有数据流动时心跳会停，被挂起的连接反而持续发控制帧。
+**为什么这样设计**：被 pause 的连接不能因空闲被误判或断开；固定 22 秒是「够及时」与「不制造噪声」的折中。定时器只在收到对端 ping 时启动，且 `clearTimer`（`lib/socket-mgr.js:284-289`）只在既不暂停也不忽略时才清掉它——正常有数据流动时心跳停止，暂停/忽略状态下反而持续写控制帧保活，避免挂起的连接被中间设备掐断。
 **容易混淆**：心跳是 WebSocket 控制帧，不是 HTTP 请求，也不产生抓包会话，见 [隧道、WebSocket 与帧拦截](/core/tunnel-websocket)。
 **工程中的样子**：[隧道、WebSocket 与帧拦截](/core/tunnel-websocket) 把 22 秒列为帧级资源边界之一。
 
@@ -237,7 +237,7 @@ cgi.getData(options, function (data) {
 | Maximum Rows | 界面最大显示行数 | `network-modal.js:5` | 默认 1500 条 |
 :::
 
-其中 `lib/util/data-server.js:10-34` 的一组常量是理解整张表的钥匙：默认缓存 600 条、溢出 1800 条（`OVERFLOW_LENGTH`）、双写上限 1200 条（`MAX_CACHE_SIZE`）、溢出后保留 360 条（`PRESERVE_LEN`）、单次上报 100 条（`COUNT`）、API 分页 120 条（`MAX_COUNT`）。`Maximum Rows` 是界面显示上限（默认 1500），与服务端这 600 条完全是两回事，混为一谈就会误判「列表里还有、服务端却查不到」。
+其中 `lib/util/data-server.js:10-34` 的一组常量是理解整张表的钥匙：默认缓存 600 条（`MAX_LENGTH`）、溢出 1800 条（`OVERFLOW_LENGTH`）、先砍到 1200 条（`MAX_CACHE_SIZE`）、尾部 360 条（`PRESERVE_LEN`）改用 `MAX_CACHE_TIME`(6 分钟) 宽限、单次上报 100 条（`COUNT`）、API 分页 120 条（`MAX_COUNT`）。`PRESERVE_LEN` 并非「只保留 360 条」，而是这批尾部条目享受更长超时，清理细节见 [运行时与内核骨架](/concepts/04-runtime) 的 `clearCache`。官方 CLI 的 `-R reqCacheSize` 默认 600、`-F frameCacheSize` 默认 512（`docs/docs/cli.md:47-48`），但源码 `:10-16` 强制下限 600，512 实际不会生效；前端 `htdocs/src/js/data-center.js:1157-1159` 的 100/900ms 是轮询间隔，服务端 `lib/service/data-center.js:8` 的 `MAX_COUNT = 100` 是保存会话列表上限，与 `COUNT` 是三个不同的 100。`Maximum Rows` 是界面显示上限（默认 1500），与服务端这 600 条完全是两回事，混为一谈就会误判「列表里还有、服务端却查不到」。
 
 ## 与工程实际结合
 
@@ -286,7 +286,7 @@ Ctrl+A 强制中断    Ctrl+Shift+Enter 设置重放次数
 
 - 抓包是旁路：`lib/inspectors/data.js:279-323` 覆盖 `write` / `end` 采样后原样透传，`proxy.emit('request', reqEmitter, data)` 登记会话。
 - 阈值覆盖 360KB、1MB、2MB、16MB 与帧级 1MB；超阈把 `reqBody` 置 `false` 但保留元信息，SSE 按 `\n\n` 分帧。
-- 缓存是自实现的有界结构，600 / 1800 / 360 与单次 100 条共同限流，帧按 512/256/128/64KB 瘦身。
+- 缓存是自实现的有界结构，600 / 1800 / 1200 三层阈值与 360 条宽限窗口、单次 100 条共同限流，帧按 512/256/128/64KB 瘦身。
 - `data` 对象原地更新、UI 读同一引用，换来零复制，也带来常驻内存与立即可见的风险。
 - 上报是 gzip 短轮询（100 / 900ms）；帧、会话、注入帧、命中规则各有独立 CGI，重放回打自身代理而非直连目标。
 

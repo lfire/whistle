@@ -5,7 +5,7 @@ description: 用一条规则链、一个最小插件和一次嵌入式启动，�
 
 # 三个动手实验
 
-前四层解决的是「请求怎么走、模块怎么分」，工程场景专题回答「这些机制在什么工程问题里派上用场」，本层只解决三件事：能不能跑起来、能不能照着改、改完去哪里查。三个实验各自可独立完成，但共享同一套源码坐标，建议依次做，每做一步就回到对应文件核对一次现象。以下所有命令、行号与阈值都以 `guide` 分支 `3b85cebc4`、v2.10.13 为准，路径一律写仓库相对路径；若你检出的是其它提交，请以函数名和事件名作锚点。
+前四层解决的是「请求怎么走、模块怎么分」，工程场景专题回答「这些机制在什么工程问题里派上用场」，本层只解决三件事：能不能跑起来、能不能照着改、改完去哪里查。三个实验各自可独立完成，但共享同一套源码坐标，建议依次做，每做一步就回到对应文件核对一次现象。以下所有命令、行号与阈值都以 `guide` 分支 `3b85cebc4`、v2.10.13 为准——其后提交仅涉及文档站，业务源码零改动，因此行号与阈值仍然有效；路径一律写仓库相对路径；若你检出的是其它提交，请以函数名和事件名作锚点。
 
 ## 实验一：用一条规则链看懂请求生命周期
 
@@ -42,21 +42,21 @@ example.com/api log://
 
 配置生效后访问 `http://example.com/api`，Network 面板出现这一条请求，详情里请求头多出 `x-demo: 1`，响应体是上面那段 JSON，计时上能看出约 800ms 的停顿，Console 里能看到 `log://` 的输出。四条链路的落点分别是：`lib/inspectors/rules.js:153-214` 生成 `reqId`、解析规则并挂上编解码钩子；`lib/inspectors/req.js:456-612` 应用 `reqHeaders` 等请求阶段改写；`resDelay` 在 `lib/inspectors/res.js:1163` 取值；`lib/handlers/file-proxy.js:233-248` 判定 `file://` 协议并直接构造响应，请求不再发往真实服务器；`lib/inspectors/data.js:185` 的 `proxy.emit('request', reqEmitter, data)` 把抓包数据交给缓存。
 
-界面为什么几乎能实时看到数据？`lib/util/data-server.js:92-95` 把 `request` 与 `frame` 事件绑到缓存，`biz/webui/cgi-bin/get-data.js:60` 用 `proxy.getData` 打包返回，前端 `biz/webui/htdocs/src/js/data-center.js:1159` 依据 `hasNew` 决定 100ms 还是 900ms 再拉一次：有新数据就加快，空闲就放慢。这就是短轮询把缓存显示出来的完整链条，也是 Network 面板与内核之间唯一的通路。
+界面为什么几乎能实时看到数据？`lib/util/data-server.js:92-95` 把 `request` 与 `frame` 事件绑到缓存，`biz/webui/cgi-bin/get-data.js:60` 用 `proxy.getData` 打包返回，前端 `biz/webui/htdocs/src/js/data-center.js:1159` 依据 `hasNew` 决定 100ms 还是 900ms 再拉一次：有新数据就加快，空闲就放慢，这是在实时性与请求量之间取的折中。这就是短轮询把缓存显示出来的完整链条，也是 Network 列表与内核之间的主通路；帧详情、会话补详情另有 `get-frames` / `get-session` 等 CGI 分担，见 [抓包数据的采集与上报](/core/capture-data)。
 
 ### 现象 → 应该去看哪个文件
 
 ::: cols 50|50
 | 现象 | 首先检查 |
 |---|---|
-| 规则完全不生效 | `rules.js:186` 规则初始化 |
+| 规则完全不生效 | `rules.js:153` 规则阶段入口 |
 | 请求头没有改写 | `req.js:456` 请求阶段 |
 | 延迟不起作用 | `res.js:1163` 响应阶段 |
 | Network 空白 | `data.js:185` 抓包上报 |
-| 内嵌值不返回 | `file-proxy.js:233` 出站 |
+| 内嵌值不返回 | `file-proxy.js:233` 短路响应 |
 :::
 
-表中文件位于 `lib/inspectors/` 与 `lib/handlers/`，行号是各模块导出函数或取值点的入口；先在那里下断点，再沿 `req.rules` 顺藤摸瓜，比从头翻目录快得多。
+表中文件位于 `lib/inspectors/` 与 `lib/handlers/`，行号是各模块导出函数或取值点的入口；先在那里下断点，再沿 `req.rules` 顺藤摸瓜，比从头翻目录快得多。以第一条为例：输入是解析好的请求，动作是 `lib/inspectors/rules.js:153` 的中间件生成 `reqId`、再由 `:29-45` 的 `setupRules` 调 `resolveRules` 填充 `req.rules`，输出就是后面四个阶段共享的那份规则对象；`req.rules` 为空时先看这里，再去查规则文本有没有被编译。`file-proxy.js:233` 命中 `file://` 后直接构造响应、不再发往源站，所以它标的是「短路」而非「出站」。
 
 ## 实验二：写一个最小插件
 
@@ -102,19 +102,22 @@ example.com hello://hi
 
 ### 安装与发现
 
+`w2 install` 只接受 npm 包名、Git 地址或 tgz（`bin/plugin.js:124-145` 的 `install` 最终交给 npm；`lib/util/common.js:240-260` 的 `getPlugins` 会把本地目录留在普通参数里而不当作插件），所以本地目录要直接放进自定义插件目录：
+
 ```bash
-# bin/plugin.js:124-145 · 安装本地插件
-w2 install ./whistle.hello
+# 放入 bin/plugin.js:12 的 CUSTOM_PLUGIN_PATH
+mkdir -p ~/.WhistleAppData/custom_plugins
+cp -r ./whistle.hello ~/.WhistleAppData/custom_plugins/
 w2 status
 ```
 
-也可以直接把目录放进 `~/.WhistleAppData/custom_plugins/`（`bin/plugin.js:12` 的 `CUSTOM_PLUGIN_PATH`，根路径由 `lib/util/common.js:598-603` 给出）。插件被 `lib/plugins/index.js:620-670` 的 `p.fork` 拉起，主进程只保存它返回的端口；`lib/plugins/load-plugin.js:2012-2031` 的 `server.on('request')` 依据 hook 头（`lib/config.js:74` 的 `PLUGIN_HOOK_NAME_HEADER`）把请求分发到 `authServer` / `sniServer` / `uiServer` / `httpServer`。插件运行时可用的 `options.storage`、`require`、`wsParser` 等在 `load-plugin.js:1147-1186` 注入，`options.storage` 最终由 `load-plugin.js:1229-1234` 落到独立数据目录。
+自定义插件目录即 `~/.WhistleAppData/custom_plugins/`（根路径由 `lib/util/common.js:598-603` 给出），`lib/plugins/get-plugins-sync.js` 扫描它并合入插件集，等一轮刷新后就会出现在列表里。插件被 `lib/plugins/index.js:620-670` 的 `p.fork` 拉起，主进程只保存它返回的端口；`lib/plugins/load-plugin.js:2012-2031` 的 `server.on('request')` 依据 hook 头（`lib/config.js:74` 的 `PLUGIN_HOOK_NAME_HEADER`）把请求分发到 `authServer` / `sniServer` / `uiServer` / `httpServer`。插件运行时可用的 `options.Storage`（存储类）、`require`、`wsParser` 等在 `load-plugin.js:1147-1186` 注入，`options.storage` 实例则由 `load-plugin.js:1229-1234` 落到带 `config.storage` 后缀的独立数据目录。
 
-调试用 `PFORK_MODE=inline w2 run`（`lib/plugins/index.js:632,657` 让插件在当前进程跑，日志直接打到终端）、`w2 run --inspect`（`bin/whistle.js:93-103` 明确 inspector 仅 `w2 run` 支持）、`w2 status` 查看实例。插件目录每 6 秒刷新一次（`lib/plugins/index.js:36,544-550`），改完文件稍等即可被发现，不必重启主进程。
+调试用 `PFORK_MODE=inline w2 run`（`lib/plugins/index.js:632` 据 `config.inspectMode || PFORK_MODE === 'inline'` 判定，pfork 随即把插件跑在当前进程、日志直接打到终端；`--inspect` 会由 `lib/config.js:604-606` 自动置该值，加载错误再由 `lib/plugins/index.js:657` 打到终端）、`w2 run --inspect`（`bin/whistle.js:93-103` 明确 inspector 仅 `w2 run` 支持）、`w2 status` 查看实例。插件目录每 6 秒刷新一次（`lib/plugins/index.js:36,544-550` 的 `INTERVAL` 与 `update`），改完文件稍等即可被发现，不必重启主进程。
 
 协议有长短两种写法：`whistle.hello://xxx` 是长协议，`hello://xxx` 是短协议（`docs/docs/extensions/dev.md:49`），二者等价；`whistleConfig.hideShortProtocol` 与 `hideLongProtocol` 可分别隐藏其一。
 
-验证是否成功有三处可看：`w2 status` 之后界面 Plugins 列表出现 `hello`，Rules 里写 `example.com whistle.hello://hi` 能命中插件的 `server`，而 `rulesServer` 返回的那条规则会让匹配请求直接得到 `hello-plugin`。若插件始终不出现，先查 `name` 是否合规、目录是否落在 `CUSTOM_PLUGIN_PATH` 下、以及 6 秒刷新是否已经跑过一轮；若出现了但请求没被分发，再回到 `load-plugin.js:851-853` 确认 hook 头有没有被正确写入。
+验证是否成功有三处可看：`w2 status` 之后界面 Plugins 列表出现 `hello`，Rules 里写 `example.com whistle.hello://hi` 能命中插件的 `server`，而 `rulesServer` 返回的 `* file://(hello-plugin)` 作为动态规则会让命中插件协议的请求直接得到 `hello-plugin`（`docs/docs/extensions/dev.md:283` 允许响应纯规则文本）。注意 `file://` 会在 handler 阶段先短路，因此后两项宜分步验证：想看 `server` 时可先注释掉 `rulesServer`。若插件始终不出现，先查 `name` 是否合规、目录是否落在 `CUSTOM_PLUGIN_PATH` 下、以及 6 秒刷新是否已经跑过一轮；若出现了但请求没被分发，再回到 `load-plugin.js:851-853`（读头并删除）与 `lib/plugins/index.js:950,1228`（写头）确认 hook 头有没有被正确带上。
 
 ## 实验三：把 Whistle 嵌进自己的 Node 进程
 
@@ -145,11 +148,11 @@ process.on('whistleStarted', () => console.log('started'));
 
 ### 关键选项与事件
 
-`options.server` 可传自定义 `http.Server`（`index.js:150-163` 会自动派生 `port` / `host` 并生成隔离用的 `storage`）；`options.cluster` 触发 `index.js:200-211` 的 `cluster.fork`；`storage` 用不同子目录隔离多实例（`lib/config.js:1072-1074`）。`proxyEvents` 上的 `request`、`frame`、`tunnelRequest`、`wsRequest`、`rulesDataChange` 分别在 `lib/inspectors/data.js:185`、`lib/socket-mgr.js:765`、`lib/rules/util.js:130` 等处发出；启动完成时 `lib/index.js:85-87` 发 `process.emit('whistleStarted', proxyEvents)` 并执行回调。`lib/index.js:215-241` 的 `exportInterfaces` 把 `rules` / `util` / `httpsUtil` / `pluginMgr` / `logger` / `socketMgr` / `setAuth` / `setShadowRules` 挂到返回值上，这些是嵌入式最主要的编程面。
+`options.server` 可传自定义 `http.Server`（`index.js:150-163` 会自动派生 `port` / `host` 并生成隔离用的 `storage`）；`options.cluster` 触发 `index.js:200-211` 的 `cluster.fork`；`storage` 用不同子目录隔离多实例（`lib/config.js:1072-1074`）。`proxyEvents` 上的事件各有发射点：`request` 在 `lib/inspectors/data.js:185`（另有 `lib/tunnel.js:124,343`）、`frame` 在 `lib/socket-mgr.js:44` 与 `lib/inspectors/data.js:68`、`wsRequest` / `tunnelRequest` 由 `lib/socket-mgr.js:764-766` 按 `isUpgrade` 选名、`rulesDataChange` 在 `lib/rules/util.js:130`；启动完成时 `lib/index.js:85-87` 在所有端口监听齐备后发 `process.emit('whistleStarted', proxyEvents)` 并执行回调。`lib/index.js:215-241` 的 `exportInterfaces` 把 `rules` / `util` / `httpsUtil` / `pluginMgr` / `logger` / `socketMgr` / `setAuth` / `setShadowRules` 挂到返回值上，这些是嵌入式最主要的编程面。若实例要访问生产源站，可传 `mode: 'safe'`（`index.d.ts:75`）：它只把出站 `rejectUnauthorized` 打开（`lib/config.js:65,809-810`），与实验一装根证书所决定的入站信任是两条独立边界，互不能替代。
 
-与 CLI 模式的差别必须记牢：嵌入式没有 detached 后台进程，也不会自动设置系统代理、自动安装根证书，端口监听、证书准备与界面访问都要自己安排。收尾时主动 `server.close()` 并清掉定时器，否则进程不会自然退出。端口被占用时 `bin/whistle.js:68-84` 会给出 `EADDRINUSE` / `EACCES` 提示（换 `-p` 或提升权限），嵌入式同样要先避开冲突端口再启动。
+与 CLI 模式的差别必须记牢：嵌入式没有 detached 后台进程，也不会自动设置系统代理、自动安装根证书，端口监听、证书准备与界面访问都要自己安排。收尾时要用返回值上的 `proxy.server.close()`（`lib/index.js:47` 把 server 挂到 `proxyEvents`，启用独立端口时还有 `httpServer` / `httpsServer` / `socksServer`），并清掉插件刷新与缓存清理的定时器，否则进程不会自然退出。端口被占用时 `bin/whistle.js:68-84` 会给出 `EADDRINUSE` / `EACCES` 提示（换 `-p` 或提升权限），嵌入式同样要先避开冲突端口再启动。
 
-嵌入式最适合的场景是把代理当作测试基建或长驻服务的一段逻辑：例如在集成测试里临时起一个实例、注入规则、用 `request` 事件断言请求头，再关掉它；或在同一进程内按 `storage` 起多个互不干扰的实例。它不适合替代桌面抓包，因为浏览器代理设置与证书信任仍需用户手动完成。理解了这条边界，就不会把「进程内可编程」误当成「开箱即用的完整 CLI」。
+嵌入式最适合的场景是把代理当作测试基建或长驻服务的一段逻辑：例如在集成测试里临时起一个实例、注入规则、用 `request` 事件断言请求头，再关掉它；或在同一进程内按 `storage` 起多个互不干扰的实例。`docs/docs/extensions/npm.md:2` 仍建议生产集成把 Whistle 放进 `pfork` 独立子进程，避免与主进程相互影响；本实验为了直接观察事件与接口才同进程启动。它不适合替代桌面抓包，因为浏览器代理设置与证书信任仍需用户手动完成。理解了这条边界，就不会把「进程内可编程」误当成「开箱即用的完整 CLI」。
 
 ## 小结
 

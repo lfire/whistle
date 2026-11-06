@@ -12,7 +12,7 @@ description: 以 socket-mgr 为中心，串起连接上下文、双向流拼接�
 
 ## socket-mgr 不是连接池
 
-`lib/socket-mgr.js:10` 只有一个 `var conns = {}`，`:19-21` 导出的初始化函数也仅保存 `proxy` 引用。它不复用、不排队、不预建连接，而是按 `reqId` 登记每条活跃连接的上下文：`getContext` 把 `req` / `res`、双向状态、帧收发器组装成一个 `ctx` 存进 `conns[reqId]`，`handleClose`（`:23-53`）在两侧 socket 任一关闭时取出该 `ctx` 执行 `clearup()`，并靠 `_hasClosed` 标志确保「两侧都关掉」才算真正结束。
+`lib/socket-mgr.js:10` 只有一个 `var conns = {}`，`:19-21` 导出的初始化函数也仅保存 `proxy` 引用。它不复用、不排队、不预建连接，而是按 `reqId` 登记每条活跃连接的上下文：`getContext` 把 `req` / `res`、双向状态、帧收发器组装成一个 `ctx` 存进 `conns[reqId]`，`handleClose`（`:28-53`）在两侧 socket 任一关闭时取出该 `ctx` 执行 `clearup()`，并靠 `_hasClosed` 标志确保「两侧都关掉」才算真正结束。
 
 把它理解成连接池会带来一连串误判：这里没有空闲队列、没有复用阈值，也没有「取一个连接」的接口。`conns` 的键是 `reqId`，而 `reqId` 在 `lib/inspectors/rules.js:159` 或 `lib/tunnel.js:89` 分配，意味着它与「一次请求 / 一条隧道」一一对应；连接结束即由 `handleClose` 清理，生命周期完全跟随会话。之所以值得单独建上下文，是因为一条连接要同时承载两侧的流状态、暂停标记、帧脚本与插件管道，这些信息无法塞进裸 socket 而不互相污染。
 
@@ -115,7 +115,9 @@ var MAX_COMPOSE_FRAME_COUNT = 5;
 var MAX_PAYLOAD = util.MAX_FRAME_PAYLOAD;
 ```
 
-`PAUSE_STATUS` / `IGNORE_STATUS` 由 `setConnStatus`（`:63-84`）实现：暂停时挂起帧、等待 UI 放行，忽略时丢弃当前分块并回调，两者都是可恢复的状态机而非销毁连接；`getStatus`（`:55-61`）只在状态真正变化时才返回新值，避免重复触发。`INTERVAL = 22 * 1000` 驱动 `:366-375` 与 `:498-502` 的 PING / PONG 心跳，每 22 秒写一次控制帧，`clearTimer`（`:284-289`）在状态既不暂停也不忽略时把定时器清掉。
+`PAUSE_STATUS` / `IGNORE_STATUS` 由 `setConnStatus`（`:63-84`）实现：暂停时挂起帧、等待 UI 放行，忽略时丢弃当前分块并回调，两者都是可恢复的状态机而非销毁连接；`getStatus`（`:55-61`）只在状态真正变化时才返回新值，避免重复触发。`INTERVAL = 22 * 1000` 驱动两处心跳：`:366-375` 的 `reqReceiver.ping` 回写 PONG、`:496-505` 的 `resReceiver.ping` 回写 PING，二者都是先立即写一次控制帧，再用 `setInterval` 每 22 秒续写，且每次 tick 都调用 `clearTimer`。
+
+这里有个反直觉点：`clearTimer`（`:284-289`）只在「既不 `pause` 也不 `ignore`」时才 `clearInterval` 并把 `status.timer` 置空，也就是**正常转发态会停掉心跳，暂停 / 忽略态反而保留**。原因是 UI 暂停或忽略期间业务帧被挂起或丢弃、socket 上没有真实数据流动，需要 PING / PONG 维持保活并让界面确认连接仍存活；一旦回到正常态，真实帧本身就在流动，额外控制帧纯属浪费，下一次 tick 便把定时器清掉。因此 22 秒是「挂起期间的续写间隔」，不是无条件恒定心跳。
 
 `MAX_PAYLOAD` 取自 `util.MAX_FRAME_PAYLOAD`（`lib/util/index.js:4012`，1MB），`:219-221` 的 `getBinary` 会把超长帧截断；`MAX_COMPOSE_FRAME_COUNT = 5` 则限制一次最多拼接 5 个分片（`:348`、`:478`、`:616`、`:948`），防止恶意分片把内存撑爆。`handleWsSend`（`:325`）与 `handleWsReceive` 在每帧经过时调用 `execHandleFrame`、累计 `status.data`，再由 `cleanCacheFrames`（`:835`）清理已消费的帧缓存——这些上限共同把「可交互的帧调试」约束在可控的内存预算内。
 
@@ -130,7 +132,7 @@ var MAX_PAYLOAD = util.MAX_FRAME_PAYLOAD;
 - `lib/socket-mgr.js` 是按 `conns[reqId]` 组织的连接上下文与帧处理中心，`handleClose` 确保两侧都关闭才收尾。
 - `handleConnect` 无需抓帧时 `req.pipe(res).pipe(req)`，需抓帧时构建双 Transform 与 `pipeStream` 插件管道。
 - upgrade 经 `util.getFullUrl` 生成 ws/wss，本地构造 101 时自算 `Sec-WebSocket-Accept`，`handleFrames` 把连接交给 `socketMgr`。
-- `ws-parser` 负责收发器，`frameScript` 过滤单帧，pause/ignore 状态机、22 秒心跳、1MB 截断与 5 帧拼接上限共同约束资源。
+- `ws-parser` 负责收发器，`frameScript` 过滤单帧，pause/ignore 状态机、暂停期 22 秒心跳（正常态停）、1MB 截断与 5 帧拼接上限共同约束资源。
 - 任意端口 CONNECT 记为 `tunnel://host:port`，`enable://inspect` 与 `x-whistle-frame-parser` 让插件按帧解析裸 TCP。
 
 ## 下一步

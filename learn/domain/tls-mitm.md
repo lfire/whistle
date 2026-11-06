@@ -48,7 +48,7 @@ TLS 握手要同时确认对方身份、并协商出只有双方知道的会话�
 
 ## 首包识别、SNI 与证书签发
 
-决定解密后，代理还不知道隧道里跑的是 TLS、明文 HTTP 还是 h2c。`lib/https/index.js:1184-1234` 用 `util.readOneChunk` 读第一个数据包再分流：`HTTP_RE` 命中说明是明文 HTTP（`lib/https/index.js:1117`），`HTTP2_RE` 命中说明是 h2c 明文（`lib/https/index.js:1118`），`chunk[0] === 22` 才是 TLS 握手记录。
+决定解密后，代理还不知道隧道里跑的是 TLS、明文 HTTP 还是 h2c。`lib/https/index.js:1184-1234` 用 `util.readOneChunk` 读第一个数据包再分流：`HTTP_RE` 命中说明是明文 HTTP（`lib/https/index.js:1117`），由 `:1215-1226` 把它作为 `connection` 事件塞回 HTTP 解析器；`HTTP2_RE` 命中说明是 h2c preface（`lib/https/index.js:1118`）。其余情况在 `:1232` 用的是**反向判定** `if (!isHttpH2 && chunk[0] != 22) return next(chunk);`：首字节不是 22 且不是 h2c preface 就回退透传，换言之只有 TLS 握手记录（首字节 22，handshake 类型）或 h2c preface 才继续往下解密。
 
 ```js
 // lib/https/index.js:1231-1234
@@ -58,11 +58,15 @@ if (!isHttpH2 && chunk[0] != 22) {
 }
 ```
 
-确认是 TLS 后，`lib/https/index.js:1295` 调用 `checkSNI(chunk)`（`lib/https/index.js:9` 引入 `sni` 包）从 ClientHello 里取出域名，据此签发对应叶证书。根 CA 在启动时就绪：`lib/https/ca.js:427-441` 的 `createRootCA()` 先读取本地已有的根密钥与根证书，读不到则由 `lib/https/ca.js:471-473` 的 `resetRootCA()` 新建，调用点在 `lib/https/ca.js:580`。叶证书有效期被刻意压到 36 天：`lib/https/ca.js:46-49` 定义 `MAX_DATE = ONE_DAY * 36`，`lib/https/ca.js:558-572` 在 `isShortPeriod` 分支里用它设置 `notAfter`——这是为了兼容浏览器对证书最长寿命的限制。
+确认是 TLS 后，`lib/https/index.js:1295` 调用 `checkSNI(chunk)`（`lib/https/index.js:9` 引入 `sni` 包）从 ClientHello 里取出域名，据此签发对应叶证书。根 CA 在启动时就绪：`lib/https/ca.js:427-441` 的 `createRootCA()` 先读取本地已有的根密钥与根证书，读不到则由 `lib/https/ca.js:471-473` 的 `resetRootCA()` 新建，调用点在 `lib/https/ca.js:580`。
+
+有效期分两档，不可混为一谈：`lib/https/ca.js:46-49` 定义 `MIN_DATE = ONE_DAY * 7`、`MAX_DATE = ONE_DAY * 36`，`:558-573` 的 `createCert` 在 `isShortPeriod` 分支给**叶证书**设 `notBefore = now - 7 天`、`notAfter = now + 36 天`——提前 7 天生效是为容忍客户端时钟回拨，36 天上限则顺应 Apple / Chromium 对证书寿命的限制（`:563-564` 的注释）。`createSelfCert`（`:213-217`）正是传 `true` 走这一档；根证书由 `createCACert`（`:479`）不传该参数，落到 else 分支 `notAfter = now + ONE_YEAR * 10`，即约十年。
+
+另有一条兼容路径：`lib/https/index.js:1324` 在 `enable://emudhra` 生效时置 `enableEmudhra`，`lib/https/ca.js:224,264` 改用 `emudhra.subject` 作签发者、由 `emudhra.sign` 签名；`lib/https/emudhra.js:6` 注明这套密钥与链来自 mitmproxy 公开披露的提交，只用于兼容特定 Android 客户端，**不是可信根证书，也不应视作安全实践**，详见[《TLS 概念精解》](/concepts/03-tls)。
 
 握手完成后，`lib/https/index.js:1102-1111` 的 `handlers.request` 用 `server.emit('request', req, res)` 把明文请求塞回 Express 中间件链：HTTPS 与明文 HTTP 最终共用同一套规则与改写逻辑，前面所有复杂性只为还原出 `req` / `res`。
 
-出站侧刻意宽松：`lib/config.js:65` 默认 `config.rejectUnauthorized = false`，不校验源站证书以便处理自签名环境；只有 `--mode safe`（或 `rejectUnauthorized`）才在 `lib/config.js:809-810` 打开校验。这是便利与安全的取舍。
+这里其实是**两个互不影响的信任边界**：入站一侧，客户端是否信任代理伪造的叶证书，只取决于本地根 CA 有没有装进系统信任库（上一节「装根证书」）；出站一侧，`lib/config.js:65` 默认 `config.rejectUnauthorized = false`，代理作为普通客户端连源站时不校验对方证书，以便处理自签名环境，只有 `--mode safe`（或 `rejectUnauthorized`）才在 `lib/config.js:809-810` 打开校验。装好根 CA 并不会顺带让出站校验变严，`--mode safe` 打开的也只是出站这一段；两段各管各的信任，互不传递。这是便利与安全的取舍。
 
 ## 合规与风险
 
@@ -77,7 +81,7 @@ if (!isHttpH2 && chunk[0] != 22) {
 - SAN 匹配域名、SNI 指示目标站点、ALPN 协商协议，pinning 与 mTLS 会拒绝替换证书。
 - MITM 用两段独立 TLS 换出中间明文，与纯透传是两种能力档位。
 - `isIntercept()` 综合策略头、规则、全局开关、系统黑名单与自定义证书决定是否解密。
-- 首包按 `chunk[0] === 22` / 正则分流，SNI 驱动本地 CA 签发 36 天叶证书，明文回流 Express。
+- 首包以「非 22 且非 h2c preface 就透传」反向分流，SNI 驱动本地 CA 签发短周期叶证书（7 天提前生效 / 36 天有效，根证书约十年），明文回流 Express。
 
 ## 下一步
 

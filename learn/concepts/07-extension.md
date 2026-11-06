@@ -29,7 +29,7 @@ description: 把插件、hook、内部端口、约定式 CGI 与 NPM 模块 API 
 > 以独立 npm 包接入、运行在隔离子进程里的第三方扩展。
 
 **打个比方**：像给汽车加装行车记录仪，不拆发动机，只从点烟器取电、靠标准接口通信。记录仪烧了最多少一段录像，车照样能开。
-**在 Whistle 里**：`lib/plugins/index.js:36-41` 启动时同步扫描一次，包名须匹配 `whistle.[a-z\d_-]+`（`lib/plugins/util.js:8-10`），此后 `lib/plugins/index.js:508-550` 每 6 秒按 path 与 mtime 增量比对，只发 install / update / uninstall 差异事件。
+**在 Whistle 里**：`lib/plugins/index.js:36-41` 启动时同步扫描一次，包名须匹配 `whistle.[a-z\d_-]+`（`lib/plugins/util.js:8-10`），此后 `lib/plugins/index.js:508-550` 每 6 秒（`INTERVAL = 6000`，`:36`）按 path 与 mtime 增量比对，只发 `uninstall` / `update` / `updateRules` 差异事件（`:528-530`），新增插件由 `updateRules` 统一触发重编译。
 **为什么这样设计**：插件是仓库外的第三方代码，未捕获异常、内存泄漏、阻塞调用都不该带走代理主进程；子进程把故障域缩小到一个插件。代价是每个 hook 都要一次本地 HTTP 往返，所以规则类 hook 才额外加了 ETag 缓存。
 **容易混淆**：不是主进程里 `require` 进来的模块，而是 `p.fork` 拉起的独立进程，见 [易混淆辨析](/concepts/08-confusions)。
 **工程中的样子**：`w2 install whistle.xxx` 装好后写 `xxx://` 规则，见 [插件系统](/modules/plugins) 与 [CI 与自动化](/scenarios/automation)。
@@ -81,7 +81,7 @@ config.PLUGIN_HOOKS = {
 > 拼在内部头与 hook 名后的实例唯一后缀。
 
 **打个比方**：像同一栋楼里两户人家的门牌加楼层号，快递只写「302」不会送错门。
-**在 Whistle 里**：`lib/config.js:91` 用时间戳、进程号与随机数生成；`:70-84` 的 `CLIENT_INFO_HEADER`、`SHOW_LOGIN_BOX`、`DISABLE_RULES_HEADER` 等内部头，以及 `:85-108` 的每个 hook 名都带 `+ uid`。
+**在 Whistle 里**：`lib/config.js:29` 用时间戳、`process.pid` 与随机数拼出 `uid`，`:64` 挂到 `config.uid`；`:70-84` 的 `CLIENT_INFO_HEADER`、`SHOW_LOGIN_BOX`、`DISABLE_RULES_HEADER` 等内部头，以及 `:85-108` 的每个 hook 名都带 `+ uid`。
 **为什么这样设计**：一台机器常同时跑多个 Whistle 实例或 cluster worker，共用 `127.0.0.1` 内部端口时不加后缀会串台；代价是头名变长，且跨进程必须传递同一个 uid。
 **容易混淆**：它不是请求 id，也不随请求变化，而是随进程启动固定，见 [运行时与进程](/concepts/04-runtime)。
 **工程中的样子**：多实例用 `--storage` 隔离数据目录时，uid 同步隔离内部头，见 [协作配置](/scenarios/collab-config)。
@@ -170,7 +170,7 @@ UI 分支还会先 `setContext(req)` 再转发，HTTP / TUNNEL 等分支结构�
 > 既是请求阶段的认证协议，也是插件接管登录的 AUTH hook。
 
 **打个比方**：像大楼既有一张通用的门禁卡规则，也有一个可以完全接管闸机的保安室；前者按名单放行，后者自己定规矩。
-**在 Whistle 里**：`lib/config.js:87` 的 `AUTH` hook 对应 `lib/plugins/load-plugin.js:1723-1740` 的 `authServer`；`lib/plugins/index.js:906-950` 的 `authReq` 在取规则前先做认证，失败时拼出 401 / 407 / 403 响应。规则里的 `auth://` 属于请求改写，落在 `lib/inspectors/req.js:460-604`。
+**在 Whistle 里**：`lib/config.js:87` 的 `AUTH` hook 对应 `lib/plugins/load-plugin.js:1723,1751-1753` 的 `authServer`（声明与 `createServer()` 创建）；`lib/plugins/index.js:920,936` 的 `authReq` 在取规则前先做认证，失败时按 401 / 407 / 403 拼出拒绝响应。规则里的 `auth://` 属于请求改写，落在 `lib/inspectors/req.js:460-604`。
 **为什么这样设计**：把认证放在规则求值之前，未授权请求不必跑插件逻辑；代价是两套 `auth` 名字容易误读。
 **容易混淆**：一个是协议、一个是 hook，二者阶段与出口都不同，见 [易混淆辨析](/concepts/08-confusions)。
 **工程中的样子**：`* auth://user:pass` 是规则写法，`lack init auth` 生成的是 hook 插件，见 [能力边界](/scenarios/boundaries)。
@@ -410,7 +410,7 @@ w2 use ./whistle.test-rules/rules.txt
 - **ui tab ≠ 服务端 inspector**：前者由 `get-plugins-sync.js:159-163` 声明、走 `biz/webui/lib/index.js:473-481` 的 `uiPort`；后者是 `lib/inspectors/index.js:1-8` 的请求四阶段中间件。名字都有「页签」，一个在浏览器、一个在服务端。
 - **pipe ≠ PipeStream**：pipe 是 `lib/config.js:96-107` 的 12 个 hook，落在 `lib/socket-mgr.js:838-843` 的双 Transform；`PipeStream` 是 `pipestream` 依赖，由 `lib/init.js:1,87-155` 提供 `addTextTransform` / `addZipTransform`。两者都可能出现在「改写」讨论里，但层级不同。
 - **约定式 CGI ≠ 无安全防护**：`biz/webui/lib/index.js:387-418` 的路径映射确实没有路由表，但 `:388` 的 `existsUpPath` 与 `checkInternalPath`、`:39-48` 的白名单、`:154-210` 的鉴权都在前面挡着。以为「放个文件就能被任意调用」，会漏掉目录穿越与鉴权两类风险。
-- **`auth` 既有协议又有 hook 两层含义**：规则里的 `auth://` 属于请求改写（`lib/inspectors/req.js:460-604`），`PLUGIN_HOOKS.AUTH` 属于插件接管登录（`lib/plugins/load-plugin.js:1723-1740`）。查问题时先确认说的是哪一层，否则会找错文件。
+- **`auth` 既有协议又有 hook 两层含义**：规则里的 `auth://` 属于请求改写（`lib/inspectors/req.js:460-604`），`PLUGIN_HOOKS.AUTH` 属于插件接管登录（`lib/plugins/load-plugin.js:1751-1753`）。查问题时先确认说的是哪一层，否则会找错文件。
 - **d.ts ≠ 运行时代码**：`index.d.ts:69-145,186-209` 只有声明，实现在 `index.js:143-148` 与 `lib/index.js:215-241`。改类型不会改变行为，反之加字段不改类型也不会报错。
 - **NPM 模块 API ≠ CLI 自启**：`index.js:143-148` 的导出函数不会守护化、不会写 `~/.startingAppData`，生命周期由宿主管理；`w2 start` 的 detached 行为在 `bin/whistle.js`。把二者混用，会出现「脚本退出后代理也没了」或「端口被两个实例抢占」。
 - **shadowRules ≠ 落盘规则集**：`lib/config.js:611-646` 只写内存，`lib/index.js:234-239` 的 `setShadowRules` 也不落盘；`lib/rules/util.js:89-99` 的选中 / Default / Mock / Service / Shadow 才是叠加顺序。以为它会出现在界面 Rules 列表里，重启后会发现「规则不见了」。

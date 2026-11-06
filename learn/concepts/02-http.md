@@ -22,7 +22,7 @@ description: 用十三张词条卡片讲清报文结构、分块与压缩、连�
 | 协议升级 | 换协议后数据如何承载 | ALPN、101、伪头、帧、SSE |
 :::
 
-三簇在源码里也各自成段：报文装配落在 `lib/init.js:157-163`，边界与编码处理落在 `lib/init.js:87-155` 与 `lib/service/util.js:137-146`，协议判定与降级落在 `lib/https/index.js:1117-1119` 与 `lib/https/index.js:1013-1100`。完整的一次请求旅程见[一次 HTTP 代理请求的旅程](/core/http-request)，帧与隧道的后续处理见[隧道、WebSocket 与帧拦截](/core/tunnel-websocket)。
+三簇在源码里也各自成段：请求与响应被包装成可插拔的流落在 `lib/init.js:157-163`，边界与编码处理落在 `lib/init.js:87-155` 与 `lib/service/util.js:137-146`，协议判定与降级落在 `lib/https/index.js:1117-1119` 与 `lib/https/index.js:1013-1100`。完整的一次请求旅程见[一次 HTTP 代理请求的旅程](/core/http-request)，帧与隧道的后续处理见[隧道、WebSocket 与帧拦截](/core/tunnel-websocket)。
 
 ## 核心词条
 
@@ -52,9 +52,9 @@ Host: www.example.com
 
 **打个比方**：像包裹外侧贴的一叠标签：收件人、易碎、保价、请勿倒置。标签不是货物本身，但搬运工全靠标签决定怎么搬、能不能堆叠、要不要转交下一个人；标签写错，货物再完好也会送错地方。
 
-**在 Whistle 里**：`lib/util/common.js:35-54` 的 `ILLEGAL_TRAILERS` 列出一整组逐跳头（`connection`、`keep-alive`、`transfer-encoding`、`upgrade`、`proxy-connection` 等），它们在跨协议改写时不能直接透传；`lib/util/index.js:3520` 的 `formatH2Headers` 又在转 HTTP/2 前过滤掉非法头，把 `:authority` 之类交给伪头处理。规则的 `reqHeaders://` / `resHeaders://` 改的就是这一层。
+**在 Whistle 里**：`lib/util/common.js:35-54` 的 `ILLEGAL_TRAILERS` 列出不允许出现在报文尾部 Trailer 里的字段——既有 `connection`、`keep-alive`、`transfer-encoding`、`upgrade` 等逐跳头，也有 `host`、`content-length`、`authorization`、`set-cookie` 等端到端头；`lib/util/common.js:432-436` 的 `removeIllegalTrailers` 据此过滤。`lib/util/index.js:3520` 的 `formatH2Headers` 另用 `isIllegalcHeader` 过滤 HTTP/2 不允许的字段，`:authority` 等伪头由 `lib/https/h2.js:276-278` 单独写入。规则的 `reqHeaders://` / `resHeaders://` 改的就是这一层。
 
-**为什么这样设计**：Header 把控制信息与实体分离，让中间节点无需理解 body 就能路由、缓存与鉴权；代价是逐跳头与端到端头混在一起，代理必须逐条判断哪些属于「这一跳」、哪些要原样带走。集中成一张清单，比在每个转发点各写一次判断更不容易漏。
+**为什么这样设计**：Header 把控制信息与实体分离，让中间节点无需理解 body 就能路由、缓存与鉴权；代价是逐跳头只约束「这一跳」、端到端头却要原样带走，而 Trailer 作为响应末尾才追加的头，既不能改分帧与长度、也不该重复承载鉴权与路由信息，所以这两类字段一并被列入禁止名单。Whistle 把名单集中在 `ILLEGAL_TRAILERS` 一处，由 `removeIllegalTrailers`（`lib/util/common.js:432-436`）与 `addTrailerNames`（`lib/util/common.js:464-472`）共用，比在每个转发点各写一次判断更不容易漏。
 
 **容易混淆**：Header ≠ Body，也 ≠ HTTP/2 伪头；伪头以冒号开头、由协议规定顺序，普通 Header 是自由键值对，对照见[辨析篇](/concepts/08-confusions)。
 
@@ -94,7 +94,7 @@ Host: www.example.com
 
 **打个比方**：像寄一批书。一种方式是箱子上写「共十本」，收件人数到十本就封箱；另一种是每寄一本就喊一声「第一本到了」，最后喊一声「没了」，收件人靠这声「没了」才知道结束。前者要求先知道总数，后者允许边装边寄。
 
-**在 Whistle 里**：`lib/service/util.js:137-146` 的 `getBody` 先看 `transfer-encoding` 是否为 `chunked`，是则先 `dechunkify` 去分块，再交给 `zlib.unzip`；`lib/init.js:87-155` 的 `addTransforms` 在插入任何改写 Transform 前 `delete req.headers['content-length']` / `delete svrRes.headers['content-length']`，因为一旦改写，原先声明的长度必然失效；`lib/util/common.js:38` 也把 `content-length` 列入不可直接透传的清单。
+**在 Whistle 里**：`lib/service/util.js:137-146` 的 `getBody` 先看 `transfer-encoding` 是否为 `chunked`，是则先 `dechunkify` 去分块，再交给 `zlib.unzip`；`lib/init.js:87-155` 的 `addTransforms` 在插入任何改写 Transform 前 `delete req.headers['content-length']` / `delete svrRes.headers['content-length']`，因为一旦改写，原先声明的长度必然失效；`lib/util/common.js:38` 也把 `content-length` 列入禁止作为 Trailer 的字段清单。
 
 ```js
 // lib/service/util.js:137-146 · 先去分块再解压
@@ -120,19 +120,22 @@ zlib.unzip(headers['content-encoding'], body, function (err, result) {
 
 **打个比方**：像把衣服抽真空再装箱。抽真空改变的是衣服本身（内容编码），装箱时分成几个小盒、每盒贴编号（传输编码）改变的是搬运方式；收货人得先按编号把盒子凑齐，再拆真空袋，顺序反了就什么也穿不上。
 
-**在 Whistle 里**：`lib/util/index.js:1591-1602` 的 `getZipStream` 按 `content-encoding` 选择 gzip、br、deflate、zstd 的压缩流，`lib/util/index.js:1606` 用 `31/139` 两个字节识别 gzip 魔数；`lib/init.js:87-155` 的 `addTextTransform` / `addZipTransform` 把解压与重压缩挂到 PipeStream 上，并在开始时删掉 `content-length`。`lib/service/util.js:146` 的 `zlib.unzip` 负责采集侧解码。
+**在 Whistle 里**：`lib/util/index.js:1591-1602` 的 `getZipStream` 按 `content-encoding` 选择 gzip、br、deflate、zstd 的压缩流，`lib/util/index.js:1604-1607` 的 `isZip` 用 `31/139` 两字节识别 gzip 魔数（只收到首字节 `31` 时也放行）；`lib/init.js:87-155` 的 `addTextTransform` / `addZipTransform` 把解压与重压缩挂到 PipeStream 上，并在开始时删掉 `content-length`。`lib/service/util.js:146` 的 `zlib.unzip` 负责采集侧解码。
 
 ```js
-// lib/util/index.js:1591-1606 · 按编码选流（节选）
+// lib/util/index.js:1591-1607 · 按编码选流（节选）
 function getZipStream(headers) {
   switch (getContentEncoding(headers)) {
   case 'gzip':    return zlib.createGzip();
   case 'br':      return supportsBr && zlib.createBrotliCompress();
   case 'deflate': return zlib.createDeflate();
+  case 'zstd':    return supportsZstd && zlib.createZstdCompress();
   }
 }
 exports.isZip = function (encoding, chunk) {
-  if (encoding === 'gzip') { return chunk[0] === 31 && chunk[1] === 139; }
+  if (encoding === 'gzip') {
+    return chunk[0] === 31 && (chunk[1] == null || chunk[1] === 139);
+  }
 };
 ```
 
@@ -148,7 +151,7 @@ exports.isZip = function (encoding, chunk) {
 
 **打个比方**：像打电话时不挂断，连续问好几个问题。省掉了每次重拨的等待，但对方必须按顺序一问一答，前一个没答完，后一个只能等着；想同时聊三件事，还是得再开两条线。
 
-**在 Whistle 里**：`lib/util/common.js:53` 把 `keep-alive` 列入逐跳头清单，说明它只约束「这一跳」的连接，不能原样透传给下一段；`lib/https/h2.js:10` 的 `SUPPORTED_PROTOS` 则给出更高层的替代方案——ALPN 协商到 `h2` 时，连接复用从「排队」升级为「并发」。出站连接池上限 `sockets` 的配置见[术语速查](/advanced/reference)。
+**在 Whistle 里**：`lib/util/common.js:53` 把 `keep-alive` 列入禁止作为 Trailer 的字段清单，说明它只约束「这一跳」的连接，不能原样透传给下一段；`lib/https/h2.js:10` 的 `SUPPORTED_PROTOS` 则给出更高层的替代方案——ALPN 协商到 `h2` 时，连接复用从「排队」升级为「并发」。出站连接池上限 `sockets` 的配置见[术语速查](/advanced/reference)。
 
 **为什么这样设计**：HTTP/1.1 默认复用连接，省去反复三次握手与慢启动；代价是队头阻塞——同一连接上的响应必须按请求顺序返回，一个慢响应会拖住后面全部请求。这正是 HTTP/2 多路复用要解决的矛盾，也解释了为什么代理要区分「连接复用」与「流并发」。
 
@@ -189,7 +192,7 @@ var statusCode = h2Headers[':status'];
 
 **为什么这样设计**：把协议选择塞进 TLS 握手，省掉一次额外往返，也让 h2 与 https 在端口上无法被外部区分；代价是协商结果绑定在握手阶段，代理必须提前声明自己支持的协议列表，且降级时要能把 h2 会话还原成 HTTP/1.x 请求（`lib/https/index.js:1013-1100`）。
 
-**容易混淆**：ALPN ≠ Upgrade，前者在 TLS 握手内协商、后者在 HTTP 报文里请求切换；ALPN 也 ≠ SNI，一个选协议、一个报域名，对照见[第三层](/concepts/03-tls)与[辨析篇](/concepts/08-confusions)。
+**容易混淆**：ALPN ≠ Upgrade，前者在 TLS 握手内协商、后者在 HTTP 报文里请求切换。ALPN 也 ≠ SNI：两者都在 ClientHello 里，但 ALPN 在 `application_layer_protocol_negotiation` 扩展列出 `h2` / `http/1.1` 由服务端选定，决定「说什么协议」；SNI 在 `server_name` 扩展只带目标域名，供服务端选证书，决定「找哪个站点」。一个定解析器、一个定证书，互不替代，对照见[第三层](/concepts/03-tls)与[辨析篇](/concepts/08-confusions)。
 
 **工程中的样子**：[HTTPS、证书与鉴权排障](/scenarios/https-trust)里「客户端说 h2、源站只认 http/1.1」的兼容问题，排查起点就是这张 `SUPPORTED_PROTOS` 列表。
 
@@ -298,14 +301,14 @@ var isHttpH2 = HTTP2_RE.test(headersStr);
 | Trailer | 报文尾部的补充头 | `lib/https/index.js:1060` | 与 Header |
 | Range/206 | 分段请求与部分响应 | `lib/util/common.js:46` | 与完整 200 |
 | Cookie/Set-Cookie | 请求携带与响应下发 | `lib/util/common.js:43` | 与鉴权头 |
-| CORS 预检 | OPTIONS 探测跨域许可 | `lib/util/common.js:35` | 与实际请求 |
+| CORS 预检 | OPTIONS 探测跨域许可 | `lib/handlers/file-proxy.js:250` | 与实际请求 |
 | DNS/A/AAAA | 域名解析到 IP 地址 | `lib/rules/index.js:273` | 与 host 映射 |
 | host 映射 | 规则改写目标主机 | `lib/util/common.js:1250` | 与 DNS |
-| TTL | 解析结果的缓存寿命 | `lib/https/h2.js:13` | 与缓存头 |
+| h2 空闲超时 | 客户端 1 分钟不用即关闭 | `lib/https/h2.js:13` | 与缓存头 |
 | 缓存头 | `cache-control` 等策略 | `lib/util/common.js:39` | 与 TTL |
 :::
 
-表里的落点集中在两处：`lib/util/common.js:35-54` 的逐跳头清单一次覆盖了管线化、Cookie、Range、缓存头与 CORS 相关字段；`lib/https/` 下的 h2 与降级逻辑则覆盖 h2c、Trailer 与 TTL。按文件簇回查，比逐词搜更省力。
+表里的落点集中在两处：`lib/util/common.js:35-54` 的禁入 Trailer 字段清单一次覆盖了 Cookie、Range、缓存头与逐跳字段；`lib/https/` 下的 h2 与降级逻辑则覆盖 h2c、Trailer 与连接空闲超时。`CORS 预检` 的 OPTIONS 处理不在清单里，而在 `lib/handlers/file-proxy.js:250`。按文件簇回查，比逐词搜更省力。
 
 ## 与工程实际结合
 
@@ -343,4 +346,4 @@ www.example.com enable://h2
 
 ## 下一步
 
-[《第三层：TLS、证书与信任》](/concepts/03-tls)：既然 CONNECT 之后默认只有加密字节流，接下来讲清中间人、CA、根证书、SNI 与证书链，回答 Whistle 凭什么能解密、客户端又凭什么信任它。
+[《第二层：TLS、证书与信任》](/concepts/03-tls)：既然 CONNECT 之后默认只有加密字节流，接下来讲清中间人、CA、根证书、SNI 与证书链，回答 Whistle 凭什么能解密、客户端又凭什么信任它。

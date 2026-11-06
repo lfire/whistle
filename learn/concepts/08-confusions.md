@@ -47,21 +47,21 @@ var isEnableIntercept = function () {
 ### CONNECT 隧道 vs MITM 解密
 - **一句话差别**：前者只搬字节，后者拆成两段 TLS 换出可读明文。
 - **形象类比**：隧道像密封运钞车一路不开封；MITM 像在中转站开箱验货再封一辆新车。
-- **在 Whistle 里怎么分**：`lib/tunnel.js:577-596` 只做 `net.connect` 纯转发；`:264-282` 先回 200 再读首包，交给 `lib/https/index.js:1184-1234` 分流解密。
+- **在 Whistle 里怎么分**：`lib/tunnel.js:577-596` 只做 `net.connect` 纯转发；解密分支在 `:264-280` 先用 `dispatch` 注册首包回调、`:281` 立即回 200，客户端拿到 200 后才发 ClientHello，再由 `lib/https/index.js:1184-1234` 读首包分流——`:1232` 是反向写法「非 h2c preface 且 `chunk[0] != 22` 就回退透传」。
 - **踩坑表现**：不装根证书就想看 HTTPS 明文，界面只有一条隧道记录、没有请求详情。
 - **相关章节**：[代理基础](/concepts/01-proxy)、[CONNECT 判定](/core/connect-mitm)。
 
 ### 透传 vs 解密
 - **一句话差别**：透传零改写零记录正文，解密后才能跑规则与抓包。
 - **形象类比**：透传像原封转交包裹；解密像拆包登记、换好内容再寄出。
-- **在 Whistle 里怎么分**：`lib/tunnel.js:304-573` 的 `handleTunnel` 是透传落点；`lib/tunnel.js:168-213` 的 `isIntercept()` 决定这条 CONNECT 是否进解密分支。
+- **在 Whistle 里怎么分**：`lib/tunnel.js:304-573` 的 `handleTunnel` 是透传落点；`lib/tunnel.js:202-213` 的 `isIntercept()` 决定这条 CONNECT 是否进解密分支。
 - **踩坑表现**：写了 `resBody://` 对 HTTPS 完全不生效，多半是这条隧道被判为纯透传。
 - **相关章节**：[TLS 与 MITM](/concepts/03-tls)、[CONNECT 判定](/core/connect-mitm)。
 
 ### Upgrade/101 vs CONNECT/200
 - **一句话差别**：101 是切换应用协议并继续按帧解析，200 只是隧道就绪、后续按字节。
 - **形象类比**：101 像换车厢但仍查票；200 像放行之后不再看车厢里装什么。
-- **在 Whistle 里怎么分**：`lib/upgrade.js:179-181` 注册 `upgrade` 事件；`lib/tunnel.js:44` 注册 `connect`，`:281` 的 `setEstablished` 写 `200 Connection Established`。
+- **在 Whistle 里怎么分**：`lib/upgrade.js:179-181` 注册 `upgrade` 事件；`lib/tunnel.js:44` 注册 `connect`，`:281` 调用 `util.setEstablished`（`lib/util/index.js:369-375`，常量 `ESTABLISHED_CTN`）写出 `200 Connection Established`。
 - **踩坑表现**：把 WebSocket 当 CONNECT 处理会丢帧，把 CONNECT 当 Upgrade 会去解析不存在的帧头。
 - **相关章节**：[HTTP 与报文](/concepts/02-http)、[隧道与帧](/core/tunnel-websocket)。
 
@@ -272,8 +272,8 @@ var isEnableIntercept = function () {
 ### LRU vs 自实现有界缓存
 - **一句话差别**：LRU 按访问淘汰键值项，抓包缓存按条数与结束时间批量清理。
 - **形象类比**：LRU 像书架满了抽走最久没翻的书；抓包缓存像每天清一次过期挂号单。
-- **在 Whistle 里怎么分**：`lib/rules/index.js:20` 的 `tplCache = new LRU({ max: 36 })`；`lib/util/data-server.js:75-95` 用 `ids[]` + `reqData{}` + `framesCache` 手工维护。
-- **踩坑表现**：以为规则匹配有 LRU，实际 `regUrlCache` 在每次编译后被整体清空（`lib/rules/rules.js:1802-1805`）。
+- **在 Whistle 里怎么分**：`lib/rules/index.js:20` 的 `tplCache = new LRU({ max: 36 })`；`lib/util/data-server.js:28-31` 用 `ids[]` + `reqData{}` + `framesCache` 手工维护，`:147-203` 的 `clearCache` 按结束时间与溢出量淘汰。
+- **踩坑表现**：以为规则匹配有 LRU，实际 `regUrlCache` / `hostCache` 在每次 `parseText` 后被整体清空（`lib/rules/rules.js:1804-1805`）。
 - **相关章节**：[运行时与进程](/concepts/04-runtime)、[抓包上报](/core/capture-data)。
 
 ### 短轮询 vs SSE/长连接
@@ -286,7 +286,7 @@ var isEnableIntercept = function () {
 ### agent vs socksAgent
 - **一句话差别**：agent 管 HTTP/HTTPS 出站连接池，socksAgent 管 SOCKS 上游连接。
 - **形象类比**：agent 像普通货运车队的调度表；socksAgent 像专走隧道线路的调度表。
-- **在 Whistle 里怎么分**：`lib/config.js:86-87` 分别是 `max:360` 与 `max:100` 的 LRU；`:1039-1048` 构造 `httpAgent` / `httpsAgent`，默认还 `disableAgent`。
+- **在 Whistle 里怎么分**：`lib/config.js:24-25` 的 `httpsAgents`（`max:360`）与 `socksAgents`（`max:100`）是两组 LRU；`:1039-1048` 构造 `httpAgent` / `httpsAgent`，`:1046` 的 `disableAgent` 在默认路径把 agent 直接置为 `false`。
 - **踩坑表现**：调大 `sockets` 却发现 SOCKS 连接没变多，因为改的是另一组 agent。
 - **相关章节**：[运行时与进程](/concepts/04-runtime)、[进程与配置](/architecture/process-config)。
 
@@ -346,7 +346,7 @@ var isEnableIntercept = function () {
 ### pause vs ignore vs abort
 - **一句话差别**：pause 挂起帧等待放行，ignore 丢弃当前块并继续，abort 直接断开连接。
 - **形象类比**：pause 像按暂停键；ignore 像跳过这一句；abort 像直接挂断电话。
-- **在 Whistle 里怎么分**：`lib/socket-mgr.js:63-84` 的 `PAUSE_STATUS=1` / `IGNORE_STATUS=2`；`biz/webui/cgi-bin/abort.js:18-19` 同时调 `data.abort()` 与 `socketMgr.destroy()`。
+- **在 Whistle 里怎么分**：`lib/socket-mgr.js:63-84` 的 `PAUSE_STATUS=1` / `IGNORE_STATUS=2`；`biz/webui/cgi-bin/abort.js:18-19` 同时调 `proxy.abortRequest(reqId)` 与 `socketMgr.abort(reqId)`。
 - **踩坑表现**：以为 ignore 只是不显示，实际那一帧已经不转发给对端了。
 - **相关章节**：[抓包与数据面](/concepts/05-capture)、[隧道与帧](/core/tunnel-websocket)。
 
@@ -376,17 +376,17 @@ var isEnableIntercept = function () {
 这一组最容易「名字看着像、实际在两个阶段生效」。
 
 ### ignore vs skip
-- **一句话差别**：`skip` 是归并到 `ignore` 的别名，二者都按协议名屏蔽规则。
-- **形象类比**：像「禁止入内」与「请绕行」两块牌子，最终由同一个门卫执行。
-- **在 Whistle 里怎么分**：`lib/rules/protocols.js:131-154` 把 `skip → ignore` 归并；`lib/util/index.js:1913-1985` 的 `resolveIgnore` 编译成按协议名屏蔽的 filter。
-- **踩坑表现**：以为 `skip` 只跳过一行、`ignore` 屏蔽整份，解析后其实是同一机制。
+- **一句话差别**：`ignore` 按协议名整类屏蔽，被忽略的协议不再匹配同类其它规则；`skip` 只跳过命中的那一条，继续尝试匹配剩余同类规则。
+- **形象类比**：`ignore` 像封存整排货架；`skip` 像只抽走这一件、后面同类仍依次上架。
+- **在 Whistle 里怎么分**：`lib/rules/protocols.js:140` 把 `skip` 登记为 `ignore` 的别名（这样 `skip://` 才进得了 ignore 桶）；但 `lib/rules/rules.js:96` 的 `SKIP_RE` 与 `:1125-1160` 的 `resolveProps` 单独把 `skip://` 解析成 `req._skipProps`，由 `:999` 匹配循环经 `util.checkSkip`（`lib/util/index.js:2011-2021`）跳过单条规则并 `continue`；`ignore://` 才由 `:1149-1150` 与 `lib/util/index.js:1913` 的 `resolveIgnore` 编成按协议名屏蔽的 filter。官方 `docs/docs/rules/ignore.md:28-29`、`docs/docs/rules/skip.md:2` 说的正是这个区别。
+- **踩坑表现**：把「别名归并」当成「同一机制」，用 `skip://operation=xxx` 想整类屏蔽，结果只跳过那一条、后面同类规则照样命中；要整类不再匹配得写 `ignore://`。
 - **相关章节**：[规则 DSL](/concepts/06-rules)、[规则引擎](/modules/rules-engine)。
 
 ### enable vs disable
-- **一句话差别**：enable 打开某项能力开关，disable 关闭它，二者都是全局布尔位。
+- **一句话差别**：`enable` 打开某项能力、`disable` 关闭它，二者都是按规则求值的开关类协议（`req.enable` / `req.disable` 集合），不是单个全局布尔位。
 - **形象类比**：enable 像合上某个电闸；disable 像把同一个电闸拉开。
-- **在 Whistle 里怎么分**：`lib/rules/protocols.js:14` 把二者列入开关类协议；`lib/tunnel.js:168-178` 的 `disable.intercept` / `disable.https` / `disable.capture` 一票否决解密。
-- **踩坑表现**：`enable://captureData` 与 `disable://https` 同时写，后者优先把解密关掉。
+- **在 Whistle 里怎么分**：`lib/rules/protocols.js:15-16` 把二者列入开关类协议；`lib/tunnel.js:168-178` 的 `disable.intercept` / `disable.https` / `disable.capture` 一票否决解密。
+- **踩坑表现**：`enable://capture` 与 `disable://https` 同时写，后者优先把解密关掉；`capture` 才是有效动作（官方 `docs/docs/rules/enable.md:30`，其示例里的 `enale://https` 是笔误，本站以正确写法为准）。
 - **相关章节**：[规则 DSL](/concepts/06-rules)、[指令体系](/modules/protocol-catalog)。
 
 ### intercept vs capture
@@ -448,7 +448,7 @@ var isEnableIntercept = function () {
 ### 首条命中 vs 多命中
 - **一句话差别**：默认每协议取首条命中即返回，多命中协议收集全部结果挂到 `rule.list`。
 - **形象类比**：首条像点菜只认第一道；多命中像把同类菜全端上桌。
-- **在 Whistle 里怎么分**：`lib/rules/rules.js:997` 的循环 `--index < 0` 即 return；`lib/rules/protocols.js:186-227` 的 `multiMatchs` 列出 40 项，由 `:2273-2296` 改走 `getRuleList`。
+- **在 Whistle 里怎么分**：`lib/rules/rules.js:997-1119` 的匹配循环里，`:1019,1083` 等分支命中且 `--index < 0` 即构造结果返回；`lib/rules/protocols.js:186-227` 的 `multiMatchs` 列出 40 项，由 `lib/rules/rules.js:2273-2296` 对这些协议改走 `getRuleList` 收集全部结果。
 - **踩坑表现**：给 `reqHeaders` 写两条以为会叠加，实际只有第一条生效。
 - **相关章节**：[规则 DSL](/concepts/06-rules)、[规则引擎](/modules/rules-engine)。
 
@@ -573,7 +573,7 @@ var isEnableIntercept = function () {
 数字相同或相近，作用却分属完全不同的子系统。
 
 ```js
-// lib/util/data-server.js:21-34（节选，抓包缓存的五个量）
+// lib/util/data-server.js:21-34（节选；:10-12 另强制 reqCacheSize ≥ 600）
 var MAX_LENGTH = config.reqCacheSize;      // 600
 var OVERFLOW_LENGTH = MAX_LENGTH * 3;      // 1800
 var PRESERVE_LEN = 360;
@@ -581,11 +581,11 @@ var COUNT = 100;
 var MAX_COUNT = 120;
 ```
 
-### 600/1800/360 vs 100/120
-- **一句话差别**：依次是常规水位、溢出水位、溢出后保留量、单次默认返回数、API 单次上限。
-- **形象类比**：像书架放 600 本、超 1800 本清到留 360 本、每次借 100 本、外部接口另限 120 本。
-- **在 Whistle 里怎么分**：`lib/util/data-server.js:21-26,34` 五个常量并排定义；`:904` 用 `COUNT` 收敛单次条数，`:36-40` 的 `formatApiOptions` 用 `MAX_COUNT`。
-- **踩坑表现**：把 `COUNT` 当成缓存总量去调，内存没降反而单次拉取变少。
+### 600/1800/1200/360 vs 100/120
+- **一句话差别**：600 是常规水位、1800 触发溢出清理、1200 是溢出后先砍回的条数、360 是尾部享 6 分钟宽限的条数；100 是单次拉取上限，120 是对外 API 单次上限。
+- **形象类比**：像书架放到 600 本起开始按 2 分钟淘汰旧书，涨到 1800 本先搬走最老的一批、回到 1200 本，末尾 360 本额外多留一阵；每次借出 100 本，外部接口另限 120 本。
+- **在 Whistle 里怎么分**：`lib/util/data-server.js:21-26,34` 定义 `MAX_LENGTH=600`、`OVERFLOW_LENGTH=1800`、`MAX_CACHE_SIZE=1200`、`PRESERVE_LEN=360`、`COUNT=100`、`MAX_COUNT=120`；`:169-203` 的 `clearCache` 每 6 秒跑一次，`≤600` 直接返回，`>600` 按 `CACHE_TIME`(2 分钟) 清理，`≥1800` 先按 `len - MAX_CACHE_SIZE` 淘汰最老条目、再把尾部 360 条改用 `MAX_CACHE_TIME`(6 分钟) 宽限。`:904` 用 `COUNT` 收敛单次条数，`:36-50` 的 `formatApiOptions` 用 `MAX_COUNT`。水位 600 取自 `config.reqCacheSize`，`:10-12` 强制其不小于 600（官方 `--reqCacheSize` 默认 600，见 `docs/docs/cli.md:47`）；`--frameCacheSize` 默认 512（`:48`）是帧缓存，与请求缓存是两回事。
+- **踩坑表现**：把 `PRESERVE_LEN` 读成「溢出后只保留 360 条」，或把 `COUNT` 当成缓存总量去调，内存没降反而单次拉取变少。
 - **相关章节**：[抓包与数据面](/concepts/05-capture)、[速查表](/advanced/reference)。
 
 ### 360KB/1MB vs 2MB/16MB
@@ -605,7 +605,7 @@ var MAX_COUNT = 120;
 ### sockets=256 vs 监听端口数
 - **一句话差别**：`sockets` 是每目标域名出站连接池的 `maxSockets`，与监听几个端口无关。
 - **形象类比**：前者像每家收货点最多同时派几辆车；后者像仓库开了几个大门。
-- **在 Whistle 里怎么分**：`lib/config.js:1035-1048` 构造 `agentConfig`，`:1046` 默认还 `disableAgent = true`；`lib/index.js:90-124` 才决定 `port` / `httpPort` / `socksPort`。
+- **在 Whistle 里怎么分**：`lib/config.js:1035-1048` 构造 `agentConfig`，`:1045-1046` 的 `disableAgent` 在默认路径为真、`:1047-1048` 直接把 agent 置 `false`；`lib/index.js:90-124` 才决定 `port` / `httpPort` / `socksPort`。
 - **踩坑表现**：并发上不去就狂调 `sockets`，实际瓶颈是默认禁用了 agent 连接缓存。
 - **相关章节**：[运行时与进程](/concepts/04-runtime)、[代理形态](/domain/proxy-basics)。
 
@@ -619,7 +619,7 @@ var MAX_COUNT = 120;
 ### 22s 帧心跳 vs 1s cluster 心跳
 - **一句话差别**：22 秒是帧通道的 PING/PONG，1 秒是 cluster master 与 worker 的存活心跳。
 - **形象类比**：前者像长通话里偶尔「喂」一声；后者像值班室每秒点一次名。
-- **在 Whistle 里怎么分**：`lib/socket-mgr.js:8,366-375,498-502` 的 `INTERVAL = 22 * 1000`；`index.js:14-16,99-141` 的 `INTERVAL = 1000` 与 10s / 12s 超时自愈。
+- **在 Whistle 里怎么分**：`lib/socket-mgr.js:8,366-375,496-505` 的 `INTERVAL = 22 * 1000`——收到 ping 立即回一次再按间隔续写，`clearTimer`（`:284-289`）在既不暂停也不忽略时停掉定时器，所以心跳主要服务于挂起态连接；`index.js:14-16,99-141` 的 `INTERVAL = 1000` 与 10s / 12s 超时自愈。
 - **踩坑表现**：把 22s 当成 worker 掉线判定，真实自愈在 10~12 秒内就发生了。
 - **相关章节**：[运行时与进程](/concepts/04-runtime)、[隧道与帧](/core/tunnel-websocket)。
 
@@ -687,7 +687,7 @@ w2 start -p 8899 --mode safe    # 出站校验与解密分开验证
 ## 常见误解
 
 - **「名字一样就是一回事」**：本篇里 `auth`、`pipe`、`connect`、`index.js`、`data-center.js` 都至少对应两个不同层的对象。看到同名先问「在哪个进程、哪个阶段」，再决定跳哪个文件。
-- **「数值一样就是同一个上限」**：360 同时是 `lib/config.js:86` 的 agent LRU 容量、`lib/config.js:1037` 的严格模式 sockets 下限和 `lib/util/data-server.js:24` 的溢出保留量，三者毫无关系。
+- **「数值一样就是同一个上限」**：360 同时是 `lib/config.js:24` 的 `httpsAgents` LRU 容量、`lib/config.js:1036-1037` 的严格模式 sockets 下限和 `lib/util/data-server.js:24` 的溢出保留量，三者毫无关系。
 - **「界面上的顺序就是执行顺序」**：分组、规则集叠加、inspector 顺序、handler 顺序是四套不同的序，界面只呈现其中一小部分，真正的次序要看 `lib/index.js:40-43` 与 `lib/rules/util.js:89-99`。
 - **「抓包所见即客户端原始报文」**：采样点在改写之后，`lib/inspectors/data.js:279-323` 覆盖的是被 `PipeStream` 包装过的流，想看原始字节得另外抓链路层。
 

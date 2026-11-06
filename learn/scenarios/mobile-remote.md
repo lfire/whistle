@@ -85,7 +85,7 @@ window.onBeforeWhistleLogSend = function (result, level) {
 };
 ```
 
-Console 面板用 All logs 切换分组，配合 Import、Export、Clear 管理日志文件（`docs/docs/gui/console.md`）；Frames 面板用 Send、Pause、Ignore 控制收发（`docs/docs/gui/network.md`）。
+Console 面板用 All logs 切换分组，配合 Import、Export、Clear 管理日志文件（`docs/docs/gui/console.md`）；Frames 面板用 Send/Receive、Pause、Ignore 控制收发（`docs/docs/gui/network.md`）。
 
 ## 背后的设计思想
 
@@ -95,16 +95,16 @@ Console 面板用 All logs 切换分组，配合 Import、Export、Clear 管理�
 
 [第三方代码必须隔离](/modules/plugins)：weinre 是独立的第三方调试服务，由 pfork 拉起单独子进程承载，主进程只负责注入脚本与转发。把重活与不可信代码挪出主进程，调试服务崩溃或占用过高都不会拖垮代理本身。
 
-[内存有界优先](/core/capture-data)与[短轮询由客户端控制节奏](/modules/webui)：帧数据不无限堆积，服务端缓存与界面列表都设有上限；界面按上次拿到的帧编号发起下一轮查询，弱网下自然放慢，不需要服务端推送，也不会把大量帧一次性压给浏览器。
+[内存有界优先](/core/capture-data)与[短轮询由客户端控制节奏](/modules/webui)：帧由 `lib/util/data-server.js:342-345` 的 `handleFrame` 写入 `framesCache`，总量由 `MAX_FRAMES_LENGTH = config.frameCacheSize`（`:25`）限定，溢出时 `:148-157` 一次 `splice` 掉最旧的一批，所以不会无限堆积。查询侧 `getFrames`（`:347-365`）按 `curReqId` + `lastFrameId` 增量返回、单次最多 16 帧（`:354`），界面列表再用 `MAX_FRAMES_LENGTH = 256`（`biz/webui/htdocs/src/js/data-center.js:24`）截断。前端 `biz/webui/htdocs/src/js/data-center.js:1157-1159` 按 `hasNewData` 把 `get-data` 轮询间隔在 100ms / 900ms 间切换——有新数据就快取、空闲就放慢（与服务端 `lib/service/data-center.js` 的 `MAX_COUNT=100` 不是一回事）；整套节奏由客户端拉，不需要服务端推送，也不会一次把大量帧压给浏览器。
 
 ## 源码链路
 
 1. **入口 · 代理与端口归一**：`bin/proxy.js` 的 set-global-proxy 设置系统代理，`lib/index.js:96-150` 建立 httpPort 与 httpsPort，`lib/index.js:151-207` 把 SOCKS 请求翻译成 CONNECT 回连主端口。参见[从 w2 start 到端口监听](/architecture/startup)。
 2. **规则解析 · Upgrade 入口**：`lib/upgrade.js:77-177` 接管 upgrade 事件，`lib/socket-mgr.js:291-301` 用 ws-parser 建收发器，`lib/socket-mgr.js:303-323` 的 execHandleFrame 执行 frameScript。参见[隧道、WebSocket 与帧拦截](/core/tunnel-websocket)。
-3. **应用点 · 注入判定**：`lib/inspectors/weinre.js:23-51` 与 `lib/inspectors/log.js:26-79` 在 src 响应上按内容类型挂 Transform，分别注入 target-script-min.js 与 assets/js/log.js。参见[指令体系与分发链路](/modules/protocol-catalog)。
+3. **应用点 · 注入判定**：`lib/inspectors/weinre.js:23-51` 与 `lib/inspectors/log.js:26-79` 在 `src` 响应上先判 `hasBody` 与 HTML / JS 内容类型，再挂 `Transform` 并 `addZipTransform`。前者把 `assets/js/weinre.js`（`weinre.js:7`）包成 `<script>` 注入：`:39` 用 `removeProtocol(weinre.matcher, true)` 取出 debug-id，`getScript`（`:11-20`）再把它拼成 `.../target/target-script-min.js#<id>`，不同 id 对应不同调试目标，这就是多 debug-id 并行的落点；后者注入 `assets/js/log.js`（`log.js:6`）并按 `log://id` 分组上报。参见[指令体系与分发链路](/modules/protocol-catalog)。
 4. **应用点 · 按类型注入**：`lib/inspectors/res.js:949-979` 的 injectRules 依据 isHtml、isJs、isCss 挑选 htmlAppend、jsPrepend 等规则。参见[一次 HTTP 代理请求的旅程](/core/http-request)。
 5. **回写 · 重活隔离**：`biz/weinre/index.js:11-20` 用 pfork 拉起 weinre 子进程，让第三方调试服务与主进程隔离。参见[插件系统](/modules/plugins)。
-6. **上报 · 帧缓存与界面节奏**：`lib/socket-mgr.js:859`、`lib/socket-mgr.js:910`、`lib/socket-mgr.js:933` 处理界面中断与帧控制，`biz/webui/cgi-bin/get-frames.js:5` 按查询取帧，`lib/util/data-server.js:347` 写入帧缓存（单次 16 帧）。参见[Web 管理界面](/modules/webui)与[抓包数据的采集与上报](/core/capture-data)。
+6. **上报 · 帧缓存与界面节奏**：`lib/socket-mgr.js:859` 的 `abort`、`:910` 的 `changeStatus`、`:933` 的 `sendData` 分别处理界面中断、暂停 / 忽略与自定义帧发送；`biz/webui/cgi-bin/get-frames.js:5` 调 `proxy.getFrames(req.query)` 取帧。写入侧是 `lib/util/data-server.js:93,342-345` 的 `handleFrame`（`frame` 事件 → `framesCache.push`），读取侧才是 `:347-365,646-647` 的 `getFrames`，按 `lastFrameId` 增量返回、单次最多 16 帧（`:354`）——16 是单次查询上限而非写入上限。参见[Web 管理界面](/modules/webui)与[抓包数据的采集与上报](/core/capture-data)。
 
 ## 边界与坑
 
@@ -112,7 +112,7 @@ Console 面板用 All logs 切换分组，配合 Import、Export、Clear 管理�
 - App 若做证书固定则无法抓包，官方对自研应用指向 Android 开发文档的网络安全配置（`docs/docs/faq.md`、`docs/docs/mobile.md`）。
 - 手机与电脑需处于同一局域网，且防火墙不能拦截代理端口，否则证书二维码与代理都无法连通（`docs/docs/mobile.md`）。
 - `log://` 注入采集的日志可能包含敏感信息，官方提供 jsPrepend 配合 `window.onBeforeWhistleLogSend` 的脱敏钩子（`docs/docs/rules/log.md`）。
-- 帧缓存单次最多 16 帧（`lib/util/data-server.js:354`），界面列表上限 256 帧（`biz/webui/htdocs/src/js/data-center.js:24`）；weinre 与 log 走内置域名端口时可用 enable://useLocalHost|useSafePort（`docs/docs/rules/enable.md`）。
+- 单次查询最多返回 16 帧（`lib/util/data-server.js:347-365,354`），不是帧缓存总容量；缓存总量由 `MAX_FRAMES_LENGTH = config.frameCacheSize`（`:25,148-157`）限定。`docs/docs/cli.md:48` 把 `-F/--frameCacheSize` 默认写作 512，源码 `lib/util/data-server.js:14-16` 却把小于 720 的值统一抬到 600，两处口径都要看。界面列表另限 256 帧（`biz/webui/htdocs/src/js/data-center.js:24`）；weinre 与 log 走内置域名端口时可用 `enable://useLocalHost|useSafePort`（`docs/docs/rules/enable.md:70-71,121`）。
 
 ## 小结
 

@@ -5,11 +5,11 @@ description: 把全站专业名词收成八类速查表，附缩写全称、内�
 
 # 全量术语索引
 
-本篇是「概念精解」板块的字典页，目标只有一个：让工程里出现过的每一个专业名词都能被一句话定位，并顺着链接回到讲透它的那一篇。查法有三种——按分类查，八张表按「代理入口 → 报文连接 → 证书 PKI → 运行时 → 抓包帧 → 规则 DSL → 扩展工程 → 内部常量」排列；按主题跳转，表格末列的站内链接直达 `/concepts/01-proxy` 至 `/concepts/09-walkthrough` 对应篇；按缩写回查，后文「按字母 / 缩写查」给出英文全称与中文，内部头与阈值另有两张速查。
+本篇是「概念精解」板块的字典页，共收录 360 条术语，目标只有一个：让工程里出现过的每一个专业名词都能被一句话定位，并顺着链接回到讲透它的那一篇。查法有三种——按分类查，八张表按「代理入口 → 报文连接 → 证书 PKI → 运行时 → 抓包帧 → 规则 DSL → 扩展工程 → 内部常量」排列；按主题跳转，表格末列的站内链接直达 `/concepts/01-proxy` 至 `/concepts/09-walkthrough` 对应篇；按缩写回查，后文「按字母 / 缩写查」给出英文全称与中文，内部头与阈值另有两张速查。
 
 与 [《术语、路径与配置速查》](/advanced/reference) 的分工要说清：那一页是第五层的「忘了一串数字去哪查」，按配置项、CLI 命令与阈值分组，篇幅克制；本篇是概念词典，覆盖面优先、条目远多，每条都带一句话定义与详解跳转，但**不**重复罗列命令语法与默认值的推导过程。遇到「这个数是多少」查那一页，遇到「这个名词是什么意思」查本篇。
 
-表格「源码 / 文档落点」列沿用站内速查惯例的短相对路径（省略 `lib/`、`lib/inspectors/`、`biz/webui/htdocs/src/js/` 等前缀），例如 `data.js:279` 的完整写法是 `lib/inspectors/data.js:279`。所有引用均为仓库相对路径加行号，不含本机绝对路径；行号以 `guide` 分支 v2.10.13 为准，升级后请用函数名与事件名作锚点重新对照。末列编号对应：01 代理、02 HTTP、03 TLS、04 运行时、05 抓包、06 规则、07 扩展、08 易混淆、09 贯通。
+表格「源码 / 文档落点」列沿用站内速查惯例的短相对路径（省略 `lib/`、`lib/inspectors/`、`biz/webui/htdocs/src/js/` 等前缀），例如 `data.js:279` 的完整写法是 `lib/inspectors/data.js:279`。所有引用均为仓库相对路径加行号，不含本机绝对路径；行号基于 `3b85cebc4`（v2.10.13），其后提交仅涉及文档站、业务源码零改动，故行号仍然有效。若业务源码升级，请用函数名与事件名作锚点重新对照。末列编号对应：01 代理、02 HTTP、03 TLS、04 运行时、05 抓包、06 规则、07 扩展、08 易混淆、09 贯通。
 
 ## 一、代理与流量入口
 
@@ -35,7 +35,7 @@ description: 把全站专业名词收成八类速查表，附缩写全称、内�
 | isIntercept | 是否解密隧道的总闸 | tunnel.js:202 | [01](/concepts/01-proxy) |
 | 纯透传 | 不解密直接对拼字节流 | tunnel.js:304 | [01](/concepts/01-proxy) |
 | rollBackTunnel | 首包识别失败后回退 | tunnel.js:276 | [01](/concepts/01-proxy) |
-| setEstablished | 先回最简 200 应答 | util/index.js:373 | [01](/concepts/01-proxy) |
+| setEstablished | 先回最简 200 应答 | util/index.js:369-375 | [01](/concepts/01-proxy) |
 | 策略头 | 逐条控制隧道的内部头 | tunnel.js:144 | [01](/concepts/01-proxy) |
 | CRONET_RE | 拦下 Cronet UA 的正则 | tunnel.js:26 | [01](/concepts/01-proxy) |
 | SYS_HOST_RE | 放行系统域名的正则 | tunnel.js:27 | [01](/concepts/01-proxy) |
@@ -123,7 +123,7 @@ description: 把全站专业名词收成八类速查表，附缩写全称、内�
 | RSA 2048 | 根密钥固定长度 | ca.js:42 | [03](/concepts/03-tls) |
 | SHA-256 | 证书签名摘要算法 | ca.js:543 | [03](/concepts/03-tls) |
 | SHA-1 | 叶证书序列号摘要 | ca.js:207 | [03](/concepts/03-tls) |
-| ECDSA | 兼容 Android 的签名 | emudhra.js:26 | [03](/concepts/03-tls) |
+| ECDSA | emudhra 兼容客户端所用签名 | emudhra.js:26 | [03](/concepts/03-tls) |
 | cA | 是否可作 CA 的扩展 | ca.js:227 | [03](/concepts/03-tls) |
 | keyUsage | 密钥用途扩展 | ca.js:510 | [03](/concepts/03-tls) |
 | extKeyUsage | 扩展密钥用途 | ca.js:510 | [03](/concepts/03-tls) |
@@ -151,7 +151,7 @@ description: 把全站专业名词收成八类速查表，附缩写全称、内�
 | rootca.pro | 根证书下载虚域名 | config.js:37 | [03](/concepts/03-tls) |
 :::
 
-证书体系几乎全部集中在 `lib/https/ca.js` 一个文件：根 CA 在 `ca.js:580` 启动时就绪，叶证书由 `getOrCreateCert`（`:582-607`）按 SNI 现签，`SNICallback`（`:616-624`）把 `SecureContext` 接进握手。请把「根证书十年、叶证书 36 天」与「入站伪造、出站原生」两组对照记牢，前者是有效期分档，后者是两段独立 TLS 的分工。
+证书体系几乎全部集中在 `lib/https/ca.js` 一个文件：根 CA 在 `ca.js:580` 启动时就绪，叶证书由 `getOrCreateCert`（`:582-607`）按 SNI 现签，`SNICallback`（`:616-624`）把 `SecureContext` 接进握手。请把「根证书十年、叶证书 36 天」与「入站伪造、出站原生」两组对照记牢，前者是有效期分档，后者是两段独立 TLS 的分工。两点限定要记牢：证书固定（pinning）是客户端写死预期证书或公钥，Whistle 并不绕过它，而是由 `lib/tunnel.js:199-200` 对 Cronet / 系统域名放行、不解密；`lib/https/emudhra.js:6-8` 用的是 mitmproxy 公开披露的 eMudhra 中间 CA 私钥，只为兼容特定 Android 客户端，不是可信根证书，也不构成安全实践（`enable://emudhra` 见 `docs/docs/rules/enable.md:26`）。
 
 ## 四、Node 运行时与进程
 
@@ -203,7 +203,7 @@ description: 把全站专业名词收成八类速查表，附缩写全称、内�
 | baseDir | 数据根目录 | config.js:148 | [04](/concepts/04-runtime) |
 :::
 
-这一类的两个命名陷阱值得单独记：`lib/init.js` 不是启动初始化，而是每请求中间件；`config.sockets = 256` 不是监听端口数，而是 `HttpAgent` 的 `maxSockets`，且 `lib/config.js:1046` 默认把 agent 关掉以规避 Node 11 以上的连接缓存缺陷。
+这一类的两个命名陷阱值得单独记：`lib/init.js` 不是启动初始化，而是每请求中间件；`config.sockets = 256`（默认值 `package.json:8`）不是监听端口数，而是 `HttpAgent` / `HttpsAgent` 的 `maxSockets`（`lib/config.js:1040`），且 `lib/config.js:1045-1048` 的 `disableAgent` 在默认路径把 agent 置 `false`，以规避 Node 11 以上的连接缓存缺陷。
 
 ## 五、抓包数据面与帧
 
@@ -236,7 +236,7 @@ description: 把全站专业名词收成八类速查表，附缩写全称、内�
 | IGNORE_STATUS | 丢弃帧的状态码 | socket-mgr.js:14 | [05](/concepts/05-capture) |
 | MAX_COMPOSE_FRAME_COUNT | 分片拼接上限 5 | socket-mgr.js:15 | [05](/concepts/05-capture) |
 | MAX_FRAME_PAYLOAD | 单帧 1MB 截断 | util/index.js:4012 | [05](/concepts/05-capture) |
-| framesCache | 帧有界缓存数组 | data-server.js:86 | [05](/concepts/05-capture) |
+| framesCache | 帧有界缓存数组 | data-server.js:30 | [05](/concepts/05-capture) |
 | framesMap | 按 reqId 索引帧 | data-server.js:342 | [05](/concepts/05-capture) |
 | conns | 按 reqId 的连接上下文 | socket-mgr.js:10 | [05](/concepts/05-capture) |
 | socket-mgr | 连接与帧处理中心 | socket-mgr.js:764 | [05](/concepts/05-capture) |
@@ -244,7 +244,7 @@ description: 把全站专业名词收成八类速查表，附缩写全称、内�
 | handleClose | 两侧关闭才收尾 | socket-mgr.js:28 | [05](/concepts/05-capture) |
 | customParser | 插件自定义帧解析器 | socket-mgr.js:768 | [05](/concepts/05-capture) |
 | enable://inspect | 开启抓帧的指令 | tunnel.js:312 | [05](/concepts/05-capture) |
-| 有界缓存 | ids / reqData / frames | data-server.js:84 | [05](/concepts/05-capture) |
+| 有界缓存 | ids / reqData / frames | data-server.js:28-30 | [05](/concepts/05-capture) |
 | clearCache | 每 6 秒淘汰旧会话 | data-server.js:147 | [05](/concepts/05-capture) |
 | getData | 单次拉取抓包数据 | get-data.js:60 | [05](/concepts/05-capture) |
 | hasNew | 是否有新数据标记 | data-center.js:1158 | [05](/concepts/05-capture) |
@@ -256,7 +256,7 @@ description: 把全站专业名词收成八类速查表，附缩写全称、内�
 | abort | 断开请求与帧连接 | cgi-bin/abort.js:18 | [05](/concepts/05-capture) |
 :::
 
-抓包是旁路：覆盖 `write` / `end` 只做采样、不阻塞转发（`lib/inspectors/data.js:279-323`）；缓存是自实现的 `ids[]` + `reqData{}` + `framesCache`，源码里没有 LRU 结构；上报是 gzip 压缩的 HTTP JSON 短轮询，不是 SSE 也不是 WebSocket。这三点合起来，解释了界面为何「所见即实际发出的改写后字节」。
+抓包是旁路：覆盖 `write` / `end` 只做采样、不阻塞转发（`lib/inspectors/data.js:279-323`）；缓存是自实现的 `ids[]` + `reqData{}` + `framesCache`，源码里没有 LRU 结构；上报是 gzip 压缩的 HTTP JSON 短轮询，不是 SSE 也不是 WebSocket。这三点合起来，解释了界面为何「所见即实际发出的改写后字节」。另外注意同名文件：100 / 900ms 轮询在前端 `biz/webui/htdocs/src/js/data-center.js:1157-1159`，而 `lib/service/data-center.js:8` 的 `MAX_COUNT = 100` 是 service 子进程的另一套计数，两者不可混为一谈。
 
 ## 六、规则 DSL
 
@@ -271,10 +271,10 @@ description: 把全站专业名词收成八类速查表，附缩写全称、内�
 | Values | 可复用键值素材 | rules.js:43 | [06](/concepts/06-rules) |
 | Shadow Rules | 不落盘的临时规则 | rules/util.js:89 | [06](/concepts/06-rules) |
 | Default / Mock | 规则集叠加顺序 | rules/util.js:89 | [06](/concepts/06-rules) |
-| includeFilter | 必须命中的过滤条件 | protocols.js:151 | [06](/concepts/06-rules) |
+| includeFilter | 必须命中的过滤条件 | protocols.js:152 | [06](/concepts/06-rules) |
 | excludeFilter | 命中即排除的条件 | protocols.js:151 | [06](/concepts/06-rules) |
-| ignore | 按协议名屏蔽规则 | util/index.js:1913 | [06](/concepts/06-rules) |
-| skip | ignore 的别名归并 | protocols.js:131 | [06](/concepts/06-rules) |
+| ignore | 整类屏蔽、不再匹配同类 | util/index.js:1913 | [06](/concepts/06-rules) |
+| skip | 跳过命中规则、继续匹配同类 | rules.js:1125 | [06](/concepts/06-rules) |
 | important | 插到协议数组首位 | rules.js:1400 | [06](/concepts/06-rules) |
 | multiMatchs | 允许多命中的协议集 | protocols.js:186 | [06](/concepts/06-rules) |
 | backRulesFirst | 后置规则反序优先 | rules/util.js:46 | [06](/concepts/06-rules) |
@@ -296,7 +296,7 @@ description: 把全站专业名词收成八类速查表，附缩写全称、内�
 | rule 对象 | 编译后的结构化规则 | rules.js:1335 | [06](/concepts/06-rules) |
 | matcher / value | 命中前与命中后字段 | rules.js:811 | [06](/concepts/06-rules) |
 | 分桶 | 每协议一个数组 | protocols.js:256 | [06](/concepts/06-rules) |
-| req.rules | 各协议首条命中集合 | rules.js:12 | [06](/concepts/06-rules) |
+| req.rules | 各协议首条命中集合 | inspectors/rules.js:12 | [06](/concepts/06-rules) |
 | resolveRules | 按阶段取首条命中 | rules.js:2239 | [06](/concepts/06-rules) |
 | reqProtocols | 请求阶段协议集合 | protocols.js:156 | [06](/concepts/06-rules) |
 | pureResProtocols | 纯响应协议集合 | protocols.js:82 | [06](/concepts/06-rules) |
@@ -320,7 +320,7 @@ description: 把全站专业名词收成八类速查表，附缩写全称、内�
 | P:// / G:// | 插件与值引用前缀 | rules.js:225 | [06](/concepts/06-rules) |
 :::
 
-规则引擎把「一行文本」与「一组编译对象」分成编译期与请求期两条泳道：`parseText` 只做结构化，`resolveRuleList`（`lib/rules/rules.js:929-938`）才按当前 URL 求首条命中，`resolveValue`（`:811-852`）把 `matcher` 求值成 `value`。把 `regUrlCache` / `hostCache` 当成 LRU 是流传很广的误解，它们只是每次编译后清空的普通对象。
+规则引擎把「一行文本」与「一组编译对象」分成编译期与请求期两条泳道：`parseText` 只做结构化，`resolveRuleList`（`lib/rules/rules.js:929-938`）才按当前 URL 求首条命中，`resolveValue`（`:811-852`）把 `matcher` 求值成 `value`。把 `regUrlCache` / `hostCache` 当成 LRU 是流传很广的误解，它们只是每次编译后清空的普通对象。还要注意 `skip` 与 `ignore` 不是同一机制：`lib/rules/protocols.js:140` 只把 `skip` 登记为 `ignore` 的别名，`lib/rules/rules.js:96,1125-1160` 的 `resolveProps` 另把 `skip://` 解析成 `req._skipProps`，由 `:999` 匹配循环跳过单条后继续匹配同类；`ignore://` 才是按协议名整类屏蔽、被忽略协议不再匹配同类其它规则（官方 `docs/docs/rules/ignore.md:28-29`）。
 
 ## 七、扩展与工程化
 
@@ -411,8 +411,8 @@ description: 把全站专业名词收成八类速查表，附缩写全称、内�
 | KEY_SIZE | 根密钥 2048 常量 | ca.js:42 | [08](/concepts/08-confusions) |
 | MIN_DATE / MAX_DATE | 叶证书 7/36 天 | ca.js:48 | [08](/concepts/08-confusions) |
 | CLEAR_INTERVAL | 缓存清理 6000ms | data-server.js:18 | [08](/concepts/08-confusions) |
-| PRESERVE_LEN | 溢出后保留 360 条 | data-server.js:24 | [08](/concepts/08-confusions) |
-| MAX_HISTORY_LEN | Composer 历史 100 条 | composer.js:24 | [08](/concepts/08-confusions) |
+| PRESERVE_LEN | 尾部 360 条享 6 分钟宽限 | data-server.js:24 | [08](/concepts/08-confusions) |
+| MAX_HISTORY_LEN | 服务端 Composer 历史 100 条 | service/composer.js:24 | [08](/concepts/08-confusions) |
 :::
 
 这批常量集中在 `lib/config.js:63-108`：多数带 `+ uid` 后缀，用于多实例并存时避免请求串台；`PLUGIN_HOOKS` 的二十余项同样带 uid。把内部头当成对外标准头（例如把 `HTTPS_FIELD` 当成 `X-Forwarded-Proto`）或把「带 uid」误读成固定字符串，是这一组最常见的两类误判。
@@ -504,33 +504,34 @@ description: 把全站专业名词收成八类速查表，附缩写全称、内�
 |---|---|---|---|
 | 600 条 | 抓包缓存常规水位 | data-server.js:21 | [05](/concepts/05-capture) |
 | 1800 条 | 溢出清理阈值 3 倍 | data-server.js:22 | [05](/concepts/05-capture) |
-| 1200 次 | abort 单次上限 | abort.js:4 | [05](/concepts/05-capture) |
-| 360 条 | 溢出后保留量 | data-server.js:24 | [05](/concepts/05-capture) |
+| 1200 次 | 单次中断请求上限 | abort.js:4 | [05](/concepts/05-capture) |
+| 1200 条 | 溢出后先砍回的水位 | data-server.js:23 | [05](/concepts/05-capture) |
+| 360 条 | 尾部宽限条数（6 分钟） | data-server.js:24 | [05](/concepts/05-capture) |
 | 100 条 | 单次拉取上限 | data-server.js:26 | [05](/concepts/05-capture) |
-| 120 条 | getList 计数上限 | data-server.js:34 | [05](/concepts/05-capture) |
+| 120 条 | 对外 API 单次上限 | data-server.js:34 | [05](/concepts/05-capture) |
 | 360KB | 默认 body 上限 | data.js:7 | [05](/concepts/05-capture) |
 | 1MB | 非流式请求上限 | data.js:8 | [05](/concepts/05-capture) |
 | 2MB | 流式请求与响应体 | data.js:9 | [05](/concepts/05-capture) |
 | 16MB | bigData 大对象上限 | data.js:11 | [05](/concepts/05-capture) |
-| 256KB | 规则预读上限 | rules.js:10 | [06](/concepts/06-rules) |
+| 256KB | 远程规则文件大小上限 | http-mgr.js:16 | [06](/concepts/06-rules) |
 | 1MB 帧 | 单帧截断阈值 | util/index.js:4012 | [05](/concepts/05-capture) |
-| 22s | WebSocket 心跳间隔 | socket-mgr.js:8 | [05](/concepts/05-capture) |
+| 22s | 挂起态帧心跳续写间隔 | socket-mgr.js:8 | [05](/concepts/05-capture) |
 | 5 帧 | 分片拼接上限 | socket-mgr.js:15 | [05](/concepts/05-capture) |
 | 7 天 | 叶证书提前生效 | ca.js:48 | [03](/concepts/03-tls) |
 | 36 天 | 叶证书有效期 | ca.js:49 | [03](/concepts/03-tls) |
 | RSA 2048 | 根密钥位数 | ca.js:42 | [03](/concepts/03-tls) |
 | 十年 | 根证书有效期 | ca.js:565 | [03](/concepts/03-tls) |
-| sockets=256 | agent 连接上限 | config.js:1039 | [04](/concepts/04-runtime) |
+| sockets=256 | agent 连接上限 | config.js:1040 | [04](/concepts/04-runtime) |
 | timeout=360000 | 空闲超时毫秒 | index.js:44 | [04](/concepts/04-runtime) |
 | 100/900ms | 有无新数据轮询 | data-center.js:1159 | [05](/concepts/05-capture) |
 | 6s | 缓存清理与插件刷新 | data-server.js:18 | [04](/concepts/04-runtime) |
 | 5s/10~30s | 本地与远程规则刷新 | http-mgr.js:41 | [06](/concepts/06-rules) |
-| 100 次 | Composer 重放上限 | composer.js:19 | [07](/concepts/07-extension) |
-| 64/100 条 | 界面与服务端历史 | composer.js:24 | [07](/concepts/07-extension) |
+| 100 次 | Composer 单次重放上限 | service/composer.js:19 | [07](/concepts/07-extension) |
+| 64/100 条 | 界面 64 / 服务端 100 历史 | composer.js:62 | [07](/concepts/07-extension) |
 | 6MB | 导入文件大小上限 | cgi-bin/util.js:10 | [05](/concepts/05-capture) |
 :::
 
-这些数值不是孤立常量，而是几套模型的边界：600 / 1800 / 360 / 100 共同约束 `lib/util/data-server.js` 的零复制有界缓存；360KB 到 16MB 一组约束 `lib/inspectors/data.js` 的旁路采样；7 天、36 天、RSA 2048、十年共同描述 `lib/https/ca.js` 的两档有效期；100 / 900ms 则把前端短轮询与 `hasNew` 绑在一起。改任何一个值之前，先确认它属于哪一套模型。
+这些数值不是孤立常量，而是几套模型的边界：600 常规水位、1800 溢出阈值、1200 溢出后回砍水位、尾部 360 条 6 分钟宽限与单次 100 条共同约束 `lib/util/data-server.js` 的零复制有界缓存（`PRESERVE_LEN` 是宽限条数，不是「溢出后只保留 360 条」）；360KB 到 16MB 一组约束 `lib/inspectors/data.js` 的旁路采样；7 天、36 天、RSA 2048、十年共同描述 `lib/https/ca.js` 的两档有效期；100 / 900ms 则把前端短轮询与 `hasNew` 绑在一起。改任何一个值之前，先确认它属于哪一套模型。其中 600 条水位取自 `config.reqCacheSize`：`lib/util/data-server.js:10-12` 强制其不小于 600，官方 `--reqCacheSize` 默认即 600（`docs/docs/cli.md:47`），而 `--frameCacheSize` 默认 512（`:48`）是帧缓存、与请求缓存无关。Composer 那一组里，64 条来自前端 `biz/webui/htdocs/src/js/composer.js:62` 的 `MAX_COUNT`，100 次与 100 条分别来自 `lib/service/composer.js:19` 的 `MAX_REQ_COUNT` 与 `:24` 的 `MAX_HISTORY_LEN`。
 
 ## 小结
 

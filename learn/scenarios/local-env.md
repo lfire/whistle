@@ -69,7 +69,7 @@ w2 add --force    # 强制覆盖已有规则
 - [代理即流量路由层](/core/http-request)：Whistle 只改写 `req.options` 的目标主机、端口与 URL，业务代码、系统 hosts 与 DNS 都不动。整站代理到 `localhost:5173` 正是把代理当作一层可插拔的流量总线，前端改一行规则即可，无需重新构建或发版。
 - [协议差异消化在入口层](/architecture/overview)：`lib/index.js:40-52` 把 init、biz、inspectors、handlers 收敛成一条 Express 中间件链，`http://`、`file://`、`tunnel://` 等差异在进入 `req.options` 之前被抹平。因此 `file`、`host`、`proxy` 能写在同一条规则里，而不必关心底层是本地文件还是出站 socket。
 - [顺序即优先级](/modules/rules-engine)：规则按行序自上而下匹配，首条命中即返回。排除条件必须挂在整站代理那一行，或把更具体的 `/static`、`/api` 规则放在前面，否则会被更宽的域名规则先命中；`includeFilter` 的 cookie 判断也是同一顺序模型下的二次筛选。
-- [装配与启动分离](/architecture/startup)：`index.js:143-148` 先归一化 options 并 `config.extend`，再把 server 交给 `lib` 创建。`-p` 与 `-S` 因此是启动期参数，决定监听端口与存储目录，而不是运行期规则；这解释了为什么多实例隔离要在命令行解决，而不是在 Rules 里写开关。
+- [装配与启动分离](/architecture/startup)：`index.js:143-148` 归一化 options，`index.js:173` 才 `config.extend(options)` 把 `-p` / `-S` 写进全局 config，随后 `index.js:175` `require('./lib')(callback, server)` 创建代理服务。`-p` 与 `-S` 因此是启动期参数，决定监听端口与存储目录，而不是运行期规则；这解释了为什么多实例隔离要在命令行解决，而不是在 Rules 里写开关。
 
 ## 源码链路
 
@@ -78,14 +78,14 @@ w2 add --force    # 强制覆盖已有规则
 1. **入口**：`lib/init.js:157-163` 是 `lib/index.js:40-52` 中间件链的第一环，做 `removeSpecPath`、用 `PipeStream.wrapSrc/wrapDest` 包装读写流、挂 `req.isPluginReq`，为后续改写备好上下文。见 [一次 HTTP 代理请求的旅程](/core/http-request)。
 2. **分流**：`biz/index.js:31-163` 判定请求属于内部 Web UI、插件路径还是普通代理流量，普通请求在 `:162` 调 `next()` 落入 inspectors。见 [Web 管理界面](/modules/webui)。
 3. **规则解析**：`lib/inspectors/rules.js:153-214` 归一化 `req.fullUrl`、解析头部规则，最终在 `setupRules` 的 `lib/inspectors/rules.js:44` 写出 `req.options = util.parseUrl(ruleUrl || req.fullUrl)`——host 与 proxy 的结果就落在这个对象里。见 [规则引擎](/modules/rules-engine)。
-4. **应用点**：`lib/rules/index.js:145-160` 由 `getHost` 与 `resolveProxy` 解析目标，`lib/rules/dns.js:163-179` 的 `lookup` 把域名解析成 IP，CNAME 效果在此落地；`lib/rules/index.js:84-95` 的 `isProxyHost` 检查 `proxyHost` 行属性，决定 host 与 proxy 是否同时生效。见 [指令体系与分发链路](/modules/protocol-catalog)。
-5. **出站或短路**：`lib/handlers/http-proxy.js:13-18` 对 web 协议调 `req.request(req.options)`；`file://` 则在 `lib/handlers/file-proxy.js:233-239` 判定为本地协议后直接构造响应并 `delete rules.proxy`，不再出站。见 [指令体系与分发链路](/modules/protocol-catalog)。
+4. **应用点**：`lib/rules/index.js:126-303` 的 `getProxy` 先 `delete reqRules.proxy`、`delete reqRules.pac`，再由 `rules.getHost`（`:150`）与 `resolveRulesFromList(..., 'resolveProxy')`（`:153-156`）分别取出 host、proxy 规则。`host://` 指向域名等价于 CNAME：`setHost`（`:176-191`）在主机名不是 IP 时调 `rules.lookupHost`，最终落到 `lib/rules/dns.js:163-179` 的 `lookup` 把域名解析成 IP，并回调 `callback(err, ip, host.port, host)`。`lib/rules/index.js:84-95` 的 `isProxyHost` 检查 `proxyHost` 行属性，`:158,228-231` 分别读取 `proxyHost`、`proxyFirst` 开关，决定 host 与 proxy 是只留其一还是同时生效。见 [指令体系与分发链路](/modules/protocol-catalog)。
+5. **出站或短路**：`lib/handlers/http-proxy.js:13-18` 对 web 协议调 `req.request(req.options)`；`file://` 则在 `lib/handlers/file-proxy.js:233-269` 由 `isFileProxy` 判定为本地协议后 `delete rules.proxy` / `delete rules.host`，再用 `rule.value` 构造 200 响应，不再出站。见 [指令体系与分发链路](/modules/protocol-catalog)。
 6. **回写与装配**：`lib/inspectors/res.js:641-644` 用 `(useHttps ? https : http).request(options, res.response)` 拨出并把响应接回，旁路采样见 [抓包数据的采集与上报](/core/capture-data)；启动期 `lib/config.js:1067-1091` 按 `config.storage` 把 rules、values、properties 分到独立目录，`lib/config.js:704-885` 的 mode 解析提供 `multiEnv`/`multiple`，正是 `-p` 加 `-S` 并行多实例的依据。见 [进程模型与配置系统](/architecture/process-config)。
 
 ## 边界与坑
 
 - **host 只对 Final URL 生效**：`docs/docs/rules/host.md` 明确 `host` 作用于「经过规则替换后生成的 Final URL」，多段映射如 `www.example.com/api www.example.com 127.0.0.1:1234` 不会命中，必须拆成两条规则，先重写再由第二条 host 接手。
-- **host 与 proxy 同时命中时 proxy 被忽略**：`docs/docs/rules/host.md`、`docs/docs/rules/proxy.md` 的默认行为是仅 host 生效，需要双重匹配时显式加 `enable://proxyHost` 或 `lineProps://proxyHost`；源码侧的开关在 `lib/rules/index.js:84-95`。
+- **host 与 proxy 同时命中时 proxy 被忽略**：`docs/docs/rules/host.md`、`docs/docs/rules/proxy.md` 的默认行为是仅 host 生效——`lib/rules/index.js:221-234` 在没有 `proxyHost` / `proxyFirst` 时直接 `return setHost()`，proxy 规则根本不写进 `reqRules.proxy`。三种改法：加 `enable://proxyFirst` / `lineProps://proxyFirst` 让仅 proxy 生效（`enable.md:56`），加 `enable://proxyHost` / `lineProps://proxyHost` 让两者同时生效（`host.md:47`），或用 `ignore://host` 让 host 规则不再参与（`operation.md:516`）；源码侧开关在 `lib/rules/index.js:84-95,158,228-231`。
 - **file 等协议会让 proxy 失效**：`docs/docs/rules/enable.md:74` 与 `docs/docs/rules/lineProps.md:38` 说明，配置 `file` 后 `proxy` 自动失效，需用 `enable://weakRule` 或 `lineProps://weakRule` 提升 proxy 优先级；`docs/docs/rules/file.md:112` 给出同一结论的示例。
 - **pathReplace 把 `/api/` 当正则**：`docs/docs/rules/pathReplace.md:51-69` 记录 `pathReplace://(/api/=/)` 会把 `/api/` 识别为正则，产生 `///xxx` 的多余斜杠，应改用 `/^api//=` 或 `delete://pathname.0`。
 - **多实例必须独立目录加不同端口**：`docs/docs/faq.md:65-72` 与 `docs/docs/cli.md:236-284` 都要求每个实例端口唯一、存储目录唯一，否则启动失败或数据互相覆盖；`w2 start -p 8010 -S 8010` 与 `w2 start -p 8010 -S 8011` 是被明确标为端口冲突的反例。

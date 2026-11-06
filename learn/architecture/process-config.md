@@ -39,7 +39,7 @@ var TIMEOUT = 10000;
 var MASTER_TIMEOUT = 12000;
 ```
 
-`index.js:99-141` 的 `forkWorker` 实现了一套心跳与自愈：master 每 1 秒向 worker 发 `'1'`，worker 收到后也以 `process.send('1', noop)` 回发（`index.js:191-196`）。master 侧 `worker.on('message')` 只认 `'1'`，收到即刷新状态并把 `refork` 定时器重置为 `MASTER_TIMEOUT`（12 秒）；worker 侧则由 `activeTimeout()` 用 `TIMEOUT`（10 秒）看门，超时便 `process.exit(1)`。任一侧 `disconnect` 或 `exit` 都会触发 `refork`，先 kill 旧 worker 再延时 600 毫秒重拉。
+`index.js:99-141` 的 `forkWorker` 实现了一套双向心跳与自愈：master 侧 `worker.on('message')`（`:123-140`）只认 `'1'`，收到后置 `state[index] = true`、用 `INTERVAL`（1 秒）起 `worker.send('1', noop)` 定时向 worker 发心跳，并把 `refork` 看门重置为 `MASTER_TIMEOUT`（12 秒）；worker 侧在 `require('./lib')` 回调里 `process.send('1', noop)` 并每秒定时重发（`index.js:191-196`），同时用 `process.on('message', activeTimeout)`（`:190`）收 master 心跳刷新 `activeTimeout()`——后者以 `TIMEOUT`（10 秒）看门，超时便 `process.exit(1)`。任一侧 `disconnect` 或 `exit` 都会触发 `refork`，先 kill 旧 worker 再延时 600 毫秒重拉（`index.js:113-118`）。
 
 为避免多个 worker 抢同一份数据，`index.js:165-172` 给每个 worker 强制追加形如 `.__cluster_worker.<index>_...__` 的 storage 后缀。这也解释了上一篇提到的去重键为何要带 storage：worker 与多实例都靠它区分彼此的配置目录。
 
@@ -58,7 +58,7 @@ variableProperties.forEach(function (name) {
 
 数据目录固定在 `~/.WhistleAppData/.whistle/`：根路径由 `lib/util/common.js:598-599` 给出，`.whistle` 来自 `package.json:5` 的 `dataDirname`，其下 `rules` / `values` / `properties` 由 `lib/config.js:148-150` 定义。证书落在 `lib/https/ca.js:19-33` 的 `certs` 目录，自定义插件目录则是 `config.CUSTOM_PLUGIN_PATH`（`lib/config.js:144`）。传入 `--storage` 时，`lib/config.js:1067-1091` 把存储重定向到 `custom_dirs/<encodeURIComponent(storage)>/`，并重新拼出 rules / values / properties 三个子目录——这正是多实例互不干扰的落盘体现。
 
-两个数值开关也常被误读。`sockets=256` 不是监听端口数，而是 `HttpAgent` / `HttpsAgent` 的 `maxSockets`：`lib/config.js:1039-1048` 构造 `agentConfig`，且 `:1046` 的 `disableAgent = !newAgentConf && !useAgent` 在默认路径下直接把 agent 置为 `false`，即主动关掉连接缓存以规避 Node 11 以上的缓存缺陷。`timeout=360000` 则是 `lib/index.js:44-45` 写入 `server.timeout` 的空闲超时，同时 `requestTimeout` 被置零。
+两个数值开关也常被误读。`sockets=256` 不是监听端口数，而是 `HttpAgent` / `HttpsAgent` 的 `maxSockets`：`lib/config.js:1039-1048` 构造 `agentConfig`，且 `:1046` 的 `disableAgent = !newAgentConf && !useAgent` 在默认路径下直接把 agent 置为 `false`，即主动关掉连接缓存以规避 Node 11 以上的缓存缺陷（`:1045` 注释）。只有显式传入 `agentConfig`（`:522`）或 `--mode agent`（`:726-727` 置 `useAgent = true`）时 `disableAgent` 才为假、真正 `new HttpAgent(...)`；`config.sockets` 还会先经 `:1035` 规整为至少 1，`config.strict` 下抬到至少 360。也就是说 256 只是常规模式的 `maxSockets` 默认上限，且默认路径根本不生效。`timeout=360000` 则是 `lib/index.js:44-45` 写入 `server.timeout` 的空闲超时，同时 `requestTimeout` 被置零。
 
 ```js
 // lib/config.js:1039-1048
@@ -85,7 +85,7 @@ config.httpsAgent = disableAgent ? false : new HttpsAgent(agentConfig);
 | 子进程消息 | process.sendData | service 子进程 |
 :::
 
-第一条是 `proxyEvents.emit(...)`：`lib/rules/util.js:130-396` 在规则增删改时发 `rulesDataChange`，`:434-466` 在值变动时发 `valuesDataChange`，`lib/plugins/index.js:220` 发 `pluginsChange`。第二条是修改戳：`lib/config.js:1126-1134` 的 `setModified(clientId, isRules)` 写入 `mrulesClientId` / `mrulesTime` 或 `mvaluesClientId` / `mvaluesTime`，`biz/webui/cgi-bin/get-data.js:41-44` 把它们随每次轮询返回，前端 `biz/webui/htdocs/src/js/data-center.js:903` 的 `checkDataChanged` 比对后决定重拉规则或值。第三条是子进程消息：`lib/service/service.js:342` 用 `process.sendData({type: 'whistleIdChange'})` 把变化推回主进程。
+第一条是 `proxyEvents.emit(...)`：`lib/rules/util.js:130-396` 在规则增删改时发 `rulesDataChange`，`:434-466` 在值变动时发 `valuesDataChange`，`lib/plugins/index.js:220` 发 `pluginsChange`。第二条是修改戳：`lib/config.js:1126-1134` 的 `setModified(clientId, isRules)` 写入 `mrulesClientId` / `mrulesTime` 或 `mvaluesClientId` / `mvaluesTime`，`biz/webui/cgi-bin/get-data.js:41-44` 把它们随每次轮询返回，前端 `biz/webui/htdocs/src/js/data-center.js:903` 的 `checkDataChanged` 比对后决定重拉规则或值。第三条是子进程消息：`lib/service/service.js:342` 用 `process.sendData({type: 'whistleIdChange'})` 把变化推回主进程。这里的前端 `data-center.js` 与服务端 `lib/service/data-center.js:8` 的 `MAX_COUNT = 100` 只是同名文件，职责不同（后者裁剪上报历史列表，详见[抓包篇](/core/capture-data)「上报通道」），不要混为一谈。
 
 ```js
 // lib/config.js:1126-1134

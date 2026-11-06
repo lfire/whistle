@@ -17,10 +17,10 @@ description: 把解密判定、证书信任、抓包阈值、插件隔离与管�
 
 ## 可复制的配置
 
-出站默认不校验源站证书，`--mode safe` 才打开严格校验（来源 `docs/docs/cli.md`、`docs/docs/rules/cipher.md`）：
+出站默认不校验源站证书，`--mode safe` 才打开严格校验（`lib/config.js:65,809-810` 的 `safe` / `rejectUnauthorized` 分支；`docs/docs/cli.md:42` 的 `-M/--mode` 选项列表未逐项列出 `safe`，它是源码支持的取值）：
 
 ```bash
-# 来源：docs/docs/cli.md / docs/docs/rules/cipher.md
+# 来源：lib/config.js:65,809-810（--mode safe 为源码支持的取值）
 w2 start --mode safe   # 置 rejectUnauthorized=true，校验源站证书
 ```
 
@@ -49,7 +49,7 @@ w2 start -P 8889           # 配合 --uiport 收敛管理面入口
 
 ## 背后的设计思想
 
-**默认透传、显式才解密。** 见 [CONNECT 判定与 TLS 解密](/core/connect-mitm)。`lib/tunnel.js:191-213` 的 `isIntercept()` 综合抓包开关、自定义证书、策略头与 `lib/tunnel.js:26-27` 的系统域名黑名单，只有显式命中才进入解密分支；否则走 `net.connect` 纯透传。解密是需要逐次授权的例外，而非默认能力。
+**默认透传、显式才解密。** 见 [CONNECT 判定与 TLS 解密](/core/connect-mitm)。`lib/tunnel.js:191-201` 的 `isEnableIntercept()` 先看全局抓包开关 `properties.isEnableCapture()`：未开启时只有该域名存在自定义证书（`:196` 的 `existsCustomCert`）才解密；开启后则除 `lib/tunnel.js:26-27` 的 `CRONET_RE` UA 与苹果 / 微软系统域名 `SYS_HOST_RE` 外，多数域名都进入解密。`:202-213` 的 `isIntercept()` 再叠加 `isLocalUIUrl`、自定义拦截与 `weakTunnel` 决定是否 `dispatch`，未命中就走 `handleTunnel` 的 `net.connect` 纯透传（`:596`）。可见解密由一个全局开关显式打开、打开后覆盖多数域名，是整机授权而非逐条授权；证书固定与 mTLS 域名应靠 `disable://capture` 退回透传，而不是绕过它。
 
 **两段 TLS 信任边界独立。** 见 [HTTPS、证书链与中间人](/domain/tls-mitm)。入站由本地 CA 现签叶证书、依赖客户端已信任根 CA；出站走 Node 原生校验，`lib/config.js:65` 默认 `rejectUnauthorized = false` 只放宽出站这一段。把两侧混为一谈，是「装了证书就以为全程安全」误判的根源。
 
@@ -77,7 +77,7 @@ w2 start -P 8889           # 配合 --uiport 收敛管理面入口
 ## 边界与坑
 
 - **证书固定与 mTLS 不应被绕过。** `docs/docs/faq.md` 的 `captureError` 问答给的方案是 `域名 disable://capture` 改纯透传，或由业务方提供专用调试构建；双向认证客户端证书应走 `docs/docs/rules/cipher.md` 的 `tlsOptions`，而非强行替换证书让握手蒙混过关。
-- **根证书信任范围扩大到整机。** `docs/docs/cli.md` 说明 `w2 ca` 在 macOS 与 Windows 自动安装根证书；源码 `bin/ca/index.js:15-28` 用 `security add-trusted-cert -k <默认钥匙串>` 与 `certutil -addstore -user Root` 写入系统信任库，意味着这台机器上所有应用的 TLS 都可能被解密，用完必须取消信任。
+- **根证书信任范围扩大到整机。** `docs/docs/cli.md:187` 说明 `w2 ca` 在 macOS 与 Windows 自动安装根证书、Linux 需手动安装；源码 `bin/ca/index.js:21-28` 用 `security add-trusted-cert -k <默认钥匙串>`、`:31-33` 用 `certutil -addstore -user Root` 写入系统信任库，意味着这台机器上所有应用的 TLS 都可能被解密，用完必须取消信任。
 - **抓包含敏感数据且会话会落盘。** 请求头里的 Cookie、令牌与响应正文都在采集范围内，`lib/service/service.js:103,109` 把 `sessions` 经 `gzip` 写入 `SAVED_SESSIONS_PATH`；会话文件应按敏感数据管理，禁止上传网盘或共享仓库，并定期清理。
 - **出站默认宽松，且代理是单点。** `lib/config.js:65` 的 `rejectUnauthorized = false` 只为兼容自签名源站，`docs/docs/rules/cipher.md` 明确「谨慎使用，仅限开发环境」，生产应 `--mode safe`（`lib/config.js:809-810`）；调试代理有单点与解密开销，不适合承担生产流量治理。
 - **插件是第三方代码，根证书不能随手上传。** 插件来自 npm（`docs/docs/extensions/usage.md`、`lib/plugins/index.js:633-647`），应只装可信来源；`docs/docs/gui/https.md` 明确「不支持直接上传根证书，需放到自定义证书目录并重启 Whistle 才能生效」，界面上传入口只接收成对的业务证书。

@@ -12,21 +12,25 @@ description: 用词典式的详尽词条把工程里的专业名词讲透，建�
 
 ## 与速查表的分工
 
-[《术语、路径与配置速查》](/advanced/reference)回答的是「数值是多少、路径在哪、默认值是什么」：端口、阈值、CLI 开关、内部头，一页查完即可离开。本板块回答的是「它到底是什么、为什么长成这样、和隔壁那个词差在哪」，不追求一页查完，反而刻意把每个词展开成一张卡片。同一个 `socksPort`，速查表给你「默认关闭」这一行，[第一层](/concepts/01-proxy)则要讲清 SOCKS 与 HTTP 代理在报文层的本质差别；同一个 `enable://h2`，速查表登记它是开关，[第二层](/concepts/02-http)则要讲清 ALPN 与伪头如何让它生效。查数值去速查表，建理解来本板块，两者互补而不重复。
+[《术语、路径与配置速查》](/advanced/reference)回答的是「数值是多少、路径在哪、默认值是什么」：端口、阈值、CLI 开关、内部头，一页查完即可离开。本板块回答的是「它到底是什么、为什么长成这样、和隔壁那个词差在哪」，不追求一页查完，反而刻意把每个词展开成一张卡片。同一个 `socksPort`，速查表给你「默认关闭」这一行，[代理与流量入口](/concepts/01-proxy)则要讲清 SOCKS 与 HTTP 代理在报文层的本质差别；同一个 `enable://h2`，速查表登记它是开关，[HTTP 报文与连接语义](/concepts/02-http)则要讲清 ALPN 与伪头如何让它生效。查数值去速查表，建理解来本板块，两者互补而不重复。
 
 ## 本层概念地图
 
 ### 五层递进
 
-本板块把散落在工程里的名词按「流量从外到内、再从内到外」的顺序排成五层，后一层总是建立在前一层的概念之上。
+本板块把散落在工程里的名词按「流量从外到内、再从内到外」排成**五层**，七篇详解分属其中；后一层总是建立在前一层的概念之上。
 
-1. **① 代理与流量入口**：[第一层](/concepts/01-proxy)。客户端先把请求交给谁，决定了后面一切。正向代理、系统代理、PAC、上游代理、CONNECT、SOCKSv5 与 `tunnel://` 伪 URL 都在这里定型。
-2. **② HTTP 报文与连接**：[第二层](/concepts/02-http)。流量进门之后，请求行、Header、Body、状态码、分块与压缩、Keep-Alive、HTTP/2 伪头、ALPN、Upgrade、WebSocket 帧与 SSE 决定代理能看懂多少、能改多少。
-3. **③ TLS / 证书 / 信任**：[第三层](/concepts/03-tls)。HTTPS 把明文藏进加密层，中间人、CA、根证书、SNI、SAN、证书链与信任存储回答「凭什么能解密、又凭什么被信任」。
-4. **④ Node 运行时与内核机制**：[第四层](/concepts/04-runtime)、[第五层](/concepts/05-capture)。Stream、Transform、事件循环、cluster、连接池、inspector 四阶段与抓包缓存，解释这些概念在 Node.js 里如何被兑现成代码。
-5. **⑤ 规则 DSL / 扩展与工程化**：[第六层](/concepts/06-rules)、[第七层](/concepts/07-extension)。pattern、protocol、Values、插件 hook、多实例与配置即代码，把前面的能力组织成可复用、可协作的工程手段。
+::: cols 16|44|40
+| 层 | 对应篇目 | 这一层回答什么 |
+|---|---|---|
+| 第一层 | [01 代理与流量入口](/concepts/01-proxy)、[02 HTTP 报文与连接](/concepts/02-http) | 流量从哪进来、字节按什么格式组织 |
+| 第二层 | [03 TLS、证书与信任](/concepts/03-tls) | 加密如何被安全地拆开 |
+| 第三层 | [04 Node 运行时](/concepts/04-runtime)、[05 抓包数据面](/concepts/05-capture) | 进程里跑着什么、数据怎么被看见 |
+| 第四层 | [06 规则 DSL](/concepts/06-rules) | 人的决策如何写成可热替换的文本 |
+| 第五层 | [07 扩展与工程化](/concepts/07-extension) | 能力如何被第三方与自动化复用 |
+:::
 
-五层不是难度分级，而是依赖方向：不先分清「CONNECT 是隧道而不是请求」，就读不懂「为什么要 MITM」；不先分清「chunked 是传输编码、gzip 是内容编码」，就看不懂抓包前为什么要先 dechunk 再 unzip。
+篇号不是层号：01 与 02 同属第一层，04 与 05 同属第三层，所以详解排到第七篇，层数仍只有五层。五层也不是难度分级，而是依赖方向：不先分清「CONNECT 是隧道而不是请求」，就读不懂「为什么要 MITM」；不先分清「chunked 是传输编码、gzip 是内容编码」，就看不懂抓包前为什么要先 dechunk 再 unzip。
 
 ### 辨析 → 贯通 → 索引
 
@@ -53,13 +57,13 @@ description: 用词典式的详尽词条把工程里的专业名词讲透，建�
 | 上游代理 | 包进 | 二级 CONNECT | `lib/config.js:169` |
 :::
 
-表的读法是「A 经某种关系变成或决定 B，而这次相遇发生在第四列的代码里」。例如 `CONNECT → 判定 → MITM` 落在 `lib/tunnel.js:168-213` 的拦截判定；`伪头 → 降级 → 普通 Header` 落在 `lib/https/index.js:1030-1043` 的 `:authority` 转 `host`。把关系与落点成对记，比孤立背单词更抗遗忘。
+表的读法是「A 经某种关系变成或决定 B，而这次相遇发生在第四列的代码里」。例如 `CONNECT → 判定 → MITM` 落在 `lib/tunnel.js:168-213` 的拦截判定；`伪头 → 降级 → 普通 Header` 落在 `lib/https/index.js:1030-1043` 的 `:authority` 转 `host`；`CONNECT 200` 的常量定义在 `lib/util/index.js:369-375`，真正把这段字节写回客户端 socket 的调用点则在 `lib/tunnel.js:281`（判定拆隧道之后）。把关系与落点成对记，比孤立背单词更抗遗忘。
 
 ## 怎么读
 
 ### 三条路线
 
-- **系统通读**：从[第一层](/concepts/01-proxy)顺读至[第七层](/concepts/07-extension)，再进[辨析](/concepts/08-confusions)与[贯通](/concepts/09-walkthrough)。适合第一次接触代理内核，或想把已有经验重新梳理成体系。
+- **系统通读**：从 [01 代理与流量入口](/concepts/01-proxy) 顺读到 [07 扩展与工程化](/concepts/07-extension)，再进[辨析](/concepts/08-confusions)与[贯通](/concepts/09-walkthrough)。适合第一次接触代理内核，或想把已有经验重新梳理成体系。
 - **按词回查**：带着具体名词直接跳进对应篇，用页内标题定位卡片，读完「容易混淆」再顺着链接去[辨析篇](/concepts/08-confusions)；[术语索引](/concepts/glossary)与[速查表](/advanced/reference)负责快速定位。适合读源码时被一个词卡住。
 - **结合场景**：从[工程场景总览](/scenarios/index)挑一个真实问题（如[真机接入](/scenarios/mobile-remote)、[弱网注入](/scenarios/fault-injection)），遇到不懂的名词再回到本板块查卡片，最后用[动手实验](/advanced/hands-on)验证。适合「先有问题、后补概念」。
 
@@ -80,7 +84,7 @@ description: 用词典式的详尽词条把工程里的专业名词讲透，建�
 
 ## 与工程实际结合
 
-一个典型现场：手机连上电脑的 Wi-Fi 代理后，抓包列表里只有一条条隧道，看不到任何 HTTPS 明文。按概念链条排查，顺序恰好是本板块前两层的顺序——先确认流量确实进了代理（[系统代理与 PAC](/concepts/01-proxy)），再看 CONNECT 是否只回了 `200 Connection Established`（[CONNECT 词条](/concepts/01-proxy)），然后判断[第三层](/concepts/03-tls)的 MITM 是否被启用、根证书是否被完全信任，最后才怀疑规则写错。真机接入的完整步骤见[真机、移动端与远程页面调试](/scenarios/mobile-remote)，证书排障见[HTTPS、证书与鉴权排障](/scenarios/https-trust)。
+一个典型现场：手机连上电脑的 Wi-Fi 代理后，抓包列表里只有一条条隧道，看不到任何 HTTPS 明文。按概念链条排查，顺序恰好是本板块前三层的顺序——先确认流量确实进了代理（[系统代理与 PAC](/concepts/01-proxy)），再看 CONNECT 是否只回了 `200 Connection Established`（[CONNECT 词条](/concepts/01-proxy)），然后判断[TLS、证书与信任](/concepts/03-tls)里的 MITM 是否被启用、根证书是否被完全信任，最后才怀疑规则写错。真机接入的完整步骤见[真机、移动端与远程页面调试](/scenarios/mobile-remote)，证书排障见[HTTPS、证书与鉴权排障](/scenarios/https-trust)。
 
 ```txt
 # 来源：docs/docs/rules/enable.md
@@ -101,11 +105,11 @@ w2 ca
 1. [概念精解：从名词到工程直觉](/concepts/index)（本篇）：板块定位、五层递进、概念关系与三种读法。
 2. [第一层：代理与流量入口](/concepts/01-proxy)：正向、反向、系统代理、PAC、上游代理、CONNECT、SOCKSv5 与隧道。
 3. [第一层：HTTP 报文与连接语义](/concepts/02-http)：报文结构、分块与压缩、Keep-Alive、HTTP/2、ALPN、Upgrade 与帧。
-4. [第三层：TLS、证书与信任](/concepts/03-tls)：中间人、CA、证书链、SNI、SAN 与信任存储。
-5. [第四层：Node 运行时与内核机制](/concepts/04-runtime)：Stream、事件循环、连接池与进程模型。
-6. [第五层：抓包与数据流](/concepts/05-capture)：四阶段 inspector、请求与响应采集、缓存。
-7. [第六层：规则 DSL](/concepts/06-rules)：pattern、protocol、Values 与匹配优先级。
-8. [第七层：扩展与工程化](/concepts/07-extension)：插件 hook、多实例与配置即代码。
+4. [第二层：TLS、证书与信任](/concepts/03-tls)：中间人、CA、证书链、SNI、SAN 与信任存储。
+5. [第三层：Node 运行时与内核骨架](/concepts/04-runtime)：Stream、事件循环、连接池与进程模型。
+6. [第三层：抓包数据面与帧](/concepts/05-capture)：四阶段 inspector、请求与响应采集、缓存。
+7. [第四层：规则 DSL 全景](/concepts/06-rules)：pattern、protocol、Values 与匹配优先级。
+8. [第五层：扩展机制与工程化](/concepts/07-extension)：插件 hook、多实例与配置即代码。
 9. [易混淆概念辨析](/concepts/08-confusions)：成对名词的集中对照与判别口诀。
 10. [一次请求的贯通推演](/concepts/09-walkthrough)：把全部词条串成一条完整链路。
 11. [术语索引](/concepts/glossary)：按中文与英文回查全部名词及所在篇。
@@ -113,7 +117,7 @@ w2 ca
 ## 常见误解
 
 1. **把本板块当速查表**：这里每个词条都刻意展开，查单个数值或默认值应去[速查表](/advanced/reference)。
-2. **把五层当难度分级**：五层是依赖方向而非由易到难，第二层的 HTTP/2 伪头并不比第三层的证书链简单。
+2. **把五层当难度分级**：五层是依赖方向而非由易到难，第一层的 HTTP/2 伪头并不比第二层的证书链简单。
 3. **把比方当实现**：卡片里的类比只负责建立直觉，真实行为一律以「在 Whistle 里」给出的 `lib/xxx.js:行号` 为准。
 4. **以为名词只属于某一层**：`CONNECT` 既是入口层的报文，又在隧道判定、上游代理与抓包里反复出现，关系表正是为这种跨层出场准备的。
 5. **跳过收尾三部分**：只逐词读完五层仍可能「分不清、串不起」，[辨析](/concepts/08-confusions)与[贯通](/concepts/09-walkthrough)负责把点连成线。

@@ -121,6 +121,8 @@ exports.createCertificate = function (hostname) {
 
 最后是出站侧：`lib/config.js:65` 默认 `config.rejectUnauthorized = false`，即不校验源站证书以兼容自签名环境，代价是中间人风险被转移到代理到源站这一段；只有 `--mode safe`（`lib/config.js:809-810`）才打开校验。便利与安全的取舍在这里是显式的，改源码时不要顺手把默认值反过来。
 
+这里要分清两段 TLS 是**互相独立的信任边界**。入站这一段（客户端 ↔ Whistle）能否解密，取决于客户端是否信任本地根 CA：`getOrCreateCert`（`ca.js:582-607`）产出的叶证书由 `createSelfCert`（`ca.js:205-266`）复用 `ROOT_KEY` 并以 SHA-256 签发（`:213-217,260`），只要根 CA 被信任，客户端就认为对面是目标站点，与源站真实证书无关。出站这一段（Whistle ↔ 源站）是否校验对方证书，才由 `rejectUnauthorized` 控制。所以 `--mode safe` 打开出站校验，并不会让入站伪造「更可信」；反过来默认关闭出站校验，也不影响客户端对本地 CA 的信任。两者各自承担不同的风险面，不能互相替代或抵消——排查证书告警时若只盯 `rejectUnauthorized`，就会找错方向。
+
 ## 小结
 
 - 根 CA 在模块加载与 `createRootCA()`（`:580`）时就绪，RSA 2048、CN 带时间戳、SHA-256 自签、十年有效。

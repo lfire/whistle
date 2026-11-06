@@ -37,7 +37,7 @@ description: 用「工程问题 → 设计原则 → 内核机制 → 源码位�
 | 内存有界优先于数据完整 | 缓存 600、溢出 1800 | `data-server.js:21-26` | 复现与回放 |
 | 零复制优先 | 内核与 UI 共用 data 引用 | `data-server.js:319-333` | 复现与回放 |
 | 信任范围最小化 | 按域名现签、私钥不外泄 | `https/ca.js:268-276` | 证书与真机 |
-| 装配与启动分离 | 先合并配置再交给 lib | `index.js:143-148` | 协作与工程化 |
+| 装配与启动分离 | 先合并配置再交给 lib | `index.js:143-148,173-175` | 协作与工程化 |
 | 约定优于配置 | CGI 路径即文件名 | `webui/lib/index.js:387` | 复现与回放 |
 :::
 
@@ -48,7 +48,7 @@ description: 用「工程问题 → 设计原则 → 内核机制 → 源码位�
 
 ## 场景地图
 
-本层共 9 篇，按 6 类分组。每篇回答一个明确的工程问题，并给出对应的素材出处；其中 6 篇已发布，3 篇为后续专题，链接保留以便按需跳转。
+本层共 10 篇（含本页总览），其中 9 篇场景正文按 6 类分组，均已发布并收录进侧边栏。每篇回答一个明确的工程问题，并给出对应的素材出处，可按下面链接直接跳转。
 
 ::: cols 16|28|36|20
 | 分组 | 场景文档 | 回答的工程问题 | 主要素材 |
@@ -60,7 +60,7 @@ description: 用「工程问题 → 设计原则 → 内核机制 → 源码位�
 | 证书与真机 | [HTTPS、证书与鉴权排障](/scenarios/https-trust) | 定位 Tunnel to 与证书不受信任 | faq、ca.js、enable |
 | 证书与真机 | [真机、移动端与远程调试](/scenarios/mobile-remote) | 手机流量接入并做页面内调试 | mobile、weinre |
 | 协作与工程化 | [协作与配置管理](/scenarios/collab-config) | 规则分组、Values 与多人共享 | cli、rules、storage |
-| 协作与工程化 | [集成测试与命令行自动化](/scenarios/automation) | 用 w2 add 与测试单元固化规则 | test/、cli |
+| 协作与工程化 | [CI、嵌入式集成与自动化回归](/scenarios/automation) | 把代理内嵌进 CI 并断言规则生效 | test/、npm.md |
 | 协作与工程化 | [边界、阈值与默认行为](/scenarios/boundaries) | 汇总内存、容量与失效边界 | data-server、enable |
 :::
 
@@ -68,13 +68,13 @@ description: 用「工程问题 → 设计原则 → 内核机制 → 源码位�
 
 ## 素材来源
 
-本层的场景与规则全部有据可查，来源限定为三类，不引入外部臆测。
+本层的场景与规则全部有据可查，来源限定为三类，不引入外部臆测；结论与全站一致，以 `guide` 分支 `3b85cebc4`（v2.10.13）的源码为准，其后提交仅涉及文档站、业务源码零改动。
 
-- **官方使用文档 `docs/docs/`**：`getting-started.md`、`faq.md`、`mobile.md`、`gui/` 与 `rules/` 合计 120 篇，提供规则写法、界面操作与官方明确的注意事项。
+- **官方使用文档 `docs/docs/`**：`rules/` 100 篇、`gui/` 11 篇、`extensions/` 4 篇，加根下 `getting-started.md`、`faq.md`、`mobile.md`、`cli.md`、`index.md` 共 5 篇，合计 120 篇，提供规则写法、界面操作与官方明确的注意事项。
 - **集成测试 `test/`**：`test/index.test.js` 与 `test/units/` 下 82 个 units，用来验证「某条规则真的会这样走」，例如 `test/units/composer.test.js` 直接向 `cgi-bin/composer` 连续 POST 构造请求。
 - **真实 CGI 工作流 `biz/webui/cgi-bin/`**：文件名即接口名，例如 `get-data.js`、`get-matched-rules.js`、`sessions.js`，把界面上的一次点击对应到服务端的一段代码。
 
-需要提醒的是，官方文档个别示例存在笔误，例如 `docs/docs/rules/enable.md:82` 写成 `www.example.com enale://https`，`docs/docs/faq.md:71` 把 `w2 start` 漏成 `2 start`。本站一律以源码为准：遇到文档与实现不一致时，先核对 `lib/` 下的解析逻辑，再决定规则该怎么写。「以源码为准」也是本层区别于官方使用文档的根本分工。
+需要提醒的是，官方示例个别存在笔误：`docs/docs/rules/enable.md:82` 的 `www.example.com enale://https` 应为 `enable://https`（官方笔误，本站以正确写法为准），`docs/docs/faq.md:71` 又把 `w2 start` 漏成 `2 start`（应为 `w2 start`）。本站一律以源码为准：遇到文档与实现不一致时，先核对 `lib/` 下的解析逻辑，再决定规则该怎么写。「以源码为准」也是本层区别于官方使用文档的根本分工。
 
 ## 小结
 

@@ -13,7 +13,7 @@ description: 用规则把偶发的超时、抖动与错误码固定成可复现�
 
 后端不稳定接口联调。依赖方接口偶发 500 或 429，客户端的重试与降级逻辑难以验证。用 `chance:0.5` 让一半请求返回 500，再对限流路径返回 429 并附带 `retry-after`，可以把容错分支从「等它自己坏」变成「每次都走到」。
 
-维护与缓存演练。发布窗口需要验证维护页、缓存头与超时阈值。把域名整体改成 503 维护页、对静态资源设置长缓存、对接口禁用缓存，同时验证默认 36 秒无数据传输的超时判定，能提前暴露客户端对缓存与超时的错误假设。
+维护与缓存演练。发布窗口需要验证维护页、缓存头与超时阈值。把域名整体改成 503 维护页、对静态资源设置长缓存、对接口禁用缓存，同时验证超时判定的边界（官方文档写 36 秒，源码启动参数却是 360000 毫秒，差异见「边界与坑」），能提前暴露客户端对缓存与超时的错误假设。
 
 ::: cols 20|30|50
 | 规则 | 生效阶段 | 作用 |
@@ -74,8 +74,8 @@ www.example.com/path resSpeed://3
 https://example.com/static cache://3600
 https://example.com/api cache://no-cache
 
-# 来源：docs/docs/rules/disable.md
-wwww.example.com/path disable://cache
+# 来源：docs/docs/rules/disable.md（官方示例 wwww 系笔误，本站用 www）
+www.example.com/path disable://cache
 pattern disable://timeout
 ```
 
@@ -83,27 +83,27 @@ pattern disable://timeout
 
 [可观测性优先](/domain/debugging-workflow)：偶发问题难修，是因为观察窗口不可控。Whistle 不改动业务代码，而是把网络条件变成可编辑的规则文本，延迟、限速与状态码都可以在两次请求之间切换，于是「偶发」被压缩为「按配置必现」，抓包列表里也能同步看到规则命中情况。
 
-[过滤器在解析期编译、请求期判定](/modules/rules-engine)：`chance:0.5` 只在规则解析时编译成概率匹配器，真正的随机判定发生在每次请求匹配阶段。解析与执行分离，使同一条规则文本无需重复解析就能对大量请求逐条判定，也让包含过滤器与排除过滤器能和其他指令自由组合。
+[过滤器在解析期编译、请求期判定](/modules/rules-engine)：`chance:0.5` 在 `lib/rules/rules.js:1549-1739` 只被编译成 `{ key: 0.5 }` 匹配器，真正的 `Math.random() < key` 判定在每次请求命中的 `matchFilter`（`lib/rules/rules.js:1878-1885`）里现算，各次请求互不记忆。解析与执行分离，使同一条规则文本无需重复解析就能对大量请求逐条判定，也让包含/排除过滤器能和其他指令自由组合；代价是「50%」只是统计意义上的近似，短时间内的实际命中次数可以明显偏离一半。
 
 [请求期与响应期时机分离](/modules/protocol-catalog)：`reqDelay` 卡在转发前，`resDelay` 卡在回源后；`statusCode` 不回源，`replaceStatus` 必须先拿到真实响应。指令被绑定到明确阶段，才不会用错工具——想验证客户端对空响应体的处理，就不能拿 `replaceStatus` 代替 `statusCode`。
 
-[内存有界优先](/core/capture-data)与[中断能力由界面反向下发](/modules/webui)：长时间挂起的连接会持续占用抓包内存，因此除了 36 秒超时兜底，界面还能主动中断。规则描述「要发生什么」，界面描述「现在停掉哪一条」，两者通过请求编号汇合，既保证观测数据有界，也让调试者随时收回控制权。
+[内存有界优先](/core/capture-data)与[中断能力由界面反向下发](/modules/webui)：长时间挂起的连接会持续占用抓包内存，因此除了超时兜底，界面还能主动中断。规则描述「要发生什么」，界面描述「现在停掉哪一条」，两者通过请求编号汇合，既保证观测数据有界，也让调试者随时收回控制权。
 
 ## 源码链路
 
-1. **入口 · 过滤器编译**：`lib/rules/rules.js:1549-1739` 的 `resolveMatchFilter` 把 `m:`、`b:`、`chance:` 等前缀解析成匹配函数，`lib/rules/rules.js:1985-2009` 的 `matchExcludeFilters` 在请求到来时执行判定。参见[规则引擎：解析与匹配](/modules/rules-engine)。
+1. **入口 · 过滤器编译**：`lib/rules/rules.js:1549-1739` 的 `resolveMatchFilter` 把 `m:`、`b:`、`chance:` 等前缀拆成带 `isInclude` / `not` 的匹配器（`:1655` 把 `chance` / `probability` 单独归为概率类，不当请求头处理），请求到来时 `lib/rules/rules.js:1985-2009` 的 `matchExcludeFilters` 逐条调 `matchFilter`（`:1819-1982`）；后者在 `:1878-1885` 用 `Math.random() < key` 当场判定，`key` 以 `%` 结尾时先除以 100。所以 `chance` 是每次请求独立掷一次的过滤器，既不排程也不累积命中。参见[规则引擎：解析与匹配](/modules/rules-engine)。
 2. **规则解析 · 阶段组装**：`lib/rules/rules.js:2239-2299` 的 `resolveRules` 按 `isReq` 与 `isRes` 挑选协议表，把命中结果写入 `req.rules`，请求期与响应期各取一份。参见[指令体系与分发链路](/modules/protocol-catalog)。
-3. **应用点 · 延迟与限速**：`lib/inspectors/data.js:544` 取 `reqDelay` 挂定时器，`lib/inspectors/res.js:1162` 取 `resDelay`；`lib/inspectors/req.js:520-524` 与 `lib/inspectors/res.js:910-914` 把速度值写到 `data.speed`。参见[一次 HTTP 代理请求的旅程](/core/http-request)。
-4. **应用点 · 状态码短路**：`lib/util/index.js:3576-3599` 的 `getStatusCodeFromRule` 在请求尚未发出时返回构造好的响应，`statusCode` 因此不产生回源流量。参见[一次 HTTP 代理请求的旅程](/core/http-request)。
+3. **应用点 · 延迟与限速**：`lib/inspectors/data.js:544-550` 把 `reqDelay` 交给 `util.delay` + `setDelayTimer`，延迟结束才 `next()`，期间 `needAbortReq` 为真就 `res.destroy()`；`lib/inspectors/res.js:1162-1173` 同理先延迟再 `res.src(...)`，`needAbortRes` 为真则记下已存头后销毁。速度值由 `lib/inspectors/req.js:520-524` 与 `lib/inspectors/res.js:910-914` 写进 `data.speed`（kb/s），再分别经 `WhistleTransform`（`lib/util/whistle-transform.js:12,109-112`，请求体）与 `SpeedTransform`（`lib/util/speed-transform.js:9,29-35`，响应体）按 `chunk.length * 1000 / (speed*1000/8)` 毫秒逐块延时——限速是按字节流分块节流，不是把整段响应一次性 sleep。参见[一次 HTTP 代理请求的旅程](/core/http-request)。
+4. **应用点 · 状态码短路**：`lib/util/index.js:3576-3599` 的 `getStatusCodeFromRule` 只对 `rule.isSpec` 生效，产出 `{ statusCode, headers }`；`lib/inspectors/res.js:1313-1319` 在拨出站前取到它就直接 `res.response(util.wrapResponse(svRes))` 并置 `Connection: close`，`statusCode` 因此不产生回源流量。参见[一次 HTTP 代理请求的旅程](/core/http-request)。
 5. **回写 · 响应期改写**：`lib/inspectors/res.js:819-825` 用 `replaceStatus` 改写状态码，`lib/inspectors/res.js:870-891` 按 `cache` 值重写 `cache-control` 与 `expires`。参见[抓包数据的采集与上报](/core/capture-data)。
-6. **上报 · 界面中断**：`biz/webui/cgi-bin/abort.js:6-22` 接收前端指令，经 `lib/util/data-server.js:642` 的 `abortRequest` 下发，最终由 `lib/socket-mgr.js:859` 导出的 `abort` 销毁连接并清理连接表。参见[Web 管理界面](/modules/webui)。
+6. **上报 · 界面中断**：`biz/webui/cgi-bin/abort.js:6-22` 接收前端的 id 列表（单次最多 1200 个，`:4,11-14`），对每个 id 同时调 `proxy.abortRequest`（`lib/util/data-server.js:642`，触发 `item.abort()`）与 `socketMgr.abort`（`lib/socket-mgr.js:859` 导出的 `destroy`，`:849-857` 删 `conns[reqId]` 并销毁 req/res 流）。参见[Web 管理界面](/modules/webui)。
 
 ## 边界与坑
 
-- 限速只作用于有 body 的流量：`reqSpeed` 对 `CONNECT`、`UPGRADE` 及 204 等无响应体的请求无效（`docs/docs/rules/reqSpeed.md`）；`resSpeed` 对 `GET`、`HEAD`、`CONNECT`、`UPGRADE` 等无请求体的请求无效（`docs/docs/rules/resSpeed.md`）。
+- 限速只作用于有 body 的流量：`reqSpeed` 对 `CONNECT`、`UPGRADE` 及 204 等无响应体的请求无效（`docs/docs/rules/reqSpeed.md`）；`resSpeed` 对 `GET`、`HEAD`、`CONNECT`、`UPGRADE` 等无请求体的请求无效（`docs/docs/rules/resSpeed.md`）。两处官方措辞按「无请求体 / 无响应体」分别列举，容易误读；从源码看真正的分界是流方向：`reqSpeed` 节流请求体（`lib/inspectors/req.js:520-524,560` 挂 `WhistleTransform`），`resSpeed` 节流响应体（`lib/inspectors/res.js:910-914,1004` 挂 `SpeedTransform`，`:1099-1100` 在无响应体时直接 `delete data.speed`）。
 - `statusCode` 默认返回空响应体，需要正文必须叠加 `resBody`；返回 401 时浏览器默认弹出认证框，应加 `disable://userLogin`（`docs/docs/rules/statusCode.md`）。
-- `chance` 是按 `Math.random()` 与概率值比较命中的概率过滤器，取值 0 至 1，不是定时器，也不会随时间累积命中（`docs/docs/rules/filters.md`）。
-- 默认对单个请求 36 秒内无数据传输即判定超时，`disable://timeout` 可关闭该判定（`docs/docs/rules/disable.md`）。
+- `chance` 是按 `Math.random() < key` 命中的概率过滤器，取值 0 至 1（`docs/docs/rules/filters.md:25,32`），源码在 `lib/rules/rules.js:1878-1885` 每次请求独立比较一次；不是定时器，也不会随时间累积命中，更不会按请求顺序轮流命中。
+- 超时口径要三处对照，别只按一个数字推断：官方 `docs/docs/rules/disable.md:114` 写「默认 36s 内无数据传输判超时」并给出 `disable://timeout`；启动参数 `-t/--timeout` 默认 `360000` 毫秒（360 秒，`docs/docs/cli.md:43`、`package.json:9`），由 `lib/index.js:44` 写入 `server.timeout`；`lib/inspectors/res.js:18,650-655` 另有 16 秒的 socket 连接建立超时。源码中没有找到独立的 36 秒请求级定时器，因此遇到超时问题应先确认实际生效的是哪一处，官方文档的 36 秒不宜当作精确阈值使用。
 - 对 204、304 等无响应体的状态码，`resBody` 一类 body 改写不生效（`docs/docs/rules/resBody.md`）。
 
 ## 小结

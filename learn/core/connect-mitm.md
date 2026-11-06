@@ -51,7 +51,7 @@ var isCustomIntercept = function () {
 
 全局开关与黑名单是最保守的一层。`tunnel.js:195` 先问 `rulesUtil.properties.isEnableCapture()`：未开启抓包时，只有 `existsCustomCert(hostname)` 命中自定义证书才继续；开启后，`:199-200` 用 `CRONET_RE`（`:26`）拦下 Cronet UA，用 `SYS_HOST_RE`（`:27`）放行 Apple、iCloud、Microsoft、Office365 等系统域名。这些客户端大量使用证书固定，换证书会整片失败，因此宁可看不到也不解密。此外 `:142` 单独把 `p22-ckdatabase.icloud.com` 标为 `isICloudDB`，`:151-155` 识别本地 Web UI 地址，二者都在 `:171-178` 里被列为一票否决项。
 
-最终的 `isIntercept()`（`:202-213`）把这些信号收成三段：先看本地 UI 与常规拦截条件，再看 IP 直连是否配有自定义证书（`:207-209`），最后才在 `:210-212` 处理 Proxifier 场景——只有 `config.proxifier` 与 `disable.proxifier` 同时满足、且目标落在 Web 端口时才放行解密。层层收窄的结构说明解密是例外而非常态：默认路径始终指向纯透传，每多开一个条件都要有明确理由。
+最终的 `isIntercept()`（`:202-213`）把这些信号收成三段：先看本地 UI 与常规拦截条件，再看 IP 直连是否配有自定义证书（`:207-209`），最后才在 `:210-212` 处理 Proxifier 场景——条件是 `(config.proxifier2 || (config.proxifier && isWebPort)) && !disable.proxifier`：即 `config.proxifier2` 为真，或 `config.proxifier` 为真且目标落在 Web 端口（`isWebPort`，见 `:188-189`）时，只要 `disable.proxifier` 未设置就放行解密。层层收窄的结构说明解密是例外而非常态：默认路径始终指向纯透传，每多开一个条件都要有明确理由。
 
 策略头 `x-whistle-policy` 由 `config.WHISTLE_POLICY_HEADER`（`lib/config.js:67`）定义，`tunnel.js:144-148` 读取。
 
@@ -70,7 +70,7 @@ var isCustomIntercept = function () {
 
 ## 先回 200，再识别首包
 
-判定命中后进入 `lib/tunnel.js:248-283`。`:264-280` 调用 `dispatch(reqSocket, next, isWebPort)` 尝试解密，第三个参数 `isWebPort` 由 `:188-189` 得出（端口 80 / 443 或命中自定义拦截）；紧接着 `:281` 立刻 `util.setEstablished(reqSocket)`，由 `lib/util/index.js:373-375` 写出 `HTTP/1.1 200 Connection Established`。注意顺序：200 不等待解密结果，先让客户端认为隧道已建立，首包识别在后台继续。
+判定命中后进入 `lib/tunnel.js:248-283`。`:264-280` 调用 `dispatch(reqSocket, next, !req.enable.socket && isWebPort)` 尝试解密，第三个参数以 `isWebPort`（`:188-189`，端口 80 / 443 或命中自定义拦截）为基础，还要排除 `enable.socket`；紧接着 `:281` 立刻 `util.setEstablished(reqSocket)`，由 `lib/util/index.js:369-375` 的常量 `ESTABLISHED_CTN`（`:369-372`）写出最简 `HTTP/1.1 200 Connection Established`，`:373-375` 的 `setEstablished` 只做一次 `socket.write`。注意顺序：200 不等待解密结果，先让客户端认为隧道已建立，首包识别在后台继续。
 
 ```js
 // lib/tunnel.js:264-282（节选）
@@ -90,8 +90,8 @@ util.setEstablished(reqSocket);
 
 `lib/https/index.js:1184` 的 `util.readOneChunk` 负责读第一个数据包，之后按三类分流：
 
-- 明文 HTTP 命中 `HTTP_RE`（`:1117`），`:1215-1226` 在 `forHttps` / `captureHttp` 未开启时 `socket.resume()`，用 `server.emit('connection', socket)` 与 `socket.emit('data', addClientInfo(...))` 把首包灌回主 server，等于让明文请求重新走一遍 Express 链。
-- 命中 `HTTP2_RE`（`:1118`）的 h2c preface，或首字节 `chunk[0] === 22` 的 TLS 握手记录，才继续解密。
+- 明文 HTTP 命中 `HTTP_RE`（`:1117`），`:1215-1226` 在 `forHttps` 未启用、也没有禁用 `captureHttp` 时 `socket.resume()`，用 `server.emit('connection', socket)` 与 `socket.emit('data', addClientInfo(...))` 把首包灌回主 server，等于让明文请求重新走一遍 Express 链；反之（启用 `forHttps` 或禁用 `captureHttp`）则 `next(chunk)` 回退。
+- 只有 h2c preface（命中 `HTTP2_RE`，`:1118`）或 TLS 握手记录（首字节 `0x16`，即十进制 22）才继续解密；`:1232` 用的是反向回退写法 `if (!isHttpH2 && chunk[0] != 22) return next(chunk)`——首字节不是 22 且不是 h2c preface 就一律回退，源码里并没有 `chunk[0] === 22` 的正面分支。
 - 其余情况交给 `next(chunk)` 回退；`:1228-1229` 的 `isEnable('forHttp')` 与 `disable.captureHttps` 也会主动回退到纯透传。
 
 ```js
@@ -150,7 +150,7 @@ var handlers = {
 };
 ```
 
-两侧 TLS 必须分开理解：入站是伪造证书、由本地 CA 现签，客户端信任的前提是已安装根 CA；出站则是 `(useHttps ? https : http).request` 或 `tls.connect` 走 Node 原生校验，`lib/config.js:65` 默认 `config.rejectUnauthorized = false`，以便处理自签名源站，只有 `--mode safe`（`config.js:809-810`）才打开严格校验。便利与安全的取舍被刻意留在这条边界上。
+两侧 TLS 是**互相独立的信任边界**，必须分开理解：入站伪造证书由本地 CA 现签，客户端是否信任完全取决于本机是否装了该根 CA，与源站证书无关；出站则是代理以普通客户端身份用 `(useHttps ? https : http).request` 或 `tls.connect` 连源站，校验的是源站证书，走 Node 原生校验。`lib/config.js:65` 默认 `config.rejectUnauthorized = false`，让自签名或证书链不全的源站也能连通，只有 `--mode safe`（`config.js:809-810`，等价于 `rejectUnauthorized`）才打开严格校验。也就是说：装了根 CA 只解决「客户端信任代理」，并不代表「代理信任源站」；关掉出站校验图的是兼容各种源站，代价是代理无法发现源站证书被替换。便利与安全的取舍被刻意留在出站这条边界上。
 
 ## 不解密分支：纯透传的完整路径
 

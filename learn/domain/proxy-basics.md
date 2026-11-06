@@ -21,11 +21,13 @@ description: 从请求行与 CONNECT 报文出发，解释 Whistle 四类入口�
 
 这个差异直接决定了实现：Whistle 收到 `request` 事件时，拿到的是已经带完整目标信息的请求，因此可以在中间件链里解析规则、改写头部和 body；而 CONNECT 请求行里只有 `host:port`，没有任何路径与方法可供改写。
 
+两种请求行的归一化落在 `lib/util/common.js:1248-1285` 的 `getFullUrl(req)`：当 `hasProtocol(req.url)` 命中（`:1251`，即绝对 URI）时，先用 `parseUrl` 拆出协议与主机，把 `req.url` 改回 `/path` 形式、把主机名写进 `headers.host`（`:1259-1262`）；origin-form 分支则只保证 `req.url` 以 `/` 开头（`:1263-1268`）。最后 `:1284` 按 `req.isWs` / `req.isHttps` 拼回 `http(s)://` 或 `ws(s)://` 开头的完整 URL。于是下游中间件只需面对统一的 `req.url` + `Host`，规则匹配（`lib/rules/index.js:645` 取 `req.fullUrl || util.getFullUrl(req)`）读到的始终是拼好的完整 URL——这正是「绝对 URI 只出现在代理入口」的原因。
+
 ### CONNECT 建立的是隧道，不是请求
 
 HTTPS 流量不能沿用上面的转发方式：代理若想读明文，就必须先让客户端相信自己就是源站。客户端的做法是先发 `CONNECT example.com:443 HTTP/1.1`，请代理开一条到目标的 TCP 通路；代理回 `HTTP/1.1 200 Connection Established` 之后，这连接的语义就变了——后续字节不再由代理按 HTTP 解析，而是原样双向透传，客户端在这条隧道里跑 TLS 握手。
 
-Whistle 把这个应答抽成了常量：`lib/util/index.js:369-375` 的 `ESTABLISHED_CTN` 与 `util.setEstablished(socket)`。注意「200」在这里不是业务成功码，而是「隧道已就绪」的开关；一旦发出，代理就退化为管道。也正因如此，纯透传模式下 Whistle 看不到 HTTPS 里的任何内容，抓 HTTPS 必须走后一篇要讲的中间人解密。
+Whistle 把这个应答抽成了常量：`lib/util/index.js:369-375` 的 `ESTABLISHED_CTN` 与 `util.setEstablished(socket)`；调用点在 `lib/tunnel.js:281`——纯透传分支（判定不解密）确认目标可达后对客户端 socket 写出这段固定字节串，客户端收到即开始在这条连接上发 TLS ClientHello。注意「200」在这里不是业务成功码，而是「隧道已就绪」的开关；一旦发出，代理就退化为管道。也正因如此，纯透传模式下 Whistle 看不到 HTTPS 里的任何内容，抓 HTTPS 必须走后一篇要讲的中间人解密。
 
 ### SOCKS、PAC 与系统代理各管一段
 
@@ -91,7 +93,7 @@ var client = http.request({
 | `httpsPort` | 关闭 | 独立 TLS 入口 | `lib/config.js:681-684` |
 | `socksPort` | 关闭 | SOCKS 入口 | `lib/config.js:671-674` |
 
-最容易读错的是 `sockets`：它不是监听数量，也不是并发总量，而是交给 `http.Agent` 的 `maxSockets`，即**对每个目标域名**可复用的连接池上限（`lib/config.js:1039-1048`）。把它调大是为了减少高并发出站时的排队，与监听端口无关。`httpPort` / `httpsPort` 则是给「客户端只能说纯 HTTP 或纯 TLS」的场景用的额外入口，最终仍通过 `lib/index.js:96-123` 的 `createNormalServer` 回调到同一个 `app`。
+最容易读错的是 `sockets`：它不是监听数量，也不是并发总量，而是交给 `http.Agent` 的 `maxSockets`，即**对每个目标域名**可复用的连接池上限（`lib/config.js:1039-1048`）。把它调大是为了减少高并发出站时的排队，与监听端口无关。还要注意 `lib/config.js:1046-1048`：默认 `disableAgent = !newAgentConf && !useAgent` 为真，`config.httpAgent` / `httpsAgent` 会直接被置为 `false`，连接池根本不启用；只有显式传入 agent 配置或 `useAgent` 时才创建 `HttpAgent` / `HttpsAgent`。源码 `:1045` 的注释说明，这是为规避 Node 11 及以上版本缓存连接的问题。`httpPort` / `httpsPort` 则是给「客户端只能说纯 HTTP 或纯 TLS」的场景用的额外入口，最终仍通过 `lib/index.js:96-123` 的 `createNormalServer` 回调到同一个 `app`。
 
 ## 上游代理与链式 CONNECT
 
