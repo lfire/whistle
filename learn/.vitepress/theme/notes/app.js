@@ -191,9 +191,10 @@ function buildUI() {
       <span class="wn-fab-icon">✎</span><span class="wn-fab-text">笔记</span><span class="wn-badge" hidden>0</span>
     </button>
     <div class="wn-selbar" hidden>
-      <span class="wn-selbar-label">标记</span>
-      ${QUICK_TAGS.map((tag) => `<button type="button" data-quick="${tag}" class="wn-q-${tag}">${tagLabel(tag)}</button>`).join('')}
-      <button type="button" data-quick="compose" class="wn-q-compose">写笔记…</button>
+      <span class="wn-selbar-label">标记为</span>
+      ${QUICK_TAGS.map((tag) => `<button type="button" data-quick="${tag}" class="wn-sel-btn wn-q-${tag}" aria-pressed="false" title="标记为「${tagLabel(tag)}」"><i class="wn-q-dot"></i><span>${tagLabel(tag)}</span></button>`).join('')}
+      <span class="wn-selbar-sep"></span>
+      <button type="button" data-quick="compose" class="wn-sel-btn wn-q-compose" title="打开完整编辑器"><i class="wn-q-icon">✎</i><span>写笔记…</span></button>
     </div>
     <button class="wn-elem-btn" type="button" hidden title="为这个要素记笔记">✎</button>
     <aside class="wn-drawer" aria-label="学习笔记">
@@ -214,11 +215,11 @@ function buildUI() {
         <button class="wn-sort" type="button" title="切换排序">最新</button>
       </div>
       <div class="wn-filters"></div>
-      <nav class="wn-tabs">
-        <button type="button" data-view="list" data-filter="doc" class="is-active">本篇</button>
-        <button type="button" data-view="list" data-filter="all">全部</button>
-        <button type="button" data-view="review">复习</button>
-        <button type="button" data-view="account">账号</button>
+      <nav class="wn-tabs" role="tablist">
+        <button type="button" role="tab" aria-selected="true" data-view="list" data-filter="doc" class="is-active">本篇</button>
+        <button type="button" role="tab" aria-selected="false" data-view="list" data-filter="all">全部</button>
+        <button type="button" role="tab" aria-selected="false" data-view="review">复习</button>
+        <button type="button" role="tab" aria-selected="false" data-view="account">账号</button>
       </nav>
       <div class="wn-body">
         <div class="wn-list"></div>
@@ -276,10 +277,10 @@ function buildUI() {
           <button class="wn-restore" type="button" hidden>恢复上次草稿</button>
         </div>
         <footer class="wn-modal-foot">
-          <div class="wn-mode">
-            <button type="button" data-mode="edit" class="is-active">编辑</button>
-            <button type="button" data-mode="split">分栏</button>
-            <button type="button" data-mode="preview">预览</button>
+          <div class="wn-mode" role="group" aria-label="编辑模式">
+            <button type="button" data-mode="edit" aria-pressed="true" class="is-active">编辑</button>
+            <button type="button" data-mode="split" aria-pressed="false">分栏</button>
+            <button type="button" data-mode="preview" aria-pressed="false">预览</button>
           </div>
           <div class="wn-modal-actions">
             <button class="wn-ghost wn-delete" type="button" hidden>删除</button>
@@ -326,10 +327,10 @@ function buildUI() {
     `<button type="button" data-action="${action.id}" title="${action.title}">${action.label}</button>`
   ).join('')
   els.tagPicker.innerHTML = TAGS.map((tag) =>
-    `<button type="button" data-tag="${tag.id}" class="wn-chip wn-chip-${tag.id}">${tag.label}</button>`
+    `<button type="button" data-tag="${tag.id}" aria-pressed="false" class="wn-chip wn-chip-${tag.id}">${tag.label}</button>`
   ).join('')
   els.filters.innerHTML = [{ id: 'all', label: '全部标签' }].concat(TAGS).map((tag) =>
-    `<button type="button" data-tag="${tag.id}" class="wn-filter-chip${tag.id === 'all' ? ' is-active' : ''}">${tag.label}</button>`
+    `<button type="button" data-tag="${tag.id}" aria-pressed="${tag.id === 'all'}" class="wn-filter-chip${tag.id === 'all' ? ' is-active' : ''}">${tag.label}</button>`
   ).join('')
 }
 
@@ -395,6 +396,7 @@ function renderView() {
     const matches = button.dataset.view === view &&
       (view !== 'list' || button.dataset.filter === state.filter)
     button.classList.toggle('is-active', matches)
+    button.setAttribute('aria-selected', matches ? 'true' : 'false')
   })
   if (view === 'list') renderList()
   if (view === 'review') renderReview()
@@ -507,8 +509,11 @@ function bindEvents() {
     const button = event.target.closest('button[data-tag]')
     if (!button) return
     state.tagFilter = button.dataset.tag
-    els.filters.querySelectorAll('button').forEach((item) =>
-      item.classList.toggle('is-active', item === button))
+    els.filters.querySelectorAll('button').forEach((item) => {
+      const active = item === button
+      item.classList.toggle('is-active', active)
+      item.setAttribute('aria-pressed', active ? 'true' : 'false')
+    })
     renderView()
   })
 
@@ -556,14 +561,22 @@ function bindEvents() {
     const button = event.target.closest('button[data-quick]')
     if (!button) return
     const pending = state.pendingSelection
-    hideSelectionBar()
-    if (!pending) return
     const tag = button.dataset.quick
     if (tag === 'compose') {
-      openEditor({ type: 'selection', anchor: pending.anchor, quote: pending.quote })
-    } else {
-      createQuickNote(tag, pending)
+      hideSelectionBar()
+      if (pending) openEditor({ type: 'selection', anchor: pending.anchor, quote: pending.quote })
+      return
     }
+    if (!pending) { hideSelectionBar(); return }
+    // 给按钮一个明确的「已选中」反馈，再收起菜单
+    els.selbar.querySelectorAll('.is-picked').forEach((item) => {
+      item.classList.remove('is-picked')
+      item.setAttribute('aria-pressed', 'false')
+    })
+    button.classList.add('is-picked')
+    button.setAttribute('aria-pressed', 'true')
+    createQuickNote(tag, pending)
+    window.setTimeout(hideSelectionBar, 280)
   })
 
   els.elemBtn.addEventListener('mouseenter', () => window.clearTimeout(hideElemTimer))
@@ -729,6 +742,7 @@ function bindEvents() {
 function onKeyDown(event) {
   const inField = /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)
   if (event.key === 'Escape') {
+    if (!els.selbar.hidden) hideSelectionBar()
     if (!els.modal.hidden) closeEditor()
     else els.drawer.classList.remove('is-open')
     return
@@ -765,8 +779,11 @@ function onContentClick(event) {
   state.query = ''
   els.search.value = ''
   state.tagFilter = 'all'
-  els.filters.querySelectorAll('button').forEach((item) =>
-    item.classList.toggle('is-active', item.dataset.tag === 'all'))
+  els.filters.querySelectorAll('button').forEach((item) => {
+    const active = item.dataset.tag === 'all'
+    item.classList.toggle('is-active', active)
+    item.setAttribute('aria-pressed', active ? 'true' : 'false')
+  })
   renderView()
   const card = els.list.querySelector(`.wn-card[data-id="${note.id}"]`)
   if (card) {
@@ -790,13 +807,28 @@ function onSelectionEnd() {
     state.pendingSelection = { anchor, quote, section: nearestHeading() }
     const rect = range.getBoundingClientRect()
     els.selbar.hidden = false
-    const width = 330
+    els.selbar.querySelectorAll('button[data-quick]').forEach((item) => {
+      item.classList.remove('is-picked')
+      item.setAttribute('aria-pressed', 'false')
+    })
+    // 用实际尺寸定位，避免菜单被视口裁切，并让下方小箭头对准选区
+    const width = els.selbar.offsetWidth || 360
+    const height = els.selbar.offsetHeight || 46
     const left = Math.max(12, Math.min(window.innerWidth - width - 12, rect.left + rect.width / 2 - width / 2))
     els.selbar.style.left = `${left}px`
-    els.selbar.style.top = `${Math.max(12, rect.top - 48)}px`
+    els.selbar.style.top = `${Math.max(12, rect.top - height - 12)}px`
+    const arrowX = Math.max(16, Math.min(width - 16, rect.left + rect.width / 2 - left))
+    els.selbar.style.setProperty('--wn-arrow-x', `${arrowX}px`)
   }, 10)
 }
-function hideSelectionBar() { if (els.selbar) els.selbar.hidden = true }
+function hideSelectionBar() {
+  if (!els.selbar) return
+  els.selbar.hidden = true
+  els.selbar.querySelectorAll('button[data-quick]').forEach((item) => {
+    item.classList.remove('is-picked')
+    item.setAttribute('aria-pressed', 'false')
+  })
+}
 
 function onElementHover(event) {
   const root = anchors.getRoot()
@@ -930,8 +962,11 @@ function cleanupImages() {
 
 function setEditorTag(tag) {
   state.editorTag = tag
-  els.tagPicker.querySelectorAll('button').forEach((button) =>
-    button.classList.toggle('is-active', button.dataset.tag === tag))
+  els.tagPicker.querySelectorAll('button').forEach((button) => {
+    const active = button.dataset.tag === tag
+    button.classList.toggle('is-active', active)
+    button.setAttribute('aria-pressed', active ? 'true' : 'false')
+  })
 }
 
 function createQuickNote(tag, pending) {
@@ -978,8 +1013,11 @@ function openEditor(options) {
 
 function switchMode(mode) {
   state.mode = mode
-  els.mode.querySelectorAll('button').forEach((button) =>
-    button.classList.toggle('is-active', button.dataset.mode === mode))
+  els.mode.querySelectorAll('button').forEach((button) => {
+    const active = button.dataset.mode === mode
+    button.classList.toggle('is-active', active)
+    button.setAttribute('aria-pressed', active ? 'true' : 'false')
+  })
   els.textarea.hidden = mode === 'preview'
   els.preview.hidden = mode === 'edit'
   els.editorWrap.classList.toggle('is-split', mode === 'split')
