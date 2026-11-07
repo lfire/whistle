@@ -4,8 +4,14 @@
  */
 
 const BASE = '/whistle/'
-const HIGHLIGHT_NAME = 'wn-note-highlight'
 const ACTIVE_NAME = 'wn-note-active'
+export const TAG_HIGHLIGHTS = {
+  plain: 'wn-hl-plain',
+  focus: 'wn-hl-focus',
+  question: 'wn-hl-question',
+  todo: 'wn-hl-todo',
+  insight: 'wn-hl-insight'
+}
 export const ELEMENT_TAGS = ['H2', 'H3', 'H4', 'P', 'LI', 'PRE', 'TABLE', 'BLOCKQUOTE']
 
 export function getRoot() {
@@ -231,28 +237,71 @@ function setHighlight(name, ranges) {
 export function clearHighlights() {
   try {
     if (typeof CSS !== 'undefined' && CSS.highlights) {
-      CSS.highlights.delete(HIGHLIGHT_NAME)
+      Object.values(TAG_HIGHLIGHTS).forEach((name) => CSS.highlights.delete(name))
       CSS.highlights.delete(ACTIVE_NAME)
     }
   } catch { /* ignore */ }
   document.querySelectorAll('.wn-anchored').forEach((el) => el.classList.remove('wn-anchored'))
 }
 
-/** 应用当前文档所有笔记的高亮 */
+/** 应用当前文档所有笔记的高亮；选区按标签分色，要素加左侧标记 */
 export function applyHighlights(notes, doc) {
   clearHighlights()
-  const ranges = []
+  const groups = {}
   notes.forEach((note) => {
     if (note.doc !== doc) return
     if (note.type === 'selection') {
       const range = restoreRange(note.anchor)
-      if (range) ranges.push(range)
+      if (!range) return
+      const name = TAG_HIGHLIGHTS[note.tag] || TAG_HIGHLIGHTS.plain
+      if (!groups[name]) groups[name] = []
+      groups[name].push(range)
     } else if (note.type === 'element') {
       const element = restoreElement(note.anchor)
-      if (element) element.classList.add('wn-anchored')
+      if (element) {
+        element.classList.add('wn-anchored')
+        element.dataset.wnTag = note.tag || 'plain'
+      }
     }
   })
-  setHighlight(HIGHLIGHT_NAME, ranges)
+  Object.entries(groups).forEach(([name, ranges]) => setHighlight(name, ranges.filter(Boolean)))
+}
+
+/** 当前文档所有可命中的选区范围，供点击高亮定位笔记 */
+export function rangesForDoc(notes, doc) {
+  return notes
+    .filter((note) => note.doc === doc && note.type === 'selection')
+    .map((note) => ({ note, range: restoreRange(note.anchor) }))
+    .filter((item) => item.range)
+}
+
+/** 点击正文时判断是否落在某条选区笔记的高亮里 */
+export function findNoteAtPoint(x, y, notes, doc) {
+  let node = null
+  let offset = 0
+  if (document.caretRangeFromPoint) {
+    const range = document.caretRangeFromPoint(x, y)
+    if (range) { node = range.startContainer; offset = range.startOffset }
+  } else if (document.caretPositionFromPoint) {
+    const position = document.caretPositionFromPoint(x, y)
+    if (position) { node = position.offsetNode; offset = position.offset }
+  }
+  if (!node) return null
+  for (const item of rangesForDoc(notes, doc)) {
+    try { if (item.range.isPointInRange(node, offset)) return item.note } catch { /* ignore */ }
+  }
+  return null
+}
+
+/**  hover 笔记卡片时临时强调对应原文 */
+export function emphasize(note) {
+  if (!note || note.type !== 'selection') return
+  const range = restoreRange(note.anchor)
+  if (!range) return
+  setHighlight(ACTIVE_NAME, [range])
+  window.setTimeout(() => {
+    try { CSS.highlights && CSS.highlights.delete(ACTIVE_NAME) } catch { /* ignore */ }
+  }, 1800)
 }
 
 /** 点击笔记时滚动定位并临时强调 */
