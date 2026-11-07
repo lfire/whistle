@@ -84,6 +84,26 @@ learn/
 
 **新增文档**：把 markdown 放入对应目录后，在 `.vitepress/config.mts` 的侧栏数组里补一条；正文第一行必须写与 frontmatter `title` 一致的 `# 一级标题`（VitePress 不会用 frontmatter 自动渲染 h1）。如需使用 `::: cols`，无需额外配置。
 
+## 学习笔记功能
+
+站点内置笔记系统，代码在 `.vitepress/theme/notes/`，纯前端、零后端依赖。
+
+**三种笔记**：选中一段文字后点浮动条记「选区笔记」；鼠标移到标题、段落、列表项、代码块、表格等要素左侧点 ✎ 记「要素笔记」；或点抽屉底部按钮记「整篇文档笔记」。选区笔记用字符偏移 + 引用文本 + 前后文指纹锚定，文档小幅改动仍能还原；刷新与 SPA 切换后会重建高亮。
+
+**Markdown + 富文本**：编辑器提供粗体、斜体、行内代码、链接、标题、列表、待办、引用、分隔线工具栏，可随时在「编辑 / 预览」间切换；预览与笔记列表都渲染为富文本。渲染前统一做 HTML 转义，只输出白名单标签，链接限定 http/https/mailto/相对路径。
+
+**按 GitHub 账号存储**（关键设计）：笔记不存在站点仓库里，而是存在**使用者自己 GitHub 账号的私有 Gist**（文件 `whistle-study-notes.json`）。身份由令牌通过 `GET /user` 解析，本地缓存按 `login` 分键，因此不同账号的数据天然隔离，不会串号。站点只需静态托管，无需数据库或 OAuth 后端。
+
+使用者配置步骤：
+
+1. 打开 [创建令牌](https://github.com/settings/tokens/new?scopes=gist&description=Whistle%20Study%20Notes) 页面，生成 **classic PAT**，权限**只勾选 `gist`**，不要勾选其它项。
+2. 在站点右下角点「笔记」→「账号」→ 粘贴令牌 →「校验并连接」。
+3. 页面会显示 GitHub 账号与同步状态；之后每次改动会在 1.8 秒后自动同步，也可点「同步」立即推送。换设备时输入同一令牌即可继续。
+
+令牌只保存在当前浏览器的 `localStorage`，请求只发往 `api.github.com`；站点仓库、构建日志、Pages 产物都不含任何令牌。未连接账号时笔记仍可离线使用，数据保存在本机并明确标注「仅本机保存」，连接后自动合并到 Gist（同一条笔记以 `updatedAt` 较新者为准）。账号页可导出全部笔记为 JSON。
+
+> 私有（secret）Gist 不会出现在公开列表，但知道链接的人仍可访问，请勿在其中存放密码等敏感信息。若未来要改成「一键 GitHub 登录」，需要额外部署一个持有 OAuth App 私钥的令牌交换服务，纯静态 Pages 无法安全内置 `client_secret`。
+
 ## 部署
 
 工作流：`.github/workflows/deploy-learn.yml`。
