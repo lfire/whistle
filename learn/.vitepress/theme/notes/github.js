@@ -83,7 +83,7 @@ export async function fetchUser(token) {
 }
 
 export function emptyData(owner) {
-  return { version: 1, owner, updatedAt: new Date().toISOString(), notes: [] }
+  return { version: 1, owner, updatedAt: new Date().toISOString(), notes: [], images: {} }
 }
 
 /** 读取 Gist；返回 { notFound } / { data } */
@@ -143,5 +143,15 @@ export function mergeData(local, remote) {
   const notes = [...map.values()].sort(
     (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
   )
-  return { version: 1, owner: (remote && remote.owner) || (local && local.owner) || '', notes }
+  // 图片按 id 合并，本地新增的（尚未同步）优先保留
+  const images = {
+    ...((remote && remote.images) || {}),
+    ...((local && local.images) || {})
+  }
+  return {
+    version: 1,
+    owner: (remote && remote.owner) || (local && local.owner) || '',
+    notes,
+    images
+  }
 }

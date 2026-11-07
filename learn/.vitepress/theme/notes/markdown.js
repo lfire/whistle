@@ -20,22 +20,37 @@ function safeUrl(url) {
 function inline(source) {
   let text = source
   const codes = []
+  const tags = []
+  // 先把「已生成的标签」占位保护，否则后续粗体/斜体正则会误伤
+  // 属性里的下划线（如 target="_blank" 或图片 id img_xxx_yyy）
+  const hold = (html) => {
+    tags.push(html)
+    return `\u0000T${tags.length - 1}\u0000`
+  }
+
   text = text.replace(/`([^`]+)`/g, (_, code) => {
     codes.push(code)
     return `\u0000C${codes.length - 1}\u0000`
   })
 
   text = text
-    .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, alt, url) =>
-      `<img src="${escapeHtml(safeUrl(url))}" alt="${escapeHtml(alt)}" loading="lazy">`)
+    .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, alt, url) => {
+      const embedded = url.match(/^wn-image:([\w-]+)$/)
+      if (embedded) {
+        return hold(`<img class="wn-md-image" data-wn-image="${embedded[1]}" alt="${alt}" loading="lazy">`)
+      }
+      // source 整体已转义过，这里不能二次 escapeHtml，否则 & 会变成 &amp;amp;
+      return hold(`<img src="${safeUrl(url)}" alt="${alt}" loading="lazy">`)
+    })
     .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, label, url) =>
-      `<a href="${escapeHtml(safeUrl(url))}" target="_blank" rel="noopener noreferrer">${label}</a>`)
+      hold(`<a href="${safeUrl(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`))
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/__([^_]+)__/g, '<strong>$1</strong>')
     .replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>')
     .replace(/(^|[^_])_([^_]+)_/g, '$1<em>$2</em>')
     .replace(/~~([^~]+)~~/g, '<del>$1</del>')
 
+  text = text.replace(/\u0000T(\d+)\u0000/g, (_, index) => tags[Number(index)] || '')
   return text.replace(/\u0000C(\d+)\u0000/g, (_, index) => `<code>${codes[Number(index)]}</code>`)
 }
 
@@ -151,12 +166,14 @@ export const TOOLBAR = [
   { id: 'ul', label: '列表', title: '无序列表', linePrefix: '- ', sample: '列表项' },
   { id: 'task', label: '待办', title: '待办项', linePrefix: '- [ ] ', sample: '待办事项' },
   { id: 'quote', label: '引用', title: '引用', linePrefix: '> ', sample: '引用内容' },
-  { id: 'hr', label: '分隔线', title: '分隔线', insert: '\n---\n' }
+  { id: 'hr', label: '分隔线', title: '分隔线', insert: '\n---\n' },
+  { id: 'image', label: '图片', title: '上传本地图片（也可直接粘贴或拖入）', custom: true },
+  { id: 'imageUrl', label: '网络图', title: '插入图片链接', custom: true }
 ]
 
 /** 在 textarea 上套用格式，保持光标位置与撤销体验 */
 export function applyToolbar(textarea, action) {
-  if (!textarea || !action) return
+  if (!textarea || !action || action.custom) return
   const start = textarea.selectionStart
   const end = textarea.selectionEnd
   const value = textarea.value

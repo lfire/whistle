@@ -8,6 +8,8 @@ import { renderMarkdown, TOOLBAR, applyToolbar } from './markdown.js'
 
 const LOCAL_KEY = 'wn:notes:local'
 const DRAFT_KEY = 'wn:draft'
+const MAX_IMAGE_CHARS = 1200000 // 图片 base64 总量上限，避免 Gist 过大
+const IMAGE_RE = /wn-image:([\w-]+)/g
 
 const TAGS = [
   { id: 'plain', label: '普通' },
@@ -27,7 +29,7 @@ const QUICK_TAGS = ['plain', 'focus', 'question', 'todo']
 
 const state = {
   token: '', user: null, gistId: '',
-  notes: [], currentDoc: '/',
+  notes: [], images: {}, currentDoc: '/',
   filter: 'doc', view: 'list',
   status: 'local', statusText: '仅本机保存',
   dirty: false, syncing: false,
@@ -48,6 +50,21 @@ let emphasizeTimer = null
 /* ---------- 基础工具 ---------- */
 
 function notesKey() { return state.user ? `wn:notes:${state.user.login}` : LOCAL_KEY }
+function imagesKey() { return state.user ? `wn:images:${state.user.login}` : 'wn:images:local' }
+function readImages(key) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || '{}')
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  } catch { return {} }
+}
+function saveImages() {
+  try { localStorage.setItem(imagesKey(), JSON.stringify(state.images)) } catch {
+    toast('图片占用超出浏览器本地存储，请删除部分图片', 'warn')
+  }
+}
+function imagesSize() {
+  return Object.values(state.images).reduce((total, value) => total + (value ? value.length : 0), 0)
+}
 function readNotes(key) {
   try {
     const parsed = JSON.parse(localStorage.getItem(key) || '[]')
@@ -243,6 +260,8 @@ function buildUI() {
         </footer>
       </div>
     </div>
+    <input class="wn-file" type="file" accept="image/*" multiple hidden>
+    <div class="wn-viewer" hidden><img alt="笔记图片"><button class="wn-viewer-close" type="button" title="关闭">×</button></div>
     <div class="wn-toast"></div>
   `
   document.body.appendChild(root)
@@ -267,7 +286,9 @@ function buildUI() {
     textarea: q('.wn-textarea'), preview: q('.wn-preview'),
     count: q('.wn-count'), restore: q('.wn-restore'),
     mode: q('.wn-mode'), save: q('.wn-save'), cancel: q('.wn-cancel'),
-    delete: q('.wn-delete'), modalClose: q('.wn-modal-close'), toast: q('.wn-toast')
+    delete: q('.wn-delete'), modalClose: q('.wn-modal-close'), toast: q('.wn-toast'),
+    file: q('.wn-file'), viewer: q('.wn-viewer'), viewerImg: q('.wn-viewer img'),
+    viewerClose: q('.wn-viewer-close')
   }
 
   els.toolbar.innerHTML = TOOLBAR.map((action) =>
@@ -396,6 +417,7 @@ function renderList() {
     `)
   })
   els.list.innerHTML = parts.join('')
+  hydrateImages(els.list)
 }
 
 function renderReview() {
@@ -425,6 +447,7 @@ function renderReview() {
     </div>
     <button class="wn-ghost wn-master-btn" type="button" data-review="master">${note.mastered ? '✓ 已掌握（点击取消）' : '标记为已掌握'}</button>
   `
+  hydrateImages(els.review)
 }
 
 /* ---------- 事件 ---------- */
@@ -517,8 +540,52 @@ function bindEvents() {
   els.toolbar.addEventListener('click', (event) => {
     const button = event.target.closest('button[data-action]')
     if (!button) return
+    const action = TOOLBAR.find((item) => item.id === button.dataset.action)
+    if (!action) return
+    if (action.custom) {
+      if (action.id === 'image') els.file.click()
+      else if (action.id === 'imageUrl') insertImageUrl()
+      return
+    }
     if (state.mode === 'preview') switchMode('edit')
-    applyToolbar(els.textarea, TOOLBAR.find((item) => item.id === button.dataset.action))
+    applyToolbar(els.textarea, action)
+  })
+  els.file.addEventListener('change', () => {
+    handleImageFiles([...els.file.files])
+    els.file.value = ''
+  })
+  els.textarea.addEventListener('paste', (event) => {
+    const files = [...((event.clipboardData && event.clipboardData.files) || [])]
+      .filter((file) => file.type.startsWith('image/'))
+    if (files.length) { event.preventDefault(); handleImageFiles(files) }
+  })
+  // 只在弹层上绑定，避免 editorWrap 与 modal 冒泡导致一张图被处理两次
+  els.modal.addEventListener('dragover', (event) => {
+    if (event.dataTransfer && [...event.dataTransfer.types].includes('Files')) {
+      event.preventDefault()
+      els.editorWrap.classList.add('is-dragover')
+    }
+  })
+  els.modal.addEventListener('dragleave', () => els.editorWrap.classList.remove('is-dragover'))
+  els.modal.addEventListener('drop', (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    els.editorWrap.classList.remove('is-dragover')
+    const files = [...((event.dataTransfer && event.dataTransfer.files) || [])]
+      .filter((file) => file.type.startsWith('image/'))
+    if (files.length) handleImageFiles(files)
+  })
+  ;[els.list, els.review, els.preview].forEach((target) => {
+    target.addEventListener('click', (event) => {
+      const image = event.target.closest('img.wn-md-image')
+      if (!image || !image.src) return
+      els.viewerImg.src = image.src
+      els.viewer.hidden = false
+    })
+  })
+  els.viewerClose.addEventListener('click', () => { els.viewer.hidden = true })
+  els.viewer.addEventListener('click', (event) => {
+    if (event.target === els.viewer) els.viewer.hidden = true
   })
   els.textarea.addEventListener('input', () => { updatePreview(); scheduleDraft() })
   els.mode.addEventListener('click', (event) => {
@@ -691,6 +758,117 @@ function onElementHover(event) {
   els.elemBtn.style.left = `${Math.max(4, rect.left - 34)}px`
 }
 
+/* ---------- 图片：压缩内嵌、随笔记同步、点击放大 ---------- */
+
+function hydrateImages(container) {
+  if (!container) return
+  container.querySelectorAll('img[data-wn-image]').forEach((image) => {
+    const id = image.dataset.wnImage
+    const source = state.images[id]
+    if (source) {
+      image.src = source
+      image.title = '点击放大查看'
+      image.classList.remove('is-missing')
+    } else {
+      image.classList.add('is-missing')
+      image.alt = '图片数据缺失'
+      image.removeAttribute('src')
+    }
+  })
+}
+
+function imageUsageText() {
+  const count = Object.keys(state.images).length
+  return count ? ` · 图片 ${count} 张 / ${Math.round(imagesSize() / 1024)} KB` : ''
+}
+
+async function compressImage(file) {
+  const original = await new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(new Error('读取图片失败'))
+    reader.readAsDataURL(file)
+  })
+  const image = await new Promise((resolve, reject) => {
+    const element = new Image()
+    element.onload = () => resolve(element)
+    element.onerror = () => reject(new Error('图片格式无法识别'))
+    element.src = original
+  })
+  const maxSide = 1280
+  const scale = Math.min(1, maxSide / Math.max(image.width, image.height))
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, Math.round(image.width * scale))
+  canvas.height = Math.max(1, Math.round(image.height * scale))
+  const context = canvas.getContext('2d')
+  context.fillStyle = '#ffffff'
+  context.fillRect(0, 0, canvas.width, canvas.height)
+  context.drawImage(image, 0, 0, canvas.width, canvas.height)
+  let quality = 0.8
+  let result = canvas.toDataURL('image/jpeg', quality)
+  while (result.length > 320000 && quality > 0.4) {
+    quality -= 0.12
+    result = canvas.toDataURL('image/jpeg', quality)
+  }
+  return result
+}
+
+async function handleImageFiles(files) {
+  if (!state.editor || els.modal.hidden) {
+    openEditor({ type: 'page', anchor: null, quote: '' })
+  }
+  for (const file of files) {
+    if (!file.type || !file.type.startsWith('image/')) continue
+    if (imagesSize() >= MAX_IMAGE_CHARS) {
+      toast('图片空间已满，请删除含图笔记或改用网络图', 'warn')
+      break
+    }
+    toast('正在压缩图片…')
+    let dataUrl
+    try { dataUrl = await compressImage(file) } catch (error) {
+      toast(error.message, 'error')
+      continue
+    }
+    if (imagesSize() + dataUrl.length > MAX_IMAGE_CHARS) {
+      toast('剩余空间不足，这张图片未插入', 'warn')
+      continue
+    }
+    const id = `img_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+    state.images[id] = dataUrl
+    saveImages()
+    const alt = (file.name || '图片').replace(/\.[^.]+$/, '').slice(0, 40) || '图片'
+    const markdown = `\n![${alt}](wn-image:${id})\n`
+    els.textarea.setRangeText(markdown, els.textarea.selectionStart, els.textarea.selectionEnd, 'end')
+    els.textarea.dispatchEvent(new Event('input', { bubbles: true }))
+  }
+  toast('图片已插入，保存笔记后同步到你的 Gist', 'ok')
+}
+
+function insertImageUrl() {
+  const url = window.prompt('输入图片链接（https://…）：', 'https://')
+  if (!url || !/^https?:\/\//i.test(url.trim())) return
+  const markdown = `\n![图片](${url.trim()})\n`
+  els.textarea.setRangeText(markdown, els.textarea.selectionStart, els.textarea.selectionEnd, 'end')
+  els.textarea.dispatchEvent(new Event('input', { bubbles: true }))
+  els.textarea.focus()
+}
+
+function cleanupImages() {
+  const used = new Set()
+  const collect = (text) => {
+    const regex = /wn-image:([\w-]+)/g
+    let match
+    while ((match = regex.exec(text || ''))) used.add(match[1])
+  }
+  state.notes.forEach((note) => collect(note.content))
+  if (state.editor && !els.modal.hidden) collect(els.textarea.value)
+  let removed = 0
+  Object.keys(state.images).forEach((id) => {
+    if (!used.has(id)) { delete state.images[id]; removed += 1 }
+  })
+  if (removed) saveImages()
+}
+
 /* ---------- 编辑与草稿 ---------- */
 
 function setEditorTag(tag) {
@@ -753,8 +931,11 @@ function switchMode(mode) {
   updatePreview()
 }
 function updatePreview() {
-  if (els.preview) els.preview.innerHTML = renderMarkdown(els.textarea.value)
-  if (els.count) els.count.textContent = `${els.textarea.value.length} 字`
+  if (els.preview) {
+    els.preview.innerHTML = renderMarkdown(els.textarea.value)
+    hydrateImages(els.preview)
+  }
+  if (els.count) els.count.textContent = `${els.textarea.value.length} 字${imageUsageText()}`
 }
 
 function scheduleDraft() {
@@ -824,7 +1005,9 @@ function deleteFromEditor() {
 /* ---------- 同步与导出 ---------- */
 
 function afterChange(message) {
+  cleanupImages() // 删除已不被任何笔记引用的图片，控制 Gist 体积
   saveLocal()
+  saveImages()
   state.dirty = true
   refresh()
   toast(message, 'ok')
@@ -841,7 +1024,11 @@ async function pushAll() {
   state.syncing = true
   setStatus('syncing', '正在同步…')
   try {
-    const data = { version: 1, owner: state.user.login, updatedAt: new Date().toISOString(), notes: state.notes }
+    const data = {
+      version: 1, owner: state.user.login,
+      updatedAt: new Date().toISOString(),
+      notes: state.notes, images: state.images
+    }
     if (!state.gistId) {
       state.gistId = await gh.createGist(state.token, data)
       gh.setGistId(state.user.login, state.gistId)
@@ -871,13 +1058,20 @@ async function connectWithToken(token, { remember = true } = {}) {
     if (remember) gh.setToken(token)
     state.gistId = gh.getGistId(user.login)
     state.notes = readNotes(notesKey())
+    state.images = {
+      ...readImages('wn:images:local'),
+      ...readImages(imagesKey())
+    }
     const remote = await gh.loadGist(token, state.gistId)
     if (remote.notFound) { state.gistId = ''; gh.setGistId(user.login, '') }
-    state.notes = gh.mergeData(
-      { owner: user.login, notes: [...state.notes, ...localDraft] },
-      remote.data || { owner: user.login, notes: [] }
-    ).notes.map(normalizeNote)
+    const merged = gh.mergeData(
+      { owner: user.login, notes: [...state.notes, ...localDraft], images: state.images },
+      remote.data || { owner: user.login, notes: [], images: {} }
+    )
+    state.notes = merged.notes.map(normalizeNote)
+    state.images = merged.images || {}
     saveLocal()
+    saveImages()
     if (localDraft.length) { try { localStorage.removeItem(LOCAL_KEY) } catch { /* ignore */ } }
     if (els.avatar) {
       els.avatar.hidden = false
@@ -906,6 +1100,7 @@ function signOut() {
   state.user = null
   state.gistId = ''
   state.notes = readNotes(LOCAL_KEY)
+  state.images = readImages('wn:images:local')
   if (els.avatar) { els.avatar.hidden = true; els.avatar.innerHTML = '' }
   if (els.logout) els.logout.hidden = true
   els.tokenBox.hidden = true
@@ -926,7 +1121,7 @@ function download(content, filename, type) {
 function exportNotes() {
   download(JSON.stringify({
     version: 1, owner: state.user ? state.user.login : 'local',
-    exportedAt: new Date().toISOString(), notes: state.notes
+    exportedAt: new Date().toISOString(), notes: state.notes, images: state.images
   }, null, 2), 'whistle-study-notes.json', 'application/json')
 }
 function exportMarkdown() {
@@ -944,7 +1139,9 @@ function exportMarkdown() {
       lines.push(`### [${tagLabel(note.tag)}] ${typeLabel(note.type)} · ${timeText(note.updatedAt)}`, '')
       if (note.section) lines.push(`章节：${note.section}`, '')
       if (note.quote) lines.push(`> ${note.quote.replace(/\n/g, ' ').slice(0, 400)}`, '')
-      lines.push(note.content, '', '---', '')
+      // 导出的 Markdown 自包含图片：把占位换成 data URL
+      lines.push((note.content || '').replace(/wn-image:([\w-]+)/g, (_, id) =>
+        state.images[id] || `（图片 ${id} 数据缺失）`), '', '---', '')
     })
   })
   download(lines.join('\n'), 'whistle-study-notes.md', 'text/markdown;charset=utf-8')
@@ -968,6 +1165,7 @@ export function initNotes() {
   bindEvents()
   state.currentDoc = anchors.docPath()
   state.notes = readNotes(LOCAL_KEY)
+  state.images = readImages('wn:images:local')
   refresh()
   restoreSession()
   window.setTimeout(watchPath, 400)
