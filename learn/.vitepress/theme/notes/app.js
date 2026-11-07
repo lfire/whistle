@@ -8,8 +8,12 @@ import { renderMarkdown, TOOLBAR, applyToolbar } from './markdown.js'
 
 const LOCAL_KEY = 'wn:notes:local'
 const DRAFT_KEY = 'wn:draft'
+const USER_CACHE_KEY = 'wn:user'
 const MAX_IMAGE_CHARS = 1200000 // 图片 base64 总量上限，避免 Gist 过大
 const IMAGE_RE = /wn-image:([\w-]+)/g
+const SYNC_DEBOUNCE = 4000         // 连续改动合并成一次请求
+const MIN_SYNC_INTERVAL = 30000    // 两次成功同步之间的最小间隔
+const DEFAULT_COOLDOWN = 15 * 60 * 1000 // 拿不到重置时间时的兜底冷却
 
 const TAGS = [
   { id: 'plain', label: '普通' },
@@ -33,6 +37,7 @@ const state = {
   filter: 'doc', view: 'list',
   status: 'local', statusText: '仅本机保存',
   dirty: false, syncing: false,
+  cooldownUntil: 0, lastSyncAt: 0, rateLimit: null,
   query: '', tagFilter: 'all', sort: 'newest',
   editor: null, mode: 'edit', editorTag: 'plain',
   pendingSelection: null, activeElement: null,
@@ -43,6 +48,7 @@ const state = {
 
 let els = {}
 let syncTimer = null
+let cooldownTimer = null
 let hideElemTimer = null
 let draftTimer = null
 let emphasizeTimer = null
@@ -51,6 +57,22 @@ let emphasizeTimer = null
 
 function notesKey() { return state.user ? `wn:notes:${state.user.login}` : LOCAL_KEY }
 function imagesKey() { return state.user ? `wn:images:${state.user.login}` : 'wn:images:local' }
+
+/** 只保存令牌指纹（不存明文）与账号信息，避免每次加载都请求 /user */
+function tokenFingerprint(token) {
+  return `${token.length}:${token.slice(0, 6)}:${token.slice(-4)}`
+}
+function readUserCache(token) {
+  try {
+    const cache = JSON.parse(localStorage.getItem(USER_CACHE_KEY) || 'null')
+    return cache && cache.fingerprint === tokenFingerprint(token) ? cache.user : null
+  } catch { return null }
+}
+function saveUserCache(token, user) {
+  try {
+    localStorage.setItem(USER_CACHE_KEY, JSON.stringify({ fingerprint: tokenFingerprint(token), user }))
+  } catch { /* ignore */ }
+}
 function readImages(key) {
   try {
     const parsed = JSON.parse(localStorage.getItem(key) || '{}')
@@ -221,6 +243,13 @@ function buildUI() {
             <button class="wn-ghost wn-export" type="button">导出 JSON</button>
             <button class="wn-ghost wn-export-md" type="button">导出 Markdown</button>
           </div>
+          <h3>API 配额</h3>
+          <p>GitHub 账号每小时有 REST API 调用上限。若提示「限额恢复中」，笔记仍可离线记录，到期后自动同步；也可查看配额或手动重试。</p>
+          <div class="wn-quota"><span class="wn-quota-text">未检查</span></div>
+          <div class="wn-export-row">
+            <button class="wn-ghost wn-check-quota" type="button">检查配额</button>
+            <button class="wn-ghost wn-retry-sync" type="button" hidden>立即重试同步</button>
+          </div>
         </div>
       </div>
       <footer class="wn-foot">
@@ -279,6 +308,8 @@ function buildUI() {
     loginBtn: q('.wn-login'), tokenBox: q('.wn-token-box'), tokenInput: q('#wn-token'),
     tokenSave: q('.wn-token-save'), logout: q('.wn-logout'),
     exportBtn: q('.wn-export'), exportMd: q('.wn-export-md'), newBtn: q('.wn-new'),
+    quotaText: q('.wn-quota-text'), checkQuota: q('.wn-check-quota'),
+    retrySync: q('.wn-retry-sync'),
     modal: q('.wn-modal'), modalTitle: q('.wn-modal-title'), modalSub: q('.wn-modal-sub'),
     tagPicker: q('.wn-tag-picker'), quote: q('.wn-quote'), quoteText: q('.wn-quote-text'),
     insertQuote: q('.wn-insert-quote'),
@@ -317,6 +348,7 @@ function refreshStatus() {
       : '未连接 GitHub'
   }
   if (els.syncBtn) els.syncBtn.disabled = !state.user || state.syncing
+  if (els.retrySync) els.retrySync.hidden = Date.now() >= state.cooldownUntil
   if (els.loginBtn) els.loginBtn.textContent = state.user ? '切换 / 退出账号' : '连接 GitHub 账号'
 }
 
@@ -493,6 +525,31 @@ function bindEvents() {
   els.logout.addEventListener('click', signOut)
   els.exportBtn.addEventListener('click', exportNotes)
   els.exportMd.addEventListener('click', exportMarkdown)
+  els.checkQuota.addEventListener('click', async () => {
+    if (!state.token) { toast('请先连接 GitHub 账号', 'warn'); return }
+    els.quotaText.textContent = '正在查询…'
+    try {
+      const quota = await gh.fetchRateLimit(state.token)
+      if (!quota) { els.quotaText.textContent = '查询失败'; return }
+      const reset = quota.resetAt
+        ? new Date(quota.resetAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
+        : ''
+      els.quotaText.textContent = `剩余 ${quota.remaining} / ${quota.limit} 次${reset ? ` · ${reset} 重置` : ''}`
+      if (quota.remaining === 0 && quota.resetAt) {
+        state.cooldownUntil = quota.resetAt + 1000
+        state.rateLimit = { remaining: 0, resetAt: quota.resetAt }
+        scheduleCooldownCheck()
+      }
+      refreshStatus()
+    } catch (error) {
+      els.quotaText.textContent = error.message
+    }
+  })
+  els.retrySync.addEventListener('click', () => {
+    state.cooldownUntil = 0
+    window.clearTimeout(cooldownTimer)
+    pushAll(true)
+  })
 
   els.selbar.addEventListener('mousedown', (event) => event.preventDefault())
   els.selbar.addEventListener('click', (event) => {
@@ -1013,14 +1070,78 @@ function afterChange(message) {
   toast(message, 'ok')
   scheduleSync()
 }
+function cooldownText() {
+  const minutes = Math.max(1, Math.ceil((state.cooldownUntil - Date.now()) / 60000))
+  return `API 限额恢复中 · 约 ${minutes} 分钟后自动重试（笔记保存在本机）`
+}
+
+function scheduleCooldownCheck() {
+  window.clearTimeout(cooldownTimer)
+  const delay = Math.max(2000, Math.min(state.cooldownUntil - Date.now() + 1000, 60 * 60 * 1000))
+  cooldownTimer = window.setTimeout(() => {
+    if (Date.now() >= state.cooldownUntil) {
+      state.cooldownUntil = 0
+      setStatus('dirty', '限额已恢复，正在同步…')
+      pushAll()
+    } else {
+      setStatus('error', cooldownText())
+      scheduleCooldownCheck()
+    }
+  }, delay)
+}
+
+/** 限流不清令牌、不重复轰炸，进入冷却并给出恢复时间；笔记继续本地可用 */
+function handleSyncError(error) {
+  if (error.isRateLimit) {
+    const reset = error.rateLimit && error.rateLimit.resetAt
+    state.cooldownUntil = reset && reset > Date.now()
+      ? reset + 1000
+      : Date.now() + DEFAULT_COOLDOWN
+    state.rateLimit = error.rateLimit
+    state.dirty = true
+    window.clearTimeout(syncTimer)
+    setStatus('error', cooldownText())
+    scheduleCooldownCheck()
+    toast(error.message, 'warn')
+    refreshStatus()
+    return
+  }
+  if (error.status === 401) {
+    gh.clearToken()
+    try { localStorage.removeItem(USER_CACHE_KEY) } catch { /* ignore */ }
+    state.token = ''
+    state.user = null
+    state.gistId = ''
+    saveLocal()
+  }
+  setStatus('error', error.message)
+  toast(error.message, 'error')
+  refreshStatus()
+}
+
 function scheduleSync() {
   window.clearTimeout(syncTimer)
   if (!state.token || !state.user) { setStatus('local', '仅本机保存'); return }
+  if (Date.now() < state.cooldownUntil) { setStatus('error', cooldownText()); return }
   setStatus('dirty', '有改动待同步')
-  syncTimer = window.setTimeout(() => pushAll(), 1800)
+  syncTimer = window.setTimeout(() => pushAll(), SYNC_DEBOUNCE)
 }
-async function pushAll() {
+
+async function pushAll(force = false) {
   if (!state.token || !state.user || state.syncing) return
+  if (!force && Date.now() < state.cooldownUntil) {
+    setStatus('error', cooldownText())
+    return
+  }
+  if (!force && state.lastSyncAt && Date.now() - state.lastSyncAt < MIN_SYNC_INTERVAL) {
+    setStatus('dirty', '改动已暂存，稍后合并同步')
+    window.clearTimeout(syncTimer)
+    syncTimer = window.setTimeout(
+      () => pushAll(),
+      MIN_SYNC_INTERVAL - (Date.now() - state.lastSyncAt) + 500
+    )
+    return
+  }
   state.syncing = true
   setStatus('syncing', '正在同步…')
   try {
@@ -1034,24 +1155,44 @@ async function pushAll() {
       gh.setGistId(state.user.login, state.gistId)
     } else await gh.updateGist(state.token, state.gistId, data)
     state.dirty = false
+    state.lastSyncAt = Date.now()
+    state.cooldownUntil = 0
+    window.clearTimeout(cooldownTimer)
     setStatus('synced', `已同步 · ${state.user.login}`)
   } catch (error) {
     if (error.status === 404) {
       state.gistId = ''
       gh.setGistId(state.user.login, '')
       setStatus('error', 'Gist 不存在，下次同步将重建')
-    } else setStatus('error', error.message)
-    toast(error.message, 'error')
+      toast(error.message, 'error')
+    } else {
+      handleSyncError(error)
+    }
   } finally {
     state.syncing = false
     refreshStatus()
   }
 }
-async function connectWithToken(token, { remember = true } = {}) {
+async function connectWithToken(token, { remember = true, auto = false } = {}) {
   if (!token) { toast('请先填写 GitHub Token', 'warn'); return }
-  setStatus('syncing', '正在校验令牌…')
+  // 冷却期内完全不发网络请求，直接用缓存身份进入离线可用状态
+  if (auto && Date.now() < state.cooldownUntil) {
+    const cached = readUserCache(token)
+    state.token = token
+    state.user = cached || { login: '', name: 'GitHub 账号', avatar: '' }
+    state.gistId = state.user.login ? gh.getGistId(state.user.login) : ''
+    state.notes = readNotes(state.user.login ? `wn:notes:${state.user.login}` : LOCAL_KEY)
+    state.images = readImages(state.user.login ? `wn:images:${state.user.login}` : 'wn:images:local')
+    setStatus('error', cooldownText())
+    refresh()
+    return
+  }
+  setStatus('syncing', auto ? '正在连接 GitHub…' : '正在校验令牌…')
   try {
-    const user = await gh.fetchUser(token)
+    // 同一令牌复用账号信息，省掉每次加载的 /user 请求
+    const cached = readUserCache(token)
+    const user = cached || await gh.fetchUser(token)
+    if (!cached) saveUserCache(token, user)
     const localDraft = readNotes(LOCAL_KEY)
     state.token = token
     state.user = user
@@ -1081,21 +1222,22 @@ async function connectWithToken(token, { remember = true } = {}) {
     els.tokenBox.hidden = true
     els.tokenInput.value = ''
     refresh()
-    await pushAll()
+    // 自动恢复只读取；主动登录或确实有改动时才写回，避免每次刷新都 PATCH
+    const needPush = !state.gistId || state.dirty || !auto || localDraft.length || remote.notFound
+    if (needPush) await pushAll()
+    else setStatus('synced', `已同步 · ${user.login}`)
   } catch (error) {
-    if (error.status === 401 || error.status === 403) gh.clearToken()
-    state.token = ''
-    state.user = null
-    state.gistId = ''
-    saveLocal()
-    setStatus('error', error.message)
-    toast(error.message, 'error')
+    handleSyncError(error)
     refresh()
   }
 }
 function signIn(token) { return connectWithToken(token) }
 function signOut() {
   gh.clearToken()
+  try { localStorage.removeItem(USER_CACHE_KEY) } catch { /* ignore */ }
+  state.cooldownUntil = 0
+  window.clearTimeout(cooldownTimer)
+  window.clearTimeout(syncTimer)
   state.token = ''
   state.user = null
   state.gistId = ''
@@ -1150,7 +1292,7 @@ function exportMarkdown() {
 function restoreSession() {
   const token = gh.getToken()
   if (!token) { setStatus('local', '仅本机保存'); return }
-  connectWithToken(token, { remember: false })
+  connectWithToken(token, { remember: false, auto: true })
 }
 
 /* ---------- 生命周期 ---------- */

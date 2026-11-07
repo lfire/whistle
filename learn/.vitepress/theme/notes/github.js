@@ -33,12 +33,38 @@ export function setGistId(login, id) {
   } catch { /* ignore */ }
 }
 
-function friendly(status, message) {
+function rateLimitInfo(res) {
+  const num = (name) => {
+    const raw = res.headers.get(name)
+    if (raw === null) return null
+    const value = Number(raw)
+    return Number.isFinite(value) ? value : null
+  }
+  const reset = num('x-ratelimit-reset')
+  return {
+    limit: num('x-ratelimit-limit'),
+    remaining: num('x-ratelimit-remaining'),
+    resetAt: reset && reset > 0 ? reset * 1000 : null,
+    retryAfter: num('retry-after')
+  }
+}
+
+function clockText(timestamp) {
+  const date = new Date(timestamp)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
+}
+
+function friendly(status, message, info) {
   if (status === 401) return '令牌无效或已过期，请重新输入 GitHub Token'
   if (status === 403) {
-    return /rate limit/i.test(message || '')
-      ? 'GitHub API 调用过于频繁，请稍后再试'
-      : '令牌权限不足：创建时请勾选 gist 权限'
+    if (/rate limit/i.test(message || '')) {
+      const when = info && info.resetAt ? clockText(info.resetAt) : ''
+      return when
+        ? `GitHub API 限额已用尽，${when} 后自动恢复；期间笔记照常保存在本机`
+        : 'GitHub API 调用过于频繁，稍后自动重试；笔记仍保存在本机'
+    }
+    return '令牌权限不足：创建时请勾选 gist 权限'
   }
   if (status === 404) return '笔记 Gist 不存在（可能已被删除）'
   if (status === 422) return message || 'GitHub 拒绝了这次请求'
@@ -64,12 +90,28 @@ async function request(path, token, options = {}) {
   if (!res.ok) {
     let message = ''
     try { message = (await res.json()).message || '' } catch { /* ignore */ }
-    const error = new Error(friendly(res.status, message))
+    const info = rateLimitInfo(res)
+    const error = new Error(friendly(res.status, message, info))
     error.status = res.status
+    error.rateLimit = info
+    error.isRateLimit = res.status === 403 && /rate limit/i.test(message || '')
     throw error
   }
   if (res.status === 204) return null
   return res.json()
+}
+
+/** 查询账号 REST API 配额；/rate_limit 本身不计入主配额 */
+export async function fetchRateLimit(token) {
+  const data = await request('/rate_limit', token)
+  const core = data && data.resources && data.resources.core
+  if (!core) return null
+  return {
+    limit: core.limit,
+    remaining: core.remaining,
+    used: core.used,
+    resetAt: core.reset ? core.reset * 1000 : null
+  }
 }
 
 /** 用 /user 把令牌解析成 GitHub 账号，账号即笔记数据的隔离单元 */

@@ -622,6 +622,13 @@ body.wn-no-scroll { overflow: hidden; }
 }
 .wn-export-row { display: flex; gap: 8px; }
 .wn-export-row .wn-ghost { flex: 1; margin-bottom: 0; }
+.wn-quota {
+  margin: 10px 0; padding: 10px 12px;
+  border: 1px solid var(--wn-border); border-radius: 8px;
+  background: var(--wn-bg-soft); font-size: 12.5px; color: var(--wn-ink);
+}
+.wn-quota::before { content: "配额 · "; color: var(--wn-ink-soft); }
+.wn-status-error { color: var(--wn-orange); }
 
 /* ---------- 笔记图片 ---------- */
 .wn-md-image {
