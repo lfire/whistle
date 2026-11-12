@@ -70,7 +70,7 @@ learn/
 :::
 ```
 
-容器会把百分比写成 CSS 变量（`--c1` … `--c6`），由 `custom.css` 中的 `.tbl-cols table` 规则应用为固定列宽；窄屏自动退回横向滚动。
+容器会把百分比写成 CSS 变量（`--c1` … `--c6`），由 `custom.css` 中的 `.tbl-cols table` 规则应用为固定列宽；窄屏自动退回横向滚动。所有表格由 `enhance.ts` 统一包一层横向滚动容器：短内容列自动不换行，宽表按各列理想宽度计算 `min-width`（`::: cols` 表格另设窄屏下限），可滚动时固定首列并显示右侧渐隐与「可左右滚动」提示；滚到尽头提示自动收起。
 
 **图片**：全部放在 `public/diagrams/`，正文用 `![图注](/diagrams/xxx.svg)` 引用（VitePress 构建时自动补 base）。图片点击会打开查看器，支持滚轮缩放、按住拖拽、双击切换 1:1、`0` 键回到原始尺寸、`f` 适应窗口、`Esc` 关闭。SVG 必须显式声明 `width` / `height` / `viewBox`，否则查看器无法取得固有尺寸。
 
@@ -83,6 +83,36 @@ learn/
 **概念词条卡片**：`concepts/` 下每个核心词条用「一句话定义 → 打个比方 → 在 Whistle 里（路径:行号）→ 为什么这样设计 → 容易混淆 → 工程中的样子」六段展开；次要词条用 4 列速览表覆盖。每篇另需「本层概念地图 / 与工程实际结合 / 常见误解 / 小结 / 下一步」。目标是建立理解，不是罗列定义，因此不限制篇幅。
 
 **新增文档**：把 markdown 放入对应目录后，在 `.vitepress/config.mts` 的侧栏数组里补一条；正文第一行必须写与 frontmatter `title` 一致的 `# 一级标题`（VitePress 不会用 frontmatter 自动渲染 h1）。如需使用 `::: cols`，无需额外配置。
+
+## 交互增强与通用组件
+
+主题里的 `enhance.ts` / `enhance.css` 与 `components/` 同步自 `go` 教程站，按本站 `wl-*` 命名与品牌色适配，`theme/index.ts` 在首次加载与每次 SPA 路由切换后执行增强。
+
+**代码块**：所有 `div[class*="language-"]` 自动获得一条工具条——语言标签、复制、以及长代码（≥8 行）的整体折叠；折叠态保留前若干行并带渐隐与「展开全部」按钮。JS / TS / JSON / YAML 等语言还支持按括号或缩进结构做**行内折叠**，手柄不进入 `textContent`，复制始终拿到完整源码。VitePress 原生复制按钮与语言小字会被隐藏，避免重复。
+
+**表格**：见写作约定里的 `::: cols` 说明；增强对普通表格与 `::: cols` 表格都生效，桌面宽度下不改变观感，窄屏才出现横向滚动。
+
+**通用组件**：`components/*.vue` 由 `import.meta.glob` 自动注册，写作时直接用标签即可，无需改主题。已同步的组件：
+
+| 类别 | 组件 |
+|---|---|
+| 提示与术语 | `Callout`、`Term`、`KnowledgeCard`、`OutputBox` |
+| 对照与分步 | `Compare`、`CodeTabs`、`StepBox`、`LineByLine`、`FlowTimeline` |
+| 练习与自测 | `Quiz`、`Predict`、`FillBlank`、`Exercise`、`AnswerReview`、`CheckList` |
+| 图示容器 | `FigureLightbox`、`SequenceDiagram` |
+| 富文本 | `RichText`（`richtext.ts` 解析粗体、行内代码与链接） |
+
+`utils.ts` 只保留通用的本地存储函数（`wl:done` 学习打卡、`wl:checks:<id>` 勾选项），与 Go 课程数据无关。示例：
+
+```markdown
+<Callout type="tip" title="读源码前" text="先分清 **CONNECT** 与 `request` 两个入口。" />
+
+<CheckList id="tls-check" title="核对清单" items="确认根证书|确认 SNI|确认出站校验" />
+
+<Quiz q="首字节不是 22 时会怎样？" options="回退透传|继续解密" answer="0" explain="源码是反向回退写法" no="1" />
+```
+
+`FigureLightbox` / `SequenceDiagram` 需要 `w`、`h` 等尺寸属性，用 `#figure` 作用域插槽放 SVG；其全屏查看器支持滚轮 / 双指缩放、拖拽平移、双击与 `0` 键复位。站内原有的 markdown 图片查看器（`lightbox.ts`）继续独立工作，两者不冲突。
 
 ## 学习笔记功能
 

@@ -90,6 +90,13 @@ export default defineConfig({
   ],
   markdown: {
     lineNumbers: true,
+    container: {
+      tipLabel: '小贴士',
+      warningLabel: '注意',
+      dangerLabel: '当心',
+      infoLabel: '说明',
+      detailsLabel: '展开查看详情'
+    },
     config(md) {
       // 自定义容器：用 ::: cols 20|30|50 精确控制表格列宽，避免宽表列宽失衡
       md.use(container, 'cols', {
