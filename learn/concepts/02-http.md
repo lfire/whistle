@@ -7,6 +7,11 @@ description: 用十三张词条卡片讲清报文结构、分块与压缩、连�
 
 流量进了代理之后，代理能看懂多少、能改多少，全由报文与连接的语义决定。本层承接[代理与流量入口](/concepts/01-proxy)的「进门」结论，前置概念是[Web 协议与流量形态](/domain/web-protocols)里对 HTTP、HTTPS、WebSocket 的基本印象。读完你能说清一条报文由哪几部分组成、为什么改写 body 前必须先删 `content-length`、chunked 与 gzip 到底差在哪一层，以及 HTTP/2 伪头、ALPN、Upgrade、SSE 与 TCP 字节流各自把连接带向了什么形态。
 
+::: tip 先修知识
+本篇承接 [《代理与流量入口》](/concepts/01-proxy)（32）、[《HTTP/2、WebSocket 与流量形态》](/domain/web-protocols)（04）。需要你已经理解：请求行/状态行、Header、Body、状态码，以及「连接」与「报文」的区别。
+
+若其中某个词还只是「眼熟」，可先翻 [《易混淆概念辨析》](/concepts/08-confusions)、[《全量术语索引》](/concepts/glossary)；本篇不要求预先读过源码，按文中给出的顺序对照现象即可跟上。
+:::
 ![协议栈与 Whistle 四类入口](/diagrams/protocol-stack.svg)
 *图注：同一条 TCP 连接上，HTTP/1.x 报文、HTTP/2 帧、Upgrade 后的 WebSocket 与纯透传字节流由四类入口分别接住。*
 
@@ -343,7 +348,10 @@ www.example.com enable://h2
 - Keep-Alive 串行复用，HTTP/2 用伪头与多路复用并发；ALPN 在 TLS 握手里定协议（`lib/https/h2.js:10`）。
 - Upgrade/101 之后是帧，SSE 是长响应上的文本事件，二者与 CONNECT 的纯字节透传都不同。
 - TCP 字节流没有边界，入口靠 `lib/https/index.js:1117-1119` 的正则探测首包来决定交给哪套解析器。
+- 本篇为 [34《TLS、证书与信任》](/concepts/03-tls) 铺垫：把「明文怎么组织」交给加密与信任。
 
 ## 下一步
 
 [《TLS、证书与信任》](/concepts/03-tls)：既然 CONNECT 之后默认只有加密字节流，接下来讲清中间人、CA、根证书、SNI 与证书链，回答 Whistle 凭什么能解密、客户端又凭什么信任它。
+
+**为什么紧接着读它**：既然 CONNECT 之后默认只有加密字节流，下一步要回答 Whistle 凭什么能把它拆开、客户端又凭什么信任它。

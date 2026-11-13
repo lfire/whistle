@@ -7,6 +7,12 @@ description: 用一条规则链、一个最小插件和一次嵌入式启动，�
 
 前四层解决的是「请求怎么走、模块怎么分」，工程场景专题回答「这些机制在什么工程问题里派上用场」，本层只解决三件事：能不能跑起来、能不能照着改、改完去哪里查。三个实验各自可独立完成，但共享同一套源码坐标，建议依次做，每做一步就回到对应文件核对一次现象。以下所有命令、行号与阈值都以 `guide` 分支 `3b85cebc4`、v2.10.13 为准——其后提交仅涉及文档站，业务源码零改动，因此行号与阈值仍然有效；路径一律写仓库相对路径；若你检出的是其它提交，请以函数名和事件名作锚点。
 
+::: tip 先修知识
+本篇承接 [《能力边界、风险与合规》](/scenarios/boundaries)（27）、[《一次 HTTP 代理请求的旅程》](/core/http-request)（09）。需要你已经理解：一条规则如何同时打到规则、请求改写与采集三段、插件的命名与隔离约束、把 Whistle 当库用的最小形态。
+
+若其中某个词还只是「眼熟」，可先翻 [《规则 DSL 全景》](/concepts/06-rules)、[《扩展机制与工程化》](/concepts/07-extension)、[《抓包数据面与帧》](/concepts/05-capture)；本篇不要求预先读过源码，按文中给出的顺序对照现象即可跟上。
+:::
+
 ## 实验一：用一条规则链看懂请求生命周期
 
 目标是让一次请求同时穿过规则解析、请求改写、响应延迟与抓包上报四条链路，并在界面上拿到可见证据。
@@ -24,7 +30,7 @@ w2 ca
 
 `-p 8899` 覆盖 `package.json:7` 的默认端口，`w2 ca` 由 `bin/ca/cli.js` 安装根证书，`bin/whistle.js:214-217` 把 `proxy` 与 `ca` 两个子命令分派给对应模块。第四步设代理可以用 `w2 proxy`，也可按 README 推荐用 ZeroOmega 把浏览器代理指向 `127.0.0.1:8899`；HTTPS 抓包必须完成第三步，否则 `lib/tunnel.js:168-213` 的解密判定不会生效。打开 `http://local.whistlejs.com/` 进入界面，后续操作都在 Rules 与 Network 两个面板之间切换。
 
-启动后先用 `w2 status` 确认实例在运行（`bin/status.js:11-40` 会列出 PID、端口与 `storage`），再访问一个 HTTP 页面看 Network 是否开始记录；若列表为空，优先检查代理是否真的指向了 8899，而不是急于怀疑规则引擎。证书这一步对 HTTP 请求不是必需的，但一旦后续要看 HTTPS 明文，根证书未信任会让 `lib/tunnel.js:168-213` 的解密分支被跳过，界面只能看到 CONNECT 隧道而看不到内层请求。把这两项前置条件先钉死，后面所有「现象对不上」的排查才有共同基线。
+启动后先用 `w2 status` 确认实例在运行（`bin/status.js:11-40` 会列出 PID、端口与 `storage`），再访问一个 HTTP 页面看 Network 是否开始记录；若列表为空，优先检查代理是否真的指向了 8899，而不是急于怀疑规则引擎。证书这一步对 HTTP 请求不是必需的，但一旦后续要看 HTTPS 明文，根证书未信任会让 `lib/tunnel.js:168-213` 的解密分支被跳过，界面只能看到 [CONNECT](/concepts/01-proxy) 隧道而看不到内层请求。把这两项前置条件先钉死，后面所有「现象对不上」的排查才有共同基线。
 
 ### 写一组同时命中四条链路的规则
 
@@ -36,7 +42,7 @@ example.com/api resDelay://800
 example.com/api log://
 ```
 
-第一行用内嵌值 `file://(...)`（`lib/rules/rules.js:48` 的 `VALUE_RE` 匹配括号内容）返回一段 JSON；也可以把内容存进 Values，再用 `file://{key}` 引用。后三行分别命中 `reqHeaders`、`resDelay`、`log`，三者都在 `lib/rules/protocols.js:18,36,48` 注册。规则的通用写法是 `pattern operation`：`pattern` 匹配 URL，`operation` 决定由哪个 handler 接手；命中结果最终落在 `req.rules` 上，供四个 inspector 阶段读取。
+第一行用内嵌值 `file://(...)`（`lib/rules/rules.js:48` 的 `VALUE_RE` 匹配括号内容）返回一段 JSON；也可以把内容存进 [Values](/concepts/06-rules)，再用 `file://{key}` 引用。后三行分别命中 `reqHeaders`、`resDelay`、`log`，三者都在 `lib/rules/protocols.js:18,36,48` 注册。规则的通用写法是 `pattern operation`：`pattern` 匹配 URL，`operation` 决定由哪个 handler 接手；命中结果最终落在 `req.rules` 上，供四个 [inspector](/concepts/05-capture) 阶段读取。
 
 ### 预期现象与对应源码链路
 
@@ -111,9 +117,9 @@ cp -r ./whistle.hello ~/.WhistleAppData/custom_plugins/
 w2 status
 ```
 
-自定义插件目录即 `~/.WhistleAppData/custom_plugins/`（根路径由 `lib/util/common.js:598-603` 给出），`lib/plugins/get-plugins-sync.js` 扫描它并合入插件集，等一轮刷新后就会出现在列表里。插件被 `lib/plugins/index.js:620-670` 的 `p.fork` 拉起，主进程只保存它返回的端口；`lib/plugins/load-plugin.js:2012-2031` 的 `server.on('request')` 依据 hook 头（`lib/config.js:74` 的 `PLUGIN_HOOK_NAME_HEADER`）把请求分发到 `authServer` / `sniServer` / `uiServer` / `httpServer`。插件运行时可用的 `options.Storage`（存储类）、`require`、`wsParser` 等在 `load-plugin.js:1147-1186` 注入，`options.storage` 实例则由 `load-plugin.js:1229-1234` 落到带 `config.storage` 后缀的独立数据目录。
+自定义插件目录即 `~/.WhistleAppData/custom_plugins/`（根路径由 `lib/util/common.js:598-603` 给出），`lib/plugins/get-plugins-sync.js` 扫描它并合入插件集，等一轮刷新后就会出现在列表里。插件被 `lib/plugins/index.js:620-670` 的 `p.fork` 拉起，主进程只保存它返回的端口；`lib/plugins/load-plugin.js:2012-2031` 的 `server.on('request')` 依据 [hook](/concepts/07-extension) 头（`lib/config.js:74` 的 `PLUGIN_HOOK_NAME_HEADER`）把请求分发到 `authServer` / `sniServer` / `uiServer` / `httpServer`。插件运行时可用的 `options.Storage`（存储类）、`require`、`wsParser` 等在 `load-plugin.js:1147-1186` 注入，`options.storage` 实例则由 `load-plugin.js:1229-1234` 落到带 `config.storage` 后缀的独立数据目录。
 
-调试用 `PFORK_MODE=inline w2 run`（`lib/plugins/index.js:632` 据 `config.inspectMode || PFORK_MODE === 'inline'` 判定，pfork 随即把插件跑在当前进程、日志直接打到终端；`--inspect` 会由 `lib/config.js:604-606` 自动置该值，加载错误再由 `lib/plugins/index.js:657` 打到终端）、`w2 run --inspect`（`bin/whistle.js:93-103` 明确 inspector 仅 `w2 run` 支持）、`w2 status` 查看实例。插件目录每 6 秒刷新一次（`lib/plugins/index.js:36,544-550` 的 `INTERVAL` 与 `update`），改完文件稍等即可被发现，不必重启主进程。
+调试用 `PFORK_MODE=inline w2 run`（`lib/plugins/index.js:632` 据 `config.inspectMode || PFORK_MODE === 'inline'` 判定，[pfork](/concepts/07-extension) 随即把插件跑在当前进程、日志直接打到终端；`--inspect` 会由 `lib/config.js:604-606` 自动置该值，加载错误再由 `lib/plugins/index.js:657` 打到终端）、`w2 run --inspect`（`bin/whistle.js:93-103` 明确 inspector 仅 `w2 run` 支持）、`w2 status` 查看实例。插件目录每 6 秒刷新一次（`lib/plugins/index.js:36,544-550` 的 `INTERVAL` 与 `update`），改完文件稍等即可被发现，不必重启主进程。
 
 协议有长短两种写法：`whistle.hello://xxx` 是长协议，`hello://xxx` 是短协议（`docs/docs/extensions/dev.md:49`），二者等价；`whistleConfig.hideShortProtocol` 与 `hideLongProtocol` 可分别隐藏其一。
 
@@ -154,13 +160,22 @@ process.on('whistleStarted', () => console.log('started'));
 
 嵌入式最适合的场景是把代理当作测试基建或长驻服务的一段逻辑：例如在集成测试里临时起一个实例、注入规则、用 `request` 事件断言请求头，再关掉它；或在同一进程内按 `storage` 起多个互不干扰的实例。`docs/docs/extensions/npm.md:2` 仍建议生产集成把 Whistle 放进 `pfork` 独立子进程，避免与主进程相互影响；本实验为了直接观察事件与接口才同进程启动。它不适合替代桌面抓包，因为浏览器代理设置与证书信任仍需用户手动完成。理解了这条边界，就不会把「进程内可编程」误当成「开箱即用的完整 CLI」。
 
+## 常见误解
+
+- 容易以为「实验之间必须按顺序依赖」，三个实验各自可独立完成，只是共享同一套源码坐标；时间有限时可以从最贴近当前问题的那个开始。
+- 容易以为「插件写完立刻可见」，安装发现、命名正则、p.fork 隔离、hook 头分发与刷新周期都会影响它何时生效。
+- 容易以为「嵌进 Node 进程就等于起了完整服务」，入口只是装配配置，守护化与端口监听仍由调用方决定。
+
 ## 小结
 
 - 实验一用一条规则链同时打到 `rules.js`、`req.js`、`data.js`、`file-proxy.js` 四处，界面数据来自 `cgi-bin/get-data` 的短轮询。
 - 实验二的最小插件受命名正则、`p.fork` 隔离、hook 头分发与 6 秒刷新四项约束，长短协议等价。
 - 实验三把 Whistle 变成进程内对象，事件与 `exportInterfaces` 是主要编程面，但不再代管代理设置与证书。
 - 三个实验共用同一套行号坐标；遇到对不上的现象，先回对应入口文件确认版本基线，再怀疑自己的配置。
+- 本篇为 [29《源码阅读与调试路线》](/advanced/source-reading) 铺垫：把「在哪儿下断点」从经验变成可复用的路线。
 
 ## 下一步
 
 [《源码阅读与调试路线》](/advanced/source-reading)：把「在哪儿下断点」系统化，并补齐调试开关、测试体系与阅读方法。
+
+**为什么紧接着读它**：实验跑通之后，真正卡住改动的是「该从哪个文件开始追」，下一篇把仓库拆成四条互不重叠的路线。

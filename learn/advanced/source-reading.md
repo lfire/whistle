@@ -7,6 +7,12 @@ description: 四条阅读路线、调试开关、断点清单与测试体系，�
 
 读完前四层后，最常见的困境不是看不懂语法，而是改动一落地却不知道该从哪个文件开始追。本篇把仓库拆成四条互不重叠的阅读路线，每条给出文件顺序与它回答的问题，再补齐调试开关、断点清单和测试体系。所有引用均以 `guide` 分支 `3b85cebc4`（v2.10.13）为准——其后提交仅涉及文档站，业务源码零改动，因此行号仍然有效；路径为仓库相对路径，建议把仓库与文档并排打开，遇到行号就跳过去看一眼再回来。
 
+::: tip 先修知识
+本篇承接 [《三个动手实验》](/advanced/hands-on)（28）、[《一张图看懂全局架构》](/architecture/overview)（06）。需要你已经理解：四条阅读路线分别对应的入口事件、断点该落在「判定」还是「改写」、最小复现与测试体系的关系。
+
+若其中某个词还只是「眼熟」，可先翻 [《Node 运行时与内核骨架》](/concepts/04-runtime)、[《规则 DSL 全景》](/concepts/06-rules)、[《易混淆概念辨析》](/concepts/08-confusions)；本篇不要求预先读过源码，按文中给出的顺序对照现象即可跟上。
+:::
+
 ## 四条阅读路线
 
 四条路线各自闭合，不必按目录顺序通读。它们的区别在入口事件，而不在文件夹名称。
@@ -17,7 +23,7 @@ description: 四条阅读路线、调试开关、断点清单与测试体系，�
 
 ### 路线二 · HTTPS 解密链
 
-回答「CONNECT 进来后凭什么决定解密」。顺序：`lib/tunnel.js:44` 的 `server.on('connect')` → `lib/tunnel.js:168-213` 的 `isIntercept()` 判定 → `lib/https/index.js:1184-1234` 的 `readOneChunk` 回调做首包嗅探（函数本体在 `lib/util/index.js:3618-3637`）→ `lib/https/ca.js:47-49,566-570` 生成叶证书 → `lib/https/index.js:1105` 把解密后的明文重新 `server.emit('request')` → 回到路线一的 inspector 链。判定里 `disable.intercept`、`policy === 'capture'`、`hasCustomCerts()` 三个分支最值得细看，它们决定了「隧道直通」还是「中间人代签」。首包判定是反向写法：`lib/https/index.js:1232` 的 `if (!isHttpH2 && chunk[0] != 22) return next(chunk);` 表示首字节既不是 TLS 握手记录（0x16=22）也不是 h2c preface 就回退透传，只有这两类才继续走解密，不要读成源码里有 `chunk[0] === 22` 的正面放行。
+回答「[CONNECT](/concepts/01-proxy) 进来后凭什么决定解密」。顺序：`lib/tunnel.js:44` 的 `server.on('connect')` → `lib/tunnel.js:168-213` 的 `isIntercept()` 判定 → `lib/https/index.js:1184-1234` 的 `readOneChunk` 回调做首包嗅探（函数本体在 `lib/util/index.js:3618-3637`）→ `lib/https/ca.js:47-49,566-570` 生成叶证书 → `lib/https/index.js:1105` 把解密后的明文重新 `server.emit('request')` → 回到路线一的 [inspector](/concepts/05-capture) 链。判定里 `disable.intercept`、`policy === 'capture'`、`hasCustomCerts()` 三个分支最值得细看，它们决定了「隧道直通」还是「中间人代签」。首包判定是反向写法：`lib/https/index.js:1232` 的 `if (!isHttpH2 && chunk[0] != 22) return next(chunk);` 表示首字节既不是 [TLS](/concepts/03-tls) 握手记录（0x16=22）也不是 h2c preface 就回退透传，只有这两类才继续走解密，不要读成源码里有 `chunk[0] === 22` 的正面放行。
 
 ### 路线三 · 规则链
 
@@ -25,13 +31,13 @@ description: 四条阅读路线、调试开关、断点清单与测试体系，�
 
 ### 路线四 · 扩展链
 
-回答「第三方插件怎么被拉起并拿到请求」。顺序：`bin/plugin.js:12,124-145` 定位与安装 → `lib/plugins/util.js:8-10` 校验命名 → `lib/plugins/get-plugins-sync.js:122,184-188` 读取 `whistleConfig` 与 `rules.txt` → `lib/plugins/index.js:620-670` 用 `p.fork` 拉起子进程 → `lib/plugins/load-plugin.js:1147-1186` 注入 `options` → `lib/plugins/load-plugin.js:2012-2031` 按 hook 头分发。这条线同时解释了为什么插件崩溃不会带走代理主进程。
+回答「第三方插件怎么被拉起并拿到请求」。顺序：`bin/plugin.js:12,124-145` 定位与安装 → `lib/plugins/util.js:8-10` 校验命名 → `lib/plugins/get-plugins-sync.js:122,184-188` 读取 `whistleConfig` 与 `rules.txt` → `lib/plugins/index.js:620-670` 用 `p.fork` 拉起子进程 → `lib/plugins/load-plugin.js:1147-1186` 注入 `options` → `lib/plugins/load-plugin.js:2012-2031` 按 [hook](/concepts/07-extension) 头分发。这条线同时解释了为什么插件崩溃不会带走代理主进程。
 
 ## 调试与断点
 
 `w2 run` 与 `w2 start` 是两种截然不同的运行方式。`w2 run` 走 `bin/whistle.js:106-112` 的 `runCallback`，前台运行、`debugMode` 生效、子进程 stdio 继承到当前终端，日志与断点都能直接看到；`w2 start` 走 `bin/whistle.js:113` 的 `startCallback`，由 `starting` 托管为 detached 后台进程，CLI 退出后业务进程仍在。`--inspect` 与 `--inspectBrk` 仅 `w2 run` 支持：`bin/whistle.js:93-103` 在 `start` / `restart` 收到这两个选项时直接报错退出，并提示改用 `w2 run`（选项定义在 `188-189` 行）。
 
-`PFORK_MODE` 控制插件子进程形态：`inline` 由 `lib/plugins/index.js:632` 据 `config.inspectMode || PFORK_MODE === 'inline'` 判定，pfork 随即把插件跑在当前进程便于单步（`--inspect` 由 `lib/config.js:604-606` 自动置该值）；`bind` 由 `index.js:218` 在 `debugMode` 下自动设置，效果之一是让 `lib/plugins/index.js:657` 把加载错误打到终端。`w2 status` 读取 `~/.startingAppData`（`bin/util.js:124,145-171`）列出各实例的 PID、端口与 `storage`，多实例排错时先跑它。日志走 `lib/util/logger.js:8` 的 fatal / error / warn / info / debug 五级；`lib/util/perf.js:15-39,63-70` 统计 `httpQps`、`tunnelQps`、`wsQps`、`maxRss`、`cpuPercent`，判断性能问题时比猜更可靠。`--mode` 开关集中在 `lib/config.js:704-885`：`debug`、`capture`（816 行）、`strict`、`pureProxy`、`network`、`rules`、`plugins` 等可组合，705 行用 `|`、`,`、`&` 分隔多个模式；`safe`（809-810 行）单独把出站 `rejectUnauthorized` 打开，与入站解密无关。
+`PFORK_MODE` 控制插件子进程形态：`inline` 由 `lib/plugins/index.js:632` 据 `config.inspectMode || PFORK_MODE === 'inline'` 判定，[pfork](/concepts/07-extension) 随即把插件跑在当前进程便于单步（`--inspect` 由 `lib/config.js:604-606` 自动置该值）；`bind` 由 `index.js:218` 在 `debugMode` 下自动设置，效果之一是让 `lib/plugins/index.js:657` 把加载错误打到终端。`w2 status` 读取 `~/.startingAppData`（`bin/util.js:124,145-171`）列出各实例的 PID、端口与 `storage`，多实例排错时先跑它。日志走 `lib/util/logger.js:8` 的 fatal / error / warn / info / debug 五级；`lib/util/perf.js:15-39,63-70` 统计 `httpQps`、`tunnelQps`、`wsQps`、`maxRss`、`cpuPercent`，判断性能问题时比猜更可靠。`--mode` 开关集中在 `lib/config.js:704-885`：`debug`、`capture`（816 行）、`strict`、`pureProxy`、`network`、`rules`、`plugins` 等可组合，705 行用 `|`、`,`、`&` 分隔多个模式；`safe`（809-810 行）单独把出站 `rejectUnauthorized` 打开，与入站解密无关。
 
 ### 断点建议清单
 
@@ -42,7 +48,7 @@ description: 四条阅读路线、调试开关、断点清单与测试体系，�
 - `lib/inspectors/data.js:185`：抓包上报 `proxy.emit('request', ...)`，Network 空白时查这里。
 - `lib/util/data-server.js:92-95`：`request` / `frame` 事件绑定缓存，是采集与展示之间的接缝。
 
-前两个断点分别对应「入口」与「判定」，中间两个对应「规则」与「采集」，最后两个是旁路。单步时按「输入 → 动作 → 输出」看：`lib/tunnel.js:168-213` 的输入是 CONNECT 的 headers、`policy` 与 `disable` 开关，动作是五个局部函数逐层判定，输出一个布尔值决定走 MITM 还是 `net.connect` 纯透传；`lib/inspectors/rules.js:29-45` 则输入规则文本编译结果，输出填好协议的 `req.rules` 供后续 inspector 消费。按这个顺序单步一次，比读十遍静态代码更能建立时序感。
+前两个断点分别对应「入口」与「判定」，中间两个对应「规则」与「采集」，最后两个是旁路。单步时按「输入 → 动作 → 输出」看：`lib/tunnel.js:168-213` 的输入是 CONNECT 的 headers、`policy` 与 `disable` 开关，动作是五个局部函数逐层判定，输出一个布尔值决定走 [MITM](/concepts/03-tls) 还是 `net.connect` 纯透传；`lib/inspectors/rules.js:29-45` 则输入规则文本编译结果，输出填好协议的 `req.rules` 供后续 inspector 消费。按这个顺序单步一次，比读十遍静态代码更能建立时序感。
 
 ## 测试体系与最小复现
 
@@ -54,7 +60,7 @@ description: 四条阅读路线、调试开关、断点清单与测试体系，�
 
 ## 阅读方法与常见问题
 
-推荐三步法：先按事件入口找 handler（`server.on('request')` 在 `lib/index.js:209`、`connect` 在 `lib/tunnel.js:44`、`upgrade` 在 `lib/upgrade.js:180`），再沿 `req.rules` 找规则的应用点，最后用 `proxyEvents` 把抓包、插件、统计这些旁路串起来。要警惕大文件：`lib/util/index.js` 有 4047 行、`lib/util/common.js` 有 2271 行，`lib/plugins/load-plugin.js` 也有 2642 行，通读必然迷路；正确做法是按函数名或事件名做符号搜索，只读命中附近几十行。
+推荐三步法：先按事件入口找 handler（`server.on('request')` 在 `lib/index.js:209`、`connect` 在 `lib/tunnel.js:44`、`upgrade` 在 `lib/upgrade.js:180`），再沿 `req.rules` 找规则的应用点，最后用 `proxyEvents` 把抓包、[插件](/concepts/07-extension)、统计这些旁路串起来。要警惕大文件：`lib/util/index.js` 有 4047 行、`lib/util/common.js` 有 2271 行，`lib/plugins/load-plugin.js` 也有 2642 行，通读必然迷路；正确做法是按函数名或事件名做符号搜索，只读命中附近几十行。
 
 另一条经验是区分「主干」与「旁路」：主干是请求必须经过的 inspector 与 handler，旁路是抓包、统计、插件这类通过 `proxyEvents` 广播的监听者。读主干时按调用栈自上而下推进，读旁路时按事件名反查所有 `proxy.on(...)` 的注册点，两种手法不要混用；一旦混用，很容易把只在旁路执行的逻辑误当成必经步骤。
 
@@ -71,13 +77,22 @@ description: 四条阅读路线、调试开关、断点清单与测试体系，�
 
 这张表不是完整索引，只是「第一跳」。每个文件里再按导出函数和事件名下断点，就能沿着路线一或路线二继续深入；若第一跳就对不上现象，多半是版本或 `--mode` 开关的差异，先核对基线再改代码。
 
+## 常见误解
+
+- 容易以为「从入口文件顺着读下去就能读通」，请求主链、解密链、规则链与扩展链的入口事件各不相同，混着读最容易把 `lib/inspectors/rules.js` 与 `lib/rules/rules.js` 搞混。
+- 容易以为「`--inspect` 对任何启动方式都有效」，它只在前台运行入口可用；子进程调试另有开关。
+- 容易以为「单元测试能替代调试」，测试给最小复现与断言，断点给运行时状态，两者解决的是不同问题。
+
 ## 小结
 
 - 四条路线分别回答请求主链、HTTPS 解密、规则生效与插件扩展，入口事件各不相同但汇入同一条中间件链。
 - 调试以 `w2 run` 为前台入口，`--inspect` 仅它支持；`PFORK_MODE`、`w2 status`、`--mode` 与 logger / perf 是主要观测手段。
 - 六个断点按「入口 → 判定 → 规则 → 采集 → 缓存」排列，配合 `test/units/` 的最小用例可以逐段验证猜想。
 - 面对数千行的大文件，用符号搜索代替通读，先按事件入口定位，再沿 `req.rules` 与 `proxyEvents` 顺延。
+- 本篇为 [30《术语、路径与配置速查》](/advanced/reference) 铺垫：把散落在各篇的术语、路径、配置与阈值收成一页。
 
 ## 下一步
 
 [《术语、路径与配置速查》](/advanced/reference)：把本篇出现的术语、路径、配置项与阈值收拢成一页可回查的表。
+
+**为什么紧接着读它**：路线越多越容易忘记某个阈值出自哪里，速查表就是为「回查」而不是「通读」准备的。

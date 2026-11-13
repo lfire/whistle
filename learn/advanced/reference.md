@@ -7,6 +7,11 @@ description: 把术语、源码路径、配置项、CLI 命令、阈值与内部
 
 进阶实践的前两篇解决「动手」与「怎么读」，本篇只解决「忘了去哪查」。内容全部来自 `guide` 分支 `3b85cebc4`（v2.10.13）的当前源码——其后提交仅涉及文档站，业务源码零改动，行号与阈值仍然有效；按术语、路径、配置、命令、阈值与内部头分组，每组拆成小表并标注列宽，避免一张巨表把长短列挤在一起。默认值随版本可能调整，遇到不一致时以 `package.json` 与 `lib/config.js` 为最终依据。
 
+::: tip 先修知识
+本篇承接 [《源码阅读与调试路线》](/advanced/source-reading)（29）。需要你已经理解：四类速查表的查法、配置项与 CLI 的分组逻辑、阈值与内部常量的出处。
+
+若其中某个词还只是「眼熟」，可先翻 [《全量术语索引》](/concepts/glossary)、[《概念精解总览》](/concepts/index)；本篇不要求预先读过源码，按文中给出的顺序对照现象即可跟上。
+:::
 > 本页是**速查表**：只给术语的一句话对齐与数值。若要建立完整理解（形象类比、设计取舍、易混淆辨析、工程实例），请看 [概念精解](/concepts/index)；那里另有 [全量术语索引](/concepts/glossary) 覆盖 360 余条。
 
 ## 术语速查
@@ -60,7 +65,7 @@ description: 把术语、源码路径、配置项、CLI 命令、阈值与内部
 | CGI | Web UI 取数据的接口 |
 :::
 
-前两组是网络与 TLS 的领域词，对应领域基础；后两组是 Whistle 自己的内核词，`pfork` 见 `lib/plugins/index.js:2`、`inspector` 见 `lib/inspectors/`、`reqId` 由 `lib/inspectors/rules.js:159` 生成。把「领域概念」与「实现命名」分开记，读代码时不会把 SNI 与 SAN 这类相邻缩写混用。
+前两组是网络与 [TLS](/concepts/03-tls) 的领域词，对应领域基础；后两组是 Whistle 自己的内核词，`pfork` 见 `lib/plugins/index.js:2`、`inspector` 见 `lib/inspectors/`、`reqId` 由 `lib/inspectors/rules.js:159` 生成。把「领域概念」与「实现命名」分开记，读代码时不会把 [SNI](/concepts/03-tls) 与 [SAN](/concepts/03-tls) 这类相邻缩写混用。
 
 术语表按「领域词 / 内核词」分组，是为了和主线板块对齐：前两组对应领域基础与 TLS 章节，后两组对应进程模型、规则引擎与插件系统。遇到英文缩写先在这里确认中文含义，再回源码看它作为变量名出现在哪一段，比在数千行的工具文件里盲搜更有效；同一概念在文档与代码里往往用不同写法，先对齐称呼能省下大量来回跳转。
 
@@ -82,7 +87,7 @@ description: 把术语、源码路径、配置项、CLI 命令、阈值与内部
 | 测试 | test/index.test.js | test/units/ | 用例集 |
 :::
 
-几个高频落点值得单独记：请求装配在 `lib/index.js:36-60`，解密判定在 `lib/tunnel.js:168-213`，规则命中在 `lib/inspectors/rules.js:29-45`，抓包上报在 `lib/inspectors/data.js:185`，缓存事件绑定在 `lib/util/data-server.js:92-95`，插件 hook 分发在 `lib/plugins/load-plugin.js:2012-2031`。`lib/util/index.js` 与 `lib/util/common.js` 都是数千行的大文件，只按符号检索，不要通读。
+几个高频落点值得单独记：请求装配在 `lib/index.js:36-60`，解密判定在 `lib/tunnel.js:168-213`，规则命中在 `lib/inspectors/rules.js:29-45`，抓包上报在 `lib/inspectors/data.js:185`，缓存事件绑定在 `lib/util/data-server.js:92-95`，[插件](/concepts/07-extension) [hook](/concepts/07-extension) 分发在 `lib/plugins/load-plugin.js:2012-2031`。`lib/util/index.js` 与 `lib/util/common.js` 都是数千行的大文件，只按符号检索，不要通读。
 
 九个分组里，「入口」与「协议」决定请求从哪进来，「规则」与「证书」决定要不要解密、怎么改写，「插件」「UI」「工具」是外围能力，「存储」与「测试」支撑配置与验证。按这个层次记路径，比背目录树更稳；行号会随提交漂移，但 `lib/index.js:36`、`lib/tunnel.js:44` 这类函数名与事件名相对稳定，值得优先记住。
 
@@ -208,6 +213,13 @@ config.WEBUI_PATH = '/.whistle-path.5b6af7b9884e1165/';
 
 本页所有数值与行号以 `guide` 分支 `3b85cebc4`（v2.10.13）为准；升级版本后请重新对照 `package.json` 与 `lib/config.js`。
 
+## 常见误解
+
+- 容易以为「速查表里的默认值就是运行时生效值」，CLI 标注值与运行时合并后的结果未必一致，本篇已在相应条目注明。
+- 容易以为「行号可以跨版本照抄」，本表全部基于固定的源码基线；换版本要先重新对齐提交。
+
 ## 小结
 
 本页把全站研读所需的术语、路径、配置、命令与阈值收拢成一页可回查的表，[回到首页](/) 可重新选择学习路径。
+- 本篇为 [31《概念精解：从名词到工程直觉》](/concepts/index) 铺垫：把「查得到」升级为「把名词真正讲透」。
+

@@ -7,6 +7,12 @@ description: 把四类事件、Express 中间件、Stream 与 pipe、事件总�
 
 本层是「概念精解」的运行时篇，前置是 [TLS、证书与信任](/concepts/03-tls) 交付的那份解密后明文。这里把 Whistle 赖以运转的 Node 术语——`http.Server` 的四类事件、Express 中间件、Stream 与 `pipe`、事件总线、cluster 与 pfork、单例配置——逐个拆成可对照源码的卡片。读完你能说清「为什么 `lib/init.js` 不是启动文件」、`sockets=256` 到底限的是什么，也能把 [一张图看懂全局架构](/architecture/overview) 与 [一次 HTTP 代理请求的旅程](/core/http-request) 的名词全部对上号。
 
+::: tip 先修知识
+本篇承接 [《TLS、证书与信任》](/concepts/03-tls)（34）、[《进程模型与配置系统》](/architecture/process-config)（08）。需要你已经理解：`http.Server` 会触发哪些事件、为什么需要流与背压、进程与配置单例的角色。
+
+若其中某个词还只是「眼熟」，可先翻 [《抓包数据面与帧》](/concepts/05-capture)、[《全量术语索引》](/concepts/glossary)；本篇不要求预先读过源码，按文中给出的顺序对照现象即可跟上。
+:::
+
 ## 本层概念地图
 
 这些词同样是一条装配链：先有 `http.Server` 把连接收进来，Express 中间件把请求塑形成 `req`/`res`，Stream 与 `pipe` 负责搬运字节，事件总线把各子系统挂到同一处，最后 cluster、pfork 与配置单例决定进程形态与状态归属。按这个顺序读，比按文件名猜职责稳得多。
@@ -450,7 +456,10 @@ function proxy(callback, _server) {
 - 缓存分两类：LRU 按热度淘汰证书与 agent，有界缓存按溢出阈值兜住抓包会话；前端用短轮询增量取数据。
 - cluster 管多 worker 与看门狗，pfork 管隔离插件，detached 与 PID 文件管后台生命周期，单例配置与 storage 隔离分别管状态共享与实例分家。
 - 入口是纯函数：先装配配置，再由调用方决定守护化、内嵌或复用外部 Server，这是同一份内核能同时服务 `w2 start` 与 `require('whistle')` 的前提。
+- 本篇为 [36《抓包数据面与帧》](/concepts/05-capture) 铺垫：把「字节怎么流动」交给采集与观测。
 
 ## 下一步
 
 [《抓包数据面与帧》](/concepts/05-capture)：运行时骨架清楚了，同层的下一篇看一次请求的字节怎样被采集、截断、缓存，再经约定式 CGI 与短轮询送到界面上，把 Stream 与有界缓存两条线索接起来。
+
+**为什么紧接着读它**：运行时骨架清楚了，才能说清一次请求的字节怎样被采集、截断、缓存并送到界面。

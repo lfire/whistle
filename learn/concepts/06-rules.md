@@ -7,6 +7,11 @@ description: 以概念词典的方式讲透规则文本、编译分桶、值体�
 
 本层是「概念精解」的规则语言分册，前置知识是 [规则引擎：解析与匹配](/modules/rules-engine) 与 [指令体系与分发链路](/modules/protocol-catalog) 已经拆过的「编译期 → 请求期」两条泳道。这里不再沿调用链往下走，而是把规则世界里每个名词——pattern、operation、别名、分桶、规则集、Values、模板变量、过滤器、important、热更新——逐个拆成定义、类比、源码落点与设计取舍。读完你能把一行规则逐 token 讲清楚，能判断 `${key}` 与 `${method}` 分别在哪个阶段展开，也能解释为什么改一行规则要整份重编译。
 
+::: tip 先修知识
+本篇承接 [《规则引擎：解析与匹配》](/modules/rules-engine)（13）、[《指令体系与分发链路》](/modules/protocol-catalog)（14）。需要你已经理解：规则文本的三个组成部分、编译期与请求期的分工、为什么需要按协议分桶。
+
+若其中某个词还只是「眼熟」，可先翻 [《扩展机制与工程化》](/concepts/07-extension)、[《易混淆概念辨析》](/concepts/08-confusions)；本篇不要求预先读过源码，按文中给出的顺序对照现象即可跟上。
+:::
 ![一条规则的完整解剖](/diagrams/rules-anatomy.svg)
 *图注：一行规则被拆成 pattern、operation、lineProps 与 filters，再编译成按协议分桶的 rule 对象。*
 
@@ -275,7 +280,10 @@ proxy://127.0.0.1:8080 www.example.com api.example.com
 - `${key}` 规则集、内嵌值、模板变量、插件变量与 `@url` 远程规则都在编译期拍平，请求期只做求值。
 - 匹配按正则、通配、精确、前缀、否定五分支推进，默认同协议首条命中；important、multiMatchs、backRulesFirst、filterWeakRule 是有限补丁。
 - `regUrlCache` / `hostCache` 每次编译后清空；规则变更触发全量重编译，由 `_mflag`、`setModified` 与前端轮询串成闭环。
+- 本篇为 [38《扩展机制与工程化》](/concepts/07-extension) 铺垫：把「语言之内」交给「语言之外」。
 
 ## 下一步
 
 [《扩展机制与工程化》](/concepts/07-extension)：规则语言已经能描述匹配、值、优先与更新，下一篇转向「语言之外」——插件与脚本怎样注册协议、注入动态规则，把 Whistle 的能力边界继续往外推。
+
+**为什么紧接着读它**：规则能描述匹配与值，但注册新协议、注入动态规则要靠插件与脚本。

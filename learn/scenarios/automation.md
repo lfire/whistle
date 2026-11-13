@@ -7,6 +7,12 @@ description: 拆解把 Whistle 当库内嵌到测试进程的启动、隐藏规�
 
 当调试代理要进流水线，问题就从「怎么点界面」变成「怎么在测试进程里把它拉起来并断言规则真的生效」。CI 里没有交互式桌面，也没有人去装根证书；上游平台还希望把 Whistle 当作按需启动的内部服务。本篇沿官方集成测试与 NPM 模块文档走一遍，读完你能说清 `require('whistle')` 之后配置如何装配、三类隐藏规则如何注入、测试节拍器为何靠 `get-data` 驱动，以及内嵌模式与 CLI 模式到底差在哪。所有片段与阈值都来自集成测试、官方文档或源码。
 
+::: tip 先修知识
+本篇承接 [《团队协作：规则集、远程规则与配置即代码》](/scenarios/collab-config)（25）。需要你已经理解：`require('whistle')` 作为库入口的形态、约定式 CGI 如何驱动状态机、测试如何观测规则是否真的命中。
+
+若其中某个词还只是「眼熟」，可先翻 [《扩展机制与工程化》](/concepts/07-extension)、[《规则 DSL 全景》](/concepts/06-rules)、[《抓包数据面与帧》](/concepts/05-capture)；本篇不要求预先读过源码，按文中给出的顺序对照现象即可跟上。
+:::
+
 ## 场景与痛点
 
 **一、CI 需要一个可编程的代理实例。** 接口回归要验证「命中 mock 规则后返回指定内容」，如果依赖全局安装的 `w2` 与人工配置的界面状态，用例就无法在干净环境重复执行。更稳妥的做法是把 Whistle 作为库内嵌进测试进程，用代码注入规则、订阅事件并断言。官方测试干脆把代理拉进 `test/index.test.js` 所在进程，用 `storage:'test_'` 开一套独立状态，正是为了让这条链路不受机器既有环境影响。
@@ -132,11 +138,18 @@ startWhistle({ port: 18080, storage: 'ci_' }, (proxy) => {
 
 ## 边界与坑
 
-- **CI 必须用独立 `storage`。** `test/index.test.js:107` 用 `test_`，`docs/docs/extensions/npm.md` 的内部服务模式也建议「设置新存储目录」；否则回归会污染日常的 Rules、Values、证书与会话，甚至把别人的调试现场覆盖掉。
+- **CI 必须用独立 `storage`。** `test/index.test.js:107` 用 `test_`，`docs/docs/extensions/npm.md` 的内部服务模式也建议「设置新存储目录」；否则回归会污染日常的 Rules、[Values](/concepts/06-rules)、证书与会话，甚至把别人的调试现场覆盖掉。
 - **`options.server` 与 `cluster` 互斥。** `index.js:207` 直接 `assert(!options.server, 'cannot exist options.server in cluster mode')`，想在 cluster 下复用外部 Server 会立即抛错，二者只能选一。
 - **分页与重放都有硬上限。** `lib/util/data-server.js:34` 的 `MAX_COUNT=120` 且 `:36-51` 表明不给 `startId` / `startTime` 只能取首页；`lib/service/composer.js:19,118-120` 把重放夹到 100 次，写用例时不要假设能一次拉全量或无限重放。
 - **`--inspect` 仅 `w2 run` 支持。** `bin/whistle.js:95-99` 对 `start` / `restart` 直接报 `Inspector mode only supported with w2 run command` 并 `process.exit(1)`；`docs/docs/cli.md` 的 `-h` 把它列为通用参数，`:329-330` 甚至给出 `w2 start --inspect` 示例，都与源码冲突，实际只能 `w2 run --inspect`。
 - **`npm test` 与真实端口。** `package.json:70` 定义 `"test": "npm run lintfix && node test/index.test.js"`，即先跑 `eslint --fix` 再跑用例；`test/config.test.js:3` 固定真实端口 6666，本机已有服务占用会直接导致失败，CI 需保证端口空闲。
+
+
+**几个容易读反的地方**：
+
+- 容易以为「CI 里要像桌面一样先启动守护进程」，其实入口是纯函数：先注入 options 装配配置，再由调用方决定守护化、内嵌还是复用实例。
+- 容易以为「断言 HTTP 状态码就够了」，隐藏规则、Mock 与界面状态需要用约定式 CGI 与事件订阅才能观测，否则规则没命中也可能返回 200。
+- 容易以为「自动化环境可以忽略证书」，只要测试流量需要解密，根证书信任这一步仍然存在，只是换成了无人值守的安装方式。
 
 ## 小结
 
@@ -145,7 +158,10 @@ startWhistle({ port: 18080, storage: 'ci_' }, (proxy) => {
 - 约定式 CGI 让测试用普通 HTTP 调用即可驱动状态机，事件订阅与断言提供可观测性。
 - 长跑靠有界缓存、100 次重放上限与 120 条分页共同兜底，内存不会随用例数线性增长。
 - 内嵌模式不自动装证书、不设系统代理，与 CLI 的环境准备责任完全不同。
+- 本篇为 [27《能力边界、风险与合规》](/scenarios/boundaries) 铺垫：把「能自动化」反过来问「哪些事不该自动化」。
 
 ## 下一步
 
 [《能力边界、风险与合规》](/scenarios/boundaries)：当代理被放进流水线与共用环境，需要回过头看清解密、证书信任、敏感数据与管理面的边界在哪里。
+
+**为什么紧接着读它**：代理进入共用环境与流水线后，解密范围、证书信任与敏感数据边界就成了必须先划清的前提。

@@ -7,6 +7,12 @@ description: 把插件、hook、内部端口、约定式 CGI 与 NPM 模块 API 
 
 前四层把一次请求从代理入口一路送到抓包界面，本层回答「这套能力怎样被第三方代码复用与放大」。前置概念是进程隔离、内部 HTTP 转发与 Express 中间件；读完你能独立写出一个最小插件，说清 `w2 install` 之后主进程与插件子进程之间发生了什么，也能把 Whistle 当作 npm 模块嵌进自己的服务。本层不追求新协议知识，而是把散落在 `lib/plugins/`、`biz/webui/` 与 `index.d.ts` 的名词收成一张可回查的词典。
 
+::: tip 先修知识
+本篇承接 [《插件系统》](/modules/plugins)（16）、[《规则 DSL 全景》](/concepts/06-rules)（37）。需要你已经理解：进程隔离、内部 HTTP 转发、Express 中间件三类基础机制。
+
+若其中某个词还只是「眼熟」，可先翻 [《易混淆概念辨析》](/concepts/08-confusions)、[《综合贯通》](/concepts/09-walkthrough)；本篇不要求预先读过源码，按文中给出的顺序对照现象即可跟上。
+:::
+
 ## 本层概念地图
 
 扩展机制可以切成五簇，簇与簇之间以「发现 → 隔离 → 通信 → 呈现 → 复用」为序。下表每格只给锚点，详细定义见后面的完整卡片。
@@ -425,7 +431,10 @@ w2 use ./whistle.test-rules/rules.txt
 - Web UI 用约定式 CGI 换取「放文件即接口」，同时用白名单、Basic / Cookie / guest 与 CORS 四道检查兜住安全边界。
 - `index.js` + `lib/index.js:215-241` + `index.d.ts` 让 Whistle 可被嵌入宿主进程，`mode` 与 `shadowRules` 则提供不改源码的运行期调控。
 - weinre、`log://`、`assets/js/log.js` 是一组「注入脚本 → 回传界面」的旁路能力，与插件体系并列而非从属。
+- 本篇为 [39《易混淆概念辨析》](/concepts/08-confusions) 铺垫：把逐个讲透的名词摆在一起成对对照。
 
 ## 下一步
 
 [《易混淆概念辨析》](/concepts/08-confusions)：把全站近百组形近、名近、阶段近的概念摆在一起对照，逐组给出差别、类比、源码落点、踩坑表现与回查章节。
+
+**为什么紧接着读它**：概念一多就容易串味，辨析篇帮你迅速判断「该看哪一层」。
