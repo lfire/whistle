@@ -5,10 +5,10 @@ description: 用十三张词条卡片讲清报文结构、分块与压缩、连�
 
 # HTTP 报文与连接语义
 
-流量进了代理之后，代理能看懂多少、能改多少，全由报文与连接的语义决定。本层承接[代理与流量入口](/concepts/01-proxy)的「进门」结论，前置概念是[Web 协议与流量形态](/domain/web-protocols)里对 HTTP、HTTPS、WebSocket 的基本印象。读完你能说清一条报文由哪几部分组成、为什么改写 body 前必须先删 `content-length`、chunked 与 gzip 到底差在哪一层，以及 HTTP/2 伪头、ALPN、Upgrade、SSE 与 TCP 字节流各自把连接带向了什么形态。
+流量进了代理之后，代理能看懂多少、能改多少，全由报文与连接的语义决定。本层承接[代理与流量入口](/concepts/01-proxy)的「进门」结论；[Web 协议与流量形态](/domain/web-protocols)（04）是同一主题的源码视角，**可以后读，不是前置**，本篇会把报文从零拆开讲。读完你能说清一条报文由哪几部分组成、为什么改写 body 前必须先删 `content-length`、chunked 与 gzip 到底差在哪一层，以及 HTTP/2 伪头、ALPN、Upgrade、SSE 与 TCP 字节流各自把连接带向了什么形态。
 
 ::: tip 先修知识
-本篇承接 [《代理与流量入口》](/concepts/01-proxy)（32）、[《HTTP/2、WebSocket 与流量形态》](/domain/web-protocols)（04）。需要你已经理解：请求行/状态行、Header、Body、状态码，以及「连接」与「报文」的区别。
+本篇承接 [《代理与流量入口》](/concepts/01-proxy)（32）的「进门」结论；[《HTTP/2、WebSocket 与流量形态》](/domain/web-protocols)（04）是同一主题的源码视角，**可以后读，不是前置**。请求行/状态行、Header、Body、状态码，以及「连接」与「报文」的区别，都会在本篇从定义讲起，不需要预先掌握。
 
 若其中某个词还只是「眼熟」，可先翻 [《易混淆概念辨析》](/concepts/08-confusions)、[《全量术语索引》](/concepts/glossary)；本篇不要求预先读过源码，按文中给出的顺序对照现象即可跟上。
 :::
