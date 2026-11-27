@@ -10,7 +10,7 @@ description: 从内联 JSON 到 Values 与本地模板，追溯 Mock 为何在 h
 ::: tip 先修知识
 本篇承接 [《本地联调与环境切换》](/scenarios/local-env)（19），本篇会讲清（不需要预先掌握）：规则命中后由 handler 决定出站或短路、`file://` 会删掉 proxy 与 host 直接构造响应、以及规则按行序首条命中即返回。19 讲的是「把流量送到某个真实目标」，本篇把同一条短路链推到「目标不存在、由代理自己造响应」。
 
-若对规则 DSL、pattern、Values 与过滤器不熟悉，可先读 [《概念精解 · 规则 DSL 全景》](/concepts/06-rules)；对抓包会话与有界缓存可查 [《概念精解 · 抓包数据面与帧》](/concepts/05-capture)；对插件与热更新链可查 [《概念精解 · 扩展机制与工程化》](/concepts/07-extension)；对代理入口与 CONNECT 可查 [《概念精解 · 代理与流量入口》](/concepts/01-proxy)；对 TLS 与证书可查 [《概念精解 · TLS、证书与信任》](/concepts/03-tls)。不要求预先读过源码，但知道「编译期只结构化、请求期才求值」会更容易跟上容量分档与热更新那两段；忘记某个名词可查 [《全量术语索引》](/concepts/glossary)。
+若某个名词卡住，按主题回查 [概念精解总览](/concepts/index) 与 [《全量术语索引》](/concepts/glossary)；正文在术语首次出现处也给了对应链接。
 
 给完全没读过源码的读者：把「短路转发」先理解成「代理不把请求发给后端，而是自己拼一份响应发回浏览器」。因此后端存不存在、占没占端口，都不影响这条链路；本篇后面所有 `file://`、`tpl://`、`statusCode://` 的写法，只是决定这份「自己拼的响应」内容从哪来、状态码是多少。
 :::
@@ -38,7 +38,7 @@ description: 从内联 JSON 到 Values 与本地模板，追溯 Mock 为何在 h
 ## 可复制的配置
 
 
-> **动手前**：下面的配置都写在 Whistle 界面的 **Rules** 面板里（Create 新建 → 粘贴 → Save → ON 开启）。如果还没把工具跑起来，请先完成 [第 0 站 · 第一次跑通](/guide/quickstart)：安装、启动、界面、代理、根证书与命中验证都在那里；否则照抄这些规则也看不到结果。
+> **动手前**：规则写在 **Rules**，内联值或 `{key}` 引用的内容建在 **Values**（Create 新建并保存）。若还没把工具跑起来，先完成 [第 0 站](/guide/quickstart) 第 5 步与通关自检第 9 项；示例域名请换成你能访问的站点。下面示例里的域名、IP、路径与 `{key}` 都是占位，请替换成你自己的目标；引用 `{key}` 之前，先在 Values 里 Create 好同名条目。
 
 内联值是最轻的一档，必须用 `()` 包裹；`tpl` 与 `resType` 分别负责动态模板与响应类型。
 
@@ -49,7 +49,7 @@ www.example.com/api/data file://({"status":"ok"})
 # 本地 JS 模板按请求参数生成响应
 https://www.example.com/test/tpl tpl:///User/xxx/test.js
 # 直接返回内容并指定响应类型
-pattern file://(直接返回的内容) resType://html
+www.example.com/api file://(直接返回的内容) resType://html
 ```
 
 同一 URL 上按方法或请求体分流，靠的是过滤器而不是多条 URL 规则。

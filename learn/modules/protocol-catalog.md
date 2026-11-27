@@ -8,7 +8,9 @@ description: 从协议名数组、别名与派生集合出发，讲清一条指�
 上一篇把规则文本编译成了按协议分桶的 rule 对象，本篇接着回答「分桶之后谁消费」。Whistle 的指令不是一个枚举类，而是 `lib/rules/protocols.js` 里一张协议名数组加若干派生集合；理解别名、分桶和阶段筛选，就能判断任意一条 `xxx://value` 会在哪个文件里生效。以下按「静态定义 → 请求期分发 → 分类清单 → 易混淆点 → 扩展注册」展开，行号均来自当前分支。13 把规则文本编译成按协议分桶的 rule 对象后，留下两个未解问题：这些桶在请求期由谁按什么顺序取用，以及一条 `xxx://value` 究竟落到哪个文件；本篇就把「编译产物 → `req.rules` → inspector / handler」这条消费链补全，读完后你能拿着任意一条协议名，说清它在哪一步被取用、由哪个阶段生效。
 
 ::: tip 先修知识
-本篇承接 [《规则引擎：解析与匹配》](/modules/rules-engine)（前置 13）：需要你已经理解 13 的编译期 → 请求期两条泳道——一行[规则 DSL](/concepts/06-rules)文本被 `parseText` 编译成按协议分桶的 rule 对象、[优先级](/concepts/06-rules)靠行序表达且首条命中即返回，以及 `resolveRuleList` 在单个协议桶内按五条分支求首条命中。对规则文本、编译分桶、值体系与热更新可查 [《概念精解 · 规则 DSL 全景》](/concepts/06-rules)；对[插件](/concepts/07-extension)、[pfork](/concepts/07-extension) 与扩展机制可查 [《概念精解 · 扩展机制与工程化》](/concepts/07-extension)；对[抓包](/concepts/05-capture)会话与帧缓存可查 [《概念精解 · 抓包数据面与帧》](/concepts/05-capture)；对 [CONNECT](/concepts/01-proxy) 与代理入口可回看 [《概念精解 · 代理与流量入口》](/concepts/01-proxy)；想按时间顺序看一次请求的完整贯通可读 [《概念精解 · 综合贯通：一次 HTTPS 请求里的全部概念》](/concepts/09-walkthrough)。
+先做 [第 0 站](/guide/quickstart)：本篇讲的是你在 Rules 与界面背后动过的那套机制。
+
+若某个名词卡住，按主题回查 [概念精解总览](/concepts/index) 与 [《全量术语索引》](/concepts/glossary)；正文在术语首次出现处也给了对应链接。
 
 不需要预先读过源码，但知道 09 那条 `rules → req → data → res` 的 Express 主干会更轻松；成对辨析可查 [《易混淆概念辨析》](/concepts/08-confusions)，忘记名词查 [《全量术语索引》](/concepts/glossary)。
 

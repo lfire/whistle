@@ -5,7 +5,7 @@ description: 以概念词典的方式讲透抓包会话、旁路采样、帧、�
 
 # 抓包数据面与帧
 
-本层是「概念精解」的抓包数据面分册，前置知识是 [一次 HTTP 代理请求的旅程](/core/http-request)、[CONNECT 判定与 TLS 解密](/core/connect-mitm) 与 [隧道、WebSocket 与帧拦截](/core/tunnel-websocket) 已经铺好的请求流与帧管道。这里不再沿时间线重走链路，而是把链路里冒出来的每个专业名词——会话、reqId、采样、帧、Composer、短轮询——逐个拆成定义、类比、源码落点与设计取舍。读完你能解释一个 20MB 的响应为什么只留下一行元信息、界面为何永远读得到内核刚写入的字段，以及「抓包」与「阻断」到底差在哪一层。
+本层是「概念精解」的抓包数据面分册，可选回查 [09](/core/http-request)、[12](/core/capture-data) 铺好的链路；本篇会从定义讲起，不需要预先掌握。这里不再沿时间线重走链路，而是把链路里冒出来的每个专业名词——会话、reqId、采样、帧、Composer、短轮询——逐个拆成定义、类比、源码落点与设计取舍。读完你能解释一个 20MB 的响应为什么只留下一行元信息、界面为何永远读得到内核刚写入的字段，以及「抓包」与「阻断」到底差在哪一层。
 
 ::: tip 先修知识
 本篇承接 [《一次 HTTP 代理请求的旅程》](/core/http-request)（09）与 [《抓包数据的采集与上报》](/core/capture-data)（12）铺好的链路；若你走的是[首页](/)「概念先行」路线，本篇属于「36–41 随时回查」的部分，可以学完主线再来看。旁路采集与主线转发的区别、`reqId` 如何把一次请求串起来、有界缓存为何不用 LRU，都是本篇要讲清的词条，不需要预先掌握。
@@ -243,7 +243,7 @@ cgi.getData(options, function (data) {
 | Maximum Rows | 界面最大显示行数 | `network-modal.js:5` | 默认 1500 条 |
 :::
 
-其中 `lib/util/data-server.js:10-34` 的一组常量是理解整张表的钥匙：默认缓存 600 条（`MAX_LENGTH`）、溢出 1800 条（`OVERFLOW_LENGTH`）、先砍到 1200 条（`MAX_CACHE_SIZE`）、尾部 360 条（`PRESERVE_LEN`）改用 `MAX_CACHE_TIME`(6 分钟) 宽限、单次上报 100 条（`COUNT`）、API 分页 120 条（`MAX_COUNT`）。`PRESERVE_LEN` 并非「只保留 360 条」，而是这批尾部条目享受更长超时，清理细节见 [运行时与内核骨架](/concepts/04-runtime) 的 `clearCache`。官方 CLI 的 `-R reqCacheSize` 默认 600、`-F frameCacheSize` 默认 512（`docs/docs/cli.md:47-48`），但源码 `:10-16` 强制下限 600，512 实际不会生效；前端 `htdocs/src/js/data-center.js:1157-1159` 的 100/900ms 是轮询间隔，服务端 `lib/service/data-center.js:8` 的 `MAX_COUNT = 100` 是保存会话列表上限，与 `COUNT` 是三个不同的 100。`Maximum Rows` 是界面显示上限（默认 1500），与服务端这 600 条完全是两回事，混为一谈就会误判「列表里还有、服务端却查不到」。
+其中 `lib/util/data-server.js:10-34` 的一组常量是理解整张表的钥匙：`:10-12` 把 `reqCacheSize` 低于 600 抬到 600，`:14-16` 把 `frameCacheSize` 低于 720 设为 600（两组行号与阈值不同）；`MAX_LENGTH = reqCacheSize`（默认 600）、`OVERFLOW_LENGTH = MAX_LENGTH * 3`（默认 1800）、`MAX_CACHE_SIZE = MAX_LENGTH * 2`（默认 1200），三者都是随配置变化的倍率而非固定常数、尾部 360 条（`PRESERVE_LEN`）改用 `MAX_CACHE_TIME`(6 分钟) 宽限、单次上报 100 条（`COUNT`）、API 分页 120 条（`MAX_COUNT`）。`PRESERVE_LEN` 并非「只保留 360 条」，而是这批尾部条目享受更长超时，清理细节见 [运行时与内核骨架](/concepts/04-runtime) 的 `clearCache`。官方 CLI 的 `-R reqCacheSize` 默认 600、`-F frameCacheSize` 默认 512（`docs/docs/cli.md:47-48`），但源码 `:10-16` 强制下限 600，512 实际不会生效；前端 `htdocs/src/js/data-center.js:1157-1159` 的 100/900ms 是轮询间隔，服务端 `lib/service/data-center.js:8` 的 `MAX_COUNT = 100` 是保存会话列表上限，与 `COUNT` 是三个不同的 100。`Maximum Rows` 是界面显示上限（默认 1500），与服务端这 600 条完全是两回事，混为一谈就会误判「列表里还有、服务端却查不到」。
 
 ## 与工程实际结合
 

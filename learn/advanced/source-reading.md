@@ -5,7 +5,7 @@ description: 四条阅读路线、调试开关、断点清单与测试体系，�
 
 # 源码阅读与调试路线
 
-读完前四层后，最常见的困境不是看不懂语法，而是改动一落地却不知道该从哪个文件开始追。本篇把仓库拆成四条互不重叠的阅读路线，每条给出文件顺序与它回答的问题，再补齐调试开关、断点清单和测试体系。所有引用均以 `guide` 分支 `3b85cebc4`（v2.10.13）为准——其后提交仅涉及文档站，业务源码零改动，因此行号仍然有效；路径为仓库相对路径，建议把仓库与文档并排打开，遇到行号就跳过去看一眼再回来。
+读完主线 01–17后，最常见的困境不是看不懂语法，而是改动一落地却不知道该从哪个文件开始追。本篇把仓库拆成四条互不重叠的阅读路线，每条给出文件顺序与它回答的问题，再补齐调试开关、断点清单和测试体系。所有引用均以 `guide` 分支 `3b85cebc4`（v2.10.13）为准——其后提交仅涉及文档站，业务源码零改动，因此行号仍然有效；路径为仓库相对路径，行号当坐标看即可，想核对时再打开源码文件；[第 0 站](/guide/quickstart) 跑通工具的经历会让这些路径更好对照。
 
 ::: tip 先修知识
 本篇承接 [《三个动手实验》](/advanced/hands-on)（28）、[《一张图看懂全局架构》](/architecture/overview)（06）。本篇会讲清（不需要预先掌握）：四条阅读路线分别对应的入口事件、断点该落在「判定」还是「改写」、最小复现与测试体系的关系。
@@ -52,7 +52,7 @@ description: 四条阅读路线、调试开关、断点清单与测试体系，�
 
 ## 测试体系与最小复现
 
-`npm test` 即 `npm run lintfix && node test/index.test.js`（`package.json:70`）：先用 eslint 自动修复，再跑主测试文件。`test/index.test.js:17` 读取 `test/units/` 下的全部用例，断言用 `should`（`test/index.test.js:7`）；覆盖率脚本 `npm run cov` 才走 tape 与 istanbul。fixtures 集中在 `test/assets/`：`certs/` 下有 `root.key`、`test.crt` 等证书，`files/` 与 `rules/` 提供规则素材，另有一个顶层 `test/rules.txt`。这些证书让 HTTPS 与 MITM 用例无需联网即可复现。
+先在仓库里 `npm install` 装好依赖，再执行 `npm test`（即 `npm run lintfix && node test/index.test.js`（`package.json:70`）：先用 eslint 自动修复，再跑主测试文件。`test/index.test.js:17` 读取 `test/units/` 下的全部用例，断言用 `should`（`test/index.test.js:7`）；覆盖率脚本 `npm run cov` 才走 tape 与 istanbul。fixtures 集中在 `test/assets/`：`certs/` 下有 `root.key`、`test.crt` 等证书，`files/` 与 `rules/` 提供规则素材，另有一个顶层 `test/rules.txt`。这些证书让 HTTPS 与 MITM 用例无需联网即可复现。
 
 复现问题的最小做法是：从 `test/units/` 里挑一个最接近的用例（例如 `reqHeaders.test.js`）复制改名，只改请求 URL 与期望值，用 `startWhistle` 返回的 `proxy` 监听 `request` 观察数据，确认失败后再回到源码定位。这样既避免启动完整浏览器，也能把问题压缩到一条链路。`npm run dev` 是 `webpack --config ./biz/webui/htdocs/src/webpack.config -w`，只做前端资源的 watch 编译，改 `biz/webui/htdocs/src/` 下的界面代码时用它，与内核调试互不干扰。
 

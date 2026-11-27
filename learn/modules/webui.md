@@ -8,7 +8,9 @@ description: 从主代理复用、biz 识别层、约定式 CGI 到前端轮询�
 Whistle 的管理界面没有独立进程，也没有单独的端口默认值：它复用主代理的 Express app，靠一层 `biz` 中间件把「管理流量」从普通代理流量里摘出来。本篇面向要加 CGI、改鉴权或动前端的开发者，按「识别 → 路由 → 鉴权与接口 → 前端与取舍」展开，行号均来自当前分支。前面 [《插件系统》](/modules/plugins) 讲清了第三方能力如何通过 [ports 表](/concepts/07-extension) 与 CGI 暴露出来、[《抓包数据的采集与上报》](/core/capture-data) 讲清了会话与帧如何被采集进有界缓存、并以 100 / 900 ms 短轮询经独立 cgi 接口上报，但「浏览器上那些按钮和数据，究竟怎么找到对应接口、怎么被允许访问、又怎么刷新出来」还没交代；本篇就补上浏览器这一侧，读完你能加 CGI、改鉴权或动前端。
 
 ::: tip 先修知识
-本篇承接 [《插件系统》](/modules/plugins)（前置 16）与 [《抓包数据的采集与上报》](/core/capture-data)（前置 12），需要你已经理解插件通过 ports 表与 `/whistle.xxx/` 暴露界面、内部端口与 CGI 的分工，以及请求、隧道、帧如何被采集进有界缓存、并以 100 / 900 ms 短轮询经独立 cgi 接口上报。若对抓包、reqId、帧缓存、Composer 这些名词还不熟，可先读 [《概念精解 · 抓包数据面与帧》](/concepts/05-capture)；对插件、pfork、ports 表、hook、Storage 可查 [《概念精解 · 扩展机制与工程化》](/concepts/07-extension)；对规则与 Values 如何编译命中可查 [《概念精解 · 规则 DSL 全景》](/concepts/06-rules)；对「一次请求走过哪些层」可查 [《概念精解 · 一次请求里的全部概念》](/concepts/09-walkthrough)。
+先做 [第 0 站](/guide/quickstart)：本篇讲的是你在 Rules 与界面背后动过的那套机制。
+
+若某个名词卡住，按主题回查 [概念精解总览](/concepts/index) 与 [《全量术语索引》](/concepts/glossary)；正文在术语首次出现处也给了对应链接。
 
 不要求预先读过 Whistle 源码，但知道「浏览器与服务端靠 HTTP 接口通信」会更轻松。
 
@@ -134,7 +136,7 @@ app.all('/cgi-bin/*', function(req, res, next) {
 
 前端 `biz/webui/htdocs/src/js/data-center.js:88-94` 定义 `CGI_URL = 'cgi-bin/'` 与 rules / values / plugins / certs / service / socket 六组前缀，`:444-450` 列出 `getData`、`getLogs`、`getInitial`、`getMatchedRules` 四个取数接口；`cgi.js:61` 的 `$.ajax(opts)` 封装统一处理 auth 参数、排队与 abort。服务端 `config.setModified`（`lib/config.js:1126`）打的版本标记，最终由 `data-center.js:903` 的 `checkDataChanged` 比对决定是否重拉。
 
-两个同名文件要分清：上面的 `checkDataChanged` 与 100 / 900 ms 轮询都在浏览器端 `biz/webui/htdocs/src/js/data-center.js`，而 `lib/service/data-center.js:8` 是 service 子进程的抓包缓存，`MAX_COUNT = 100` 限制缓存条数，二者分处前后端、不共享代码。抓包缓存容量还受 CLI 参数影响：`docs/docs/cli.md:47-48` 标注 `--reqCacheSize` 默认 600、`--frameCacheSize` 默认 512，`lib/util/data-server.js:10-16` 又对二者设了强制下限（`reqCacheSize < 600` 抬到 600、`frameCacheSize < 720` 时设为 600），所以命令行标注的默认值与运行时实际生效值未必一致，排查缓存问题时以 `config.reqCacheSize` 为准。
+两个同名文件要分清：上面的 `checkDataChanged` 与 100 / 900 ms 轮询都在浏览器端 `biz/webui/htdocs/src/js/data-center.js`，而 `lib/service/data-center.js:8` 在 `:99` 用 `slice(0, MAX_COUNT)`（`MAX_COUNT = 100`）裁剪**已保存会话列表**，不是抓包缓存容量，二者分处前后端、不共享代码。抓包缓存容量还受 CLI 参数影响：`docs/docs/cli.md:47-48` 标注 `--reqCacheSize` 默认 600、`--frameCacheSize` 默认 512，`lib/util/data-server.js:10-16` 又对二者设了强制下限（`reqCacheSize < 600` 抬到 600、`frameCacheSize < 720` 时设为 600），所以命令行标注的默认值与运行时实际生效值未必一致，排查缓存问题时以 `config.reqCacheSize` 为准。
 
 **输入 → 动作 → 输出**：输入是一次带 Cookie / Basic / `proxy-authorization` 头或查询参数的界面请求；鉴权挂在路由之前，`loadAuthPlugins` 允许插件接管登录，`verifyLogin` 依次比对登录键、Basic 与查询参数，`checkAuth` 失败则 `requireLogin`，`config.guest` 提供只读身份；放行后 `get-data` 等 CGI 返回抓包主数据，前端 `checkDataChanged` 比对 `mrulesClientId` / `mrulesTime` 与 `mvaluesClientId` / `mvaluesTime` 两组标记，决定只刷新规则还是只刷新 Values；输出是「该身份看得到的、且只重拉变化部分」的界面数据。
 
@@ -192,7 +194,7 @@ weinre 与 `log://` 是两条注入线：`biz/weinre/index.js` 用 [`pfork.fork`
 1. **容易以为管理界面跑在独立进程或独立端口上，其实默认复用主代理的 Express app**：只有 `--uiport`（`config.customUIPort`）才另起 `http.Server`；「一个代理地址即可」正是默认单端口的原因，对照见 [《易混淆概念辨析》](/concepts/08-confusions)。
 2. **容易以为 `/cgi-bin/*` 有一张集中式路由清单，其实路径直接映射到同名 `.js` 文件**：新增接口只需放一个文件，`require.cache` 命中即执行；代价是路径来自用户输入，必须由 `existsUpPath` 与 `checkInternalPath` 挡目录穿越。
 3. **容易以为前端抓包用的是 WebSocket 长连接，其实是 100 / 900 ms 自适应短轮询**：`hasNew` 决定下一次间隔，短轮询与所有 CGI 同源共用鉴权与缓存，是刻意选择的复杂度下限。
-4. **容易以为浏览器端的 `data-center.js` 与 service 子进程的抓包缓存是同一份代码，其实二者分处前后端、不共享**：前者管 100 / 900 ms 轮询与 `checkDataChanged`，后者是 `lib/service/data-center.js:8` 的有界抓包缓存（`MAX_COUNT = 100`）。
+4. **容易以为浏览器端的 `data-center.js` 与 service 子进程的抓包缓存是同一份代码，其实二者分处前后端、不共享**：前者管 100 / 900 ms 轮询与 `checkDataChanged`，后者是 `lib/service/data-center.js:8` 裁剪已保存会话列表的上限（`MAX_COUNT = 100`）。
 
 ## 小结
 

@@ -71,7 +71,7 @@ Host: www.example.com
 
 **打个比方**：像信封里的信纸。信封上的标签只说明「里面有一页纸、是中文、别折」，真正的内容得拆开才知道；信封可以换、标签可以改，但改了信纸就必须重新称重，否则收件人按旧重量去读会读错。
 
-**在 Whistle 里**：`lib/init.js:157-163` 用 `PipeStream.wrapSrc(req)` 与 `PipeStream.wrapDest(res)` 把请求与响应包装成可插拔的流，之后的 `resBody://`、`htmlAppend://` 等规则都往这条流里插入 Transform；`lib/inspectors/data.js:7-11` 给出 2 MB、16 MB 等采集上限，决定大 body 是完整抓取还是截断。
+**在 Whistle 里**：`lib/init.js:157-163` 用 `PipeStream.wrapSrc(req)` 与 `PipeStream.wrapDest(res)` 把请求与响应包装成可插拔的流，之后的 `resBody://`、`htmlAppend://` 等规则都往这条流里插入 Transform；`lib/inspectors/data.js:7-11` 给出 1 MB、2 MB、16 MB 等采集上限，决定大 body 是完整抓取还是截断。
 
 **为什么这样设计**：把 body 当流而不是整块字符串，才能边收边转、不把大文件全堆进内存；代价是任何改写都会让原本声明的长度失效，因此必须先删 `content-length`（`lib/init.js:150-154`）。流模型还让 gzip 解压、字符转码、内容注入能像流水线一样串起来。
 

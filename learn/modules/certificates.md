@@ -8,7 +8,9 @@ description: 拆解本地 CA 的生成字段、域名归并、多级缓存、自
 HTTPS [抓包](/concepts/05-capture)的前提是客户端信任 Whistle 自签的根 [CA](/concepts/03-tls)，而这套能力几乎全部集中在 `lib/https/ca.js` 一个文件里。本篇面向要改签发逻辑、排查证书告警或接入自定义证书的开发者，按「生成 → 缓存与签发 → 自愈 → 自定义与分发 → 安全边界」展开，并解释那些看似奇怪的字段取值。所有行号对应当前分支源码。前面 [《CONNECT 判定与 TLS 解密》](/core/connect-mitm) 讲清了什么情况下拆开 CONNECT、[《HTTPS、证书链与中间人》](/domain/tls-mitm) 讲清了两段 TLS 与信任链如何建立，而紧邻的 [《指令体系与分发链路》](/modules/protocol-catalog) 把指令一路分发到各个改写点，却把几项握手阶段指令只标成「TLS 参数」、没交代它们生效的前提；本篇就补上这个前提——先有客户端信任的本地根 CA、再由它为每个域名签发叶证书，那条「匹配 → 改写 → 出站」的链才接得上加密流量。读完你能独立看懂签发链路、排查证书告警或接入自定义证书。
 
 ::: tip 先修知识
-本篇承接 [《CONNECT 判定与 TLS 解密》](/core/connect-mitm)（前置 10）、[《HTTPS、证书链与中间人》](/domain/tls-mitm)（前置 03）与 [《指令体系与分发链路》](/modules/protocol-catalog)（前置 14），需要你已经理解 CONNECT 隧道何时被判定为解密、客户端与源站各建一段独立 TLS、根 CA 被信任后代理才能为任意站点现签叶证书，以及 `sniCallback://` 这类指令如何把自定义证书接进签发链路。若对 CA、根证书、证书链、自签、SNI、SAN、MITM 这些名词还不熟，可先读 [《概念精解 · TLS、证书与信任》](/concepts/03-tls)；对「插件如何动态下发证书」可查 [《概念精解 · 扩展机制与工程化》](/concepts/07-extension)；对「解密后的明文如何被采集」可查 [《概念精解 · 抓包数据面与帧》](/concepts/05-capture)。
+先做 [第 0 站](/guide/quickstart)：本篇讲的是你在 Rules 与界面背后动过的那套机制。
+
+若某个名词卡住，按主题回查 [概念精解总览](/concepts/index) 与 [《全量术语索引》](/concepts/glossary)；正文在术语首次出现处也给了对应链接。
 
 不要求预先读过 Whistle 源码，但知道「证书 = 公钥 + 主体信息 + 上级签名」会更轻松。
 
@@ -78,7 +80,7 @@ function getOrCreateCert(servername) {
   }
 ```
 
-`ca.js:609-611` 把它注册给 hagent，并起两个内部 TLS server（端口 42900 与 43900）分别承载 HTTP/1 与 h2。`SNICallback`（`ca.js:616-624`）拿到 `options` 后用 `createSecureContext` 生成 `_ctx` 并缓存，避免每次握手重复建上下文。`getCacheCert` 把 `customPairs` 放在最前（`:197-203`），意味着用户为某域名提供的证书优先于自签证书；这也是 [`sniCallback://`](/concepts/07-extension) 动态证书要单独存进 `remoteCerts`、并在 `getOrCreateCert` 里最先查询的原因——动态下发必须能覆盖静态自定义证书。
+`ca.js:609-611` 把它注册给 hagent，并起两个内部 server：42900 承载 h2c 明文（非 TLS）、43900 承载 HTTPS。`SNICallback`（`ca.js:616-624`）拿到 `options` 后用 `createSecureContext` 生成 `_ctx` 并缓存，避免每次握手重复建上下文。`getCacheCert` 把 `customPairs` 放在最前（`:197-203`），意味着用户为某域名提供的证书优先于自签证书；这也是 [`sniCallback://`](/concepts/07-extension) 动态证书要单独存进 `remoteCerts`、并在 `getOrCreateCert` 里最先查询的原因——动态下发必须能覆盖静态自定义证书。
 
 ::: cols 26|34|40
 | 对象 | 路径或缓存 | 说明 |

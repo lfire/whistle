@@ -32,7 +32,7 @@ description: 从手机代理与根证书到 weinre、log 与帧调试，串起�
 ## 可复制的配置
 
 
-> **动手前**：下面的配置都写在 Whistle 界面的 **Rules** 面板里（Create 新建 → 粘贴 → Save → ON 开启）。如果还没把工具跑起来，请先完成 [第 0 站 · 第一次跑通](/guide/quickstart)：安装、启动、界面、代理、根证书与命中验证都在那里；否则照抄这些规则也看不到结果。
+> **动手前**：这一节涉及命令行（`w2 proxy`）、手机 Wi-Fi 手动代理、扫码下载证书与注入脚本，不都在 Rules 面板。请先完成 [第 0 站](/guide/quickstart) 第 3–4 步（含手机补充），再照本节扩展。下面示例里的域名、IP、路径与 `{key}` 都是占位，请替换成你自己的目标；引用 `{key}` 之前，先在 Values 里 Create 好同名条目。
 
 先让设备连上代理。以下命令与规则按接入顺序给出，前一步不通就先停在原地排查，不要急着叠加注入规则，否则很难判断失败发生在网络层还是页面层；对无法直接设置代理的应用，可用 Proxifier 把流量导向同一个代理端口，手机侧始终只需要填写一个代理地址。
 
@@ -114,6 +114,8 @@ Console 面板用 All logs 切换分组，配合 Import、Export、Clear 管理�
 4. **应用点 · 按类型注入**：`lib/inspectors/res.js:949-979` 的 injectRules 依据 isHtml、isJs、isCss 挑选 htmlAppend、jsPrepend 等规则。参见[一次 HTTP 代理请求的旅程](/core/http-request)。
 5. **回写 · 重活隔离**：`biz/weinre/index.js:11-20` 用 pfork 拉起 weinre 子进程，让第三方调试服务与主进程隔离。参见[插件系统](/modules/plugins)。
 6. **上报 · 帧缓存与界面节奏**：`lib/socket-mgr.js:859` 的 `abort`、`:910` 的 `changeStatus`、`:933` 的 `sendData` 分别处理界面中断、暂停 / 忽略与自定义帧发送；`biz/webui/cgi-bin/get-frames.js:5` 调 `proxy.getFrames(req.query)` 取帧。写入侧是 `lib/util/data-server.js:93,342-345` 的 `handleFrame`（`frame` 事件 → `framesCache.push`），读取侧才是 `:347-365,646-647` 的 `getFrames`，按 `lastFrameId` 增量返回、单次最多 16 帧（`:354`）——16 是单次查询上限而非写入上限。参见[Web 管理界面](/modules/webui)与[抓包数据的采集与上报](/core/capture-data)。
+
+> **验收点**：手机访问网页正常、Network 里出现来自手机 IP 的 https 明文请求，就说明代理与证书都通了；若仍只有 `Tunnel to`，回到 [第 0 站](/guide/quickstart) 第 4 步逐项查。
 
 ## 边界与坑
 

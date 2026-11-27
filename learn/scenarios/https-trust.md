@@ -10,7 +10,7 @@ description: 从根证书安装到解密判定、双向认证与跨域鉴权，�
 ::: tip 先修知识
 本篇承接 [《弱网与异常注入：把偶发变成必现》](/scenarios/fault-injection)（22）、[《HTTPS、证书链与中间人》](/domain/tls-mitm)（03）与 [《证书体系的实现细节》](/modules/certificates)（15），本篇会讲清（不需要预先掌握）：CONNECT 隧道默认只做字节转发、两段 TLS 各自独立、客户端信任本地根 CA 之后代理才能为任意域名现签叶证书、以及注入规则必须作用在解密后的明文上才有意义。22 解决的是「失败怎么稳定复现」，03 与 15 已经把「信任从哪来、证书怎么签」铺好；本篇把这两条线合到一次排障现场，回答「为什么明明开了抓包，列表里仍只有 Tunnel to」。
 
-若对 CA、根证书、证书链、自签、SNI、SAN、MITM 与信任存储不熟悉，可先读 [《概念精解 · TLS、证书与信任》](/concepts/03-tls)；对 CONNECT 与流量入口可查 [《概念精解 · 代理与流量入口》](/concepts/01-proxy)；对抓包与帧可查 [《概念精解 · 抓包数据面与帧》](/concepts/05-capture)；对插件与 sniCallback 可查 [《概念精解 · 扩展机制与工程化》](/concepts/07-extension)；规则 DSL 与过滤器见 [《概念精解 · 规则 DSL 全景》](/concepts/06-rules)。不要求预先读过源码，但知道「加密隧道里默认看不见明文」会更轻松；忘记某个名词可查 [《全量术语索引》](/concepts/glossary)。
+若某个名词卡住，按主题回查 [概念精解总览](/concepts/index) 与 [《全量术语索引》](/concepts/glossary)；正文在术语首次出现处也给了对应链接。
 :::
 
 ## 场景与痛点
@@ -48,7 +48,7 @@ description: 从根证书安装到解密判定、双向认证与跨域鉴权，�
 ## 可复制的配置
 
 
-> **动手前**：下面的配置都写在 Whistle 界面的 **Rules** 面板里（Create 新建 → 粘贴 → Save → ON 开启）。如果还没把工具跑起来，请先完成 [第 0 站 · 第一次跑通](/guide/quickstart)：安装、启动、界面、代理、根证书与命中验证都在那里；否则照抄这些规则也看不到结果。
+> **动手前**：这一节混合了命令行（`w2 ca`、`sudo`）、**Rules** 里的 `enable://https` / `disable://capture`、以及浏览器证书设置，不都在 Rules 面板。零基础请先完成 [第 0 站](/guide/quickstart) 第 4 步，那里把下载根证书、设为信任、勾 Enable HTTPS 的顺序与成功标志都列全了；下面代码块里的域名与 IP 都是示例，请换成你自己要调试的目标。下面示例里的域名、IP、路径与 `{key}` 都是占位，请替换成你自己的目标；引用 `{key}` 之前，先在 Values 里 Create 好同名条目。
 
 以下命令与规则按排障顺序给出，前一步没有生效就不要急着做后一步；每条规则都可以叠加 includeFilter 把范围收窄到单台设备或单个域名，验证完注释掉即可还原现场。先解决信任根：证书装好之前，任何解密规则都不会生效，Linux 还需要手动把证书放进系统目录。
 
@@ -71,7 +71,7 @@ w2 start --mode safe
 # 官方示例误写 enale://https，此处用正确写法 enable
 www.example.com enable://https
 # 来源：docs/docs/faq.md（IP 直连默认不解密）
-ip[:port] enable://captureIp
+192.168.1.10:8443 enable://captureIp
 # 来源：docs/docs/rules/disable.md（官方示例 wwww 系笔误，本站用 www）
 www.test.com/path disable://capture
 ```
@@ -80,8 +80,8 @@ www.test.com/path disable://capture
 
 ```txt
 # 来源：docs/docs/faq.md（SSL Pinning 时跳过解密）
-域名 disable://capture
-域名 disable://capture includeFilter://reqH.user-agent=/xiaomi/i
+pin.example.com disable://capture
+pin.example.com disable://capture includeFilter://reqH.user-agent=/xiaomi/i
 # 来源：docs/docs/faq.md（Android 兼容）
 www.example.com enable://emudhra
 # 来源：docs/docs/rules/cipher.md（mTLS 与加密套件）
@@ -118,7 +118,7 @@ security.enterprise_roots.enabled=true
 
 类比：像进一栋楼要依次过三道门——先在前台备案身份（装根证书）、再刷开要去的楼层（开解密）、最后才在房间里办事（改头与跨域）；前两道没过，第三道的手续根本递不进去，硬闯只会触发告警。
 
-最小自验：把 `www.example.com enable://https` 与 `ip[:port] enable://captureIp` 两行对照——前者给正常带域名的站点开解密，后者专门补「IP 直连客户端不发 SNI」这一种拿不到域名的情形；两条现成规则就能自验「开解密」并不是一个开关管所有流量。再把 `w2 ca` 与 `sudo update-ca-certificates` 放一起看，理解「下载证书」和「让系统信任它」是两步，Linux 上后一步得手动做。
+最小自验：把 `www.example.com enable://https` 与 `192.168.1.10:8443 enable://captureIp` 两行对照——前者给正常带域名的站点开解密，后者专门补「IP 直连客户端不发 SNI」这一种拿不到域名的情形；两条现成规则就能自验「开解密」并不是一个开关管所有流量。再把 `w2 ca` 与 `sudo update-ca-certificates` 放一起看，理解「下载证书」和「让系统信任它」是两步，Linux 上后一步得手动做。
 
 反过来想，若把「装证书」和「开解密」合成一步会怎样：证书刚下载、还没进系统信任库时客户端就会先撞上告警，代理也会被误判成「解密配置写错了」。拆成 `w2 ca` → `enable://https` 两步，才让每一步的失败各有一个明确归属——装完仍不解密，问题在开关或判定；没装就告警，问题在信任根。这条顺序不是操作习惯，而是排障时的归因依据。
 
@@ -132,7 +132,7 @@ security.enterprise_roots.enabled=true
 
 [协议差异消化在入口层](/architecture/overview)：[CONNECT](/concepts/01-proxy)、WebSocket 与普通 HTTP 在 tunnel.js 被归一成统一的伪 URL 与规则上下文，首包嗅探与 SNI 提取都在 https/index.js 的入口完成。上层 inspector 只面对明文 HTTP，才不用为每种入口形态重复实现鉴权与跨域逻辑。
 
-[两段 TLS 信任边界互不混淆](/domain/tls-mitm)：客户端到代理这一段信任 Whistle 根证书，代理到源站是另一段独立连接。出站默认值在 `lib/config.js:65` 写死 `config.rejectUnauthorized = false`，只有 `--mode safe` / `rejectUnauthorized` 在 `lib/config.js:809-810` 把它改成 true，以兼容内网自签名证书；入站能否被信任取决于客户端是否安装并完全信任本地根 [CA](/concepts/03-tls)（iOS 还要开「完全信任」，`docs/docs/faq.md:92-94`），与出站校验开关互不牵连。
+[两段 TLS 信任边界互不混淆](/domain/tls-mitm)：客户端到代理这一段信任 Whistle 根证书，代理到源站是另一段独立连接。出站默认值在 `lib/config.js:65` 写死 `config.rejectUnauthorized = false`，只有 `--mode safe` / `rejectUnauthorized` 在 `lib/config.js:809-810` 把它改成 true，即开启严格的源站证书校验、会拒绝自签名证书；默认 false 才是兼容内网自签名证书的状态；入站能否被信任取决于客户端是否安装并完全信任本地根 [CA](/concepts/03-tls)（iOS 还要开「完全信任」，`docs/docs/faq.md:92-94`），与出站校验开关互不牵连。
 
 四条原则拼起来正好是一条链：默认透传、显式才解密解释「为什么大多数 CONNECT 仍是 Tunnel to」，信任范围最小化解释「为什么可下载的只有公钥证书」，协议差异消化在入口层解释「为什么明文规则不必为每种入口重写一套」，两段 TLS 信任边界互不混淆解释「为什么装根证书不会让出站校验变严」。少任何一条，前面那些可复制的配置就退回到「照着抄」。
 
@@ -169,7 +169,7 @@ security.enterprise_roots.enabled=true
 
 类比：像快递站先给寄件人回一句「通道已建好」，再拆开第一层包装看里面是文件还是包裹，据此决定走安检线还是普通线；标签（SNI）上写着收件城市，才现做一张对应门牌的临时通行证，标签缺失就只能按默认地址处理。
 
-最小自验：把第 3 步「首字节 0x16 = 22 才继续解密」与配置里的 `ip[:port] enable://captureIp` 对照——前者解释了「握手能被认出来」，后者解释了「连域名都拿不到时怎么办」；两处都用本篇已有内容即可自验，不必去抓真实首包。再把第 4 步「本地 CA 现签叶证书」与第 6 步「明文阶段改写 auth / resCors」对照，就能理解为什么鉴权与跨域规则要排在证书问题之后排查。
+最小自验：把第 3 步「首字节 0x16 = 22 才继续解密」与配置里的 `192.168.1.10:8443 enable://captureIp` 对照——前者解释了「握手能被认出来」，后者解释了「连域名都拿不到时怎么办」；两处都用本篇已有内容即可自验，不必去抓真实首包。再把第 4 步「本地 CA 现签叶证书」与第 6 步「明文阶段改写 auth / resCors」对照，就能理解为什么鉴权与跨域规则要排在证书问题之后排查。
 
 按 1→6 排查「某条 HTTPS 没被解密」可以这样问：策略头有没有要求纯透传（第 1 步）→ isIntercept() 有没有因全局开关或系统域名黑名单放行（第 2 步）→ 首包是不是握手记录、SNI 有没有取到域名（第 3 步）→ 本地根 CA 是否就绪、叶证书有没有签出来（第 4 步）→ 根证书下载 / 出站策略有没有配错（第 5 步）→ 明文阶段的改写是不是被误当成「没解密」（第 6 步）。逐段问下来，比反复重装证书有效得多。
 
@@ -181,7 +181,7 @@ security.enterprise_roots.enabled=true
 
 ## 边界与坑
 
-- 证书固定或 mTLS 客户端换证书会握手失败，官方建议对该域名 disable://capture，或按客户端 UA 只跳过特定设备（`docs/docs/faq.md`）；Android 可试 enable://emudhra（同文档）。
+- 证书固定或 mTLS 客户端换证书会握手失败，官方建议对该pin.example.com disable://capture，或按客户端 UA 只跳过特定设备（`docs/docs/faq.md`）；Android 可试 enable://emudhra（同文档）。
 - 系统域名与 Cronet UA 命中硬编码黑名单后一律跳过解密，宁可看不到也不让设备断网（`lib/tunnel.js:26-27`、`lib/tunnel.js:199-200`）。
 - 证书有效期分两套：动态签发的叶证书 `notBefore = now - 7 天`、`notAfter = now + 36 天`（`lib/https/ca.js:48-49,558-573` 的 `MIN_DATE` / `MAX_DATE`），是为避开 Apple / Chromium 对长期证书的限制；根证书走另一分支（`:569-570`）为 `now - 1 年` 到 `now + 10 年`，有效期约十年。安装根证书时看到的过期时间与浏览器校验的叶证书不是同一张，不要混写。
 - `enable://emudhra` 不是安全实践：`lib/https/emudhra.js:6-8` 注释明确所用的是 mitmproxy 公开披露的 eMudhra 中间 CA 私钥与证书链（`assets/emudhra.pem`），`docs/docs/rules/enable.md:26`、`docs/docs/faq.md:98` 也写明是「已公开泄露」的密钥。它只是为兼容特定 Android 客户端证书固定而签发动态证书的兜底方案，既不是可信根证书，也不应推广到普通 HTTPS 流量。

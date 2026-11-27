@@ -10,7 +10,7 @@ description: 把术语、源码路径、配置项、CLI 命令、阈值与内部
 ::: tip 先修知识
 本篇承接 [《源码阅读与调试路线》](/advanced/source-reading)（29）。本篇会讲清（不需要预先掌握）：四类速查表的查法、配置项与 CLI 的分组逻辑、阈值与内部常量的出处。
 
-若其中某个词还只是「眼熟」，可先翻 [《全量术语索引》](/concepts/glossary)、[《概念精解总览》](/concepts/index)；本篇不要求预先读过源码，按文中给出的顺序对照现象即可跟上。
+若其中某个词还只是「眼熟」，可先翻 [《全量术语索引》](/concepts/glossary)、[《概念精解总览》](/concepts/index)；本篇是查表页，按主题查即可；要看实际现象请回 [第 0 站 · 第一次跑通](/guide/quickstart)。
 :::
 > 本页是**速查表**：只给术语的一句话对齐与数值。若要建立完整理解（形象类比、设计取舍、易混淆辨析、工程实例），请看 [概念精解](/concepts/index)；那里另有 [全量术语索引](/concepts/glossary) 覆盖 360 余条。
 
@@ -184,7 +184,7 @@ description: 把术语、源码路径、配置项、CLI 命令、阈值与内部
 | 6 s | 插件发现刷新 | `plugins/index.js:36` |
 :::
 
-出处列是短相对路径，省略了 `lib/`、`biz/webui/htdocs/src/js/` 等前缀，完整路径见前文各表。600 / 1800 / 100 由 `lib/util/data-server.js:10-26` 共同决定：缓存水位 600，达到 `OVERFLOW_LENGTH = MAX_LENGTH * 3`（1800）触发溢出清理——前 `len - MAX_CACHE_SIZE`（1200）条强制淘汰，最新 `PRESERVE_LEN = 360` 条改用更长的 `MAX_CACHE_TIME` 保留（`:21-24,176-188`）；单次 `getData` 最多返回 `COUNT = 100` 条（`:904`），另有 `MAX_COUNT = 120`（`:34`）作为 `formatApiOptions` 的分页默认。前端 100 / 900ms 是 `biz/webui/htdocs/src/js/data-center.js:1157-1159` 的短轮询间隔（有新数据加快、空闲放慢），与 `lib/service/data-center.js:8` 的 `MAX_COUNT = 100`（临时文件批量上限）是两回事，两个同名 `data-center.js` 不可混为一谈。
+出处列是短相对路径，省略了 `lib/`、`biz/webui/htdocs/src/js/` 等前缀，完整路径见前文各表。600 / 1800 / 100 由 `lib/util/data-server.js:10-26` 共同决定：缓存水位 600，达到 `OVERFLOW_LENGTH = MAX_LENGTH * 3`（1800）触发溢出清理——前 `len - MAX_CACHE_SIZE`（1200）条强制淘汰，最新 `PRESERVE_LEN = 360` 条改用更长的 `MAX_CACHE_TIME` 保留（`:21-24,176-188`）；单次 `getData` 最多返回 `COUNT = 100` 条（`:904`），另有 `MAX_COUNT = 120`（`:34`）作为 `formatApiOptions` 的分页默认。前端 100 / 900ms 是 `biz/webui/htdocs/src/js/data-center.js:1157-1159` 的短轮询间隔（有新数据加快、空闲放慢），与 `lib/service/data-center.js:8` 的 `MAX_COUNT = 100`（`slice(0, MAX_COUNT)` 裁剪已保存会话列表的上限）是两回事，两个同名 `data-center.js` 不可混为一谈。
 
 1MB 帧对应 `MAX_FRAME_PAYLOAD`，定义在 `lib/util/index.js:4012`，`lib/inspectors/data.js:13` 只是引用；2MB 体与 16MB 大数据分别是 `MAX_REQ_BODY_SIZE` / `MAX_RES_BODY_SIZE`（`:9-10`）与 `BIG_DATA_SIZE`（`:11`），都在 `lib/inspectors/data.js` 定义，且 `--mode strict` 下 2MB 会收紧到 256KB。36 天是叶证书：`lib/https/ca.js:558-573` 的短周期分支取 `notBefore = now - 7 天`、`notAfter = now + 36 天`，为绕开浏览器对长有效期证书的限制；根证书走另一分支（`notBefore = now - 1 年`、`notAfter = now + 10 年`），不要混写。22s 是 `lib/plugins/load-plugin.js:1158-1160` 的 `socket.ping()` 心跳间隔，用来保活插件 ws 连接；6s 是 `lib/plugins/index.js:544-550` 的 `setTimeout(refreshPlugins, INTERVAL)`，插件目录改动靠它重新发现，两者一个管连接、一个管目录。
 

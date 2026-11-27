@@ -8,7 +8,9 @@ description: 拆解旁路采样、大小阈值、有界缓存与 gzip 短轮询�
 前三篇把请求、隧道与 [帧](/concepts/05-capture) 都送到了内核，而 [《隧道、WebSocket 与帧拦截》](/core/tunnel-websocket) 把每帧、每条会话都归到 `reqId` 名下之后，留下一个未解问题：这些数据究竟怎样被采下来、暂存在内存里，又怎么送到界面。本篇回答的正是「用户最终在界面上看到的那些数据从哪来」。关键结论有两个：采集是**旁路**的，覆盖流的 `write` / `end` 只做采样、不阻塞转发；上报是 **gzip 压缩的 HTTP JSON 短轮询**，不是 [SSE](/concepts/02-http) 也不是 WebSocket。读完你能说清一个 body 为何会被丢弃、缓存如何瘦身，以及「UI 与内核读同一个对象」带来的便利与风险。
 
 ::: tip 先修知识
-本篇承接 [《一次 HTTP 代理请求的旅程》](/core/http-request)（前置 09）、[《CONNECT 判定与 TLS 解密》](/core/connect-mitm)（前置 10）与 [《隧道、WebSocket 与帧拦截》](/core/tunnel-websocket)（前置 11）：需要你已经理解 09 的 16 步 Express 主干里 `data` 对象在 `rules → req → data → res` 之间被构造并广播、10 的「解密与不解密都汇入双向流」、以及 11 的「连接与帧按 `reqId` 归并，`frameScript` / 状态机 / 帧缓存都在 `socket-mgr` 里」。若对 Stream、`pipe`、背压与 `write` / `end` 的语义不熟悉，可先读 [《概念精解 · Node 运行时与内核骨架》](/concepts/04-runtime)；对 SSE 与分帧可查 [《概念精解 · HTTP 报文与连接语义》](/concepts/02-http)；对抓包、inspector、`reqId`、帧与帧缓存可查 [《概念精解 · 抓包数据面与帧》](/concepts/05-capture)；对 `MAX_PAYLOAD_SIZE` 那条「为求值而预读」的规则配置可查 [《概念精解 · 规则 DSL 全景》](/concepts/06-rules)；想按时间顺序看一次请求的完整贯通可读 [《概念精解 · 综合贯通：一次 HTTPS 请求里的全部概念》](/concepts/09-walkthrough)。
+先做 [第 0 站](/guide/quickstart)：本篇的每一步，就是你亲手发过的那条请求在内核里的走法。
+
+若某个名词卡住，按主题回查 [概念精解总览](/concepts/index) 与 [《全量术语索引》](/concepts/glossary)；正文在术语首次出现处也给了对应链接。
 
 不需要预先读过源码，但知道 `data` 对象从 09 起就与内核共用同一个引用会更轻松；成对辨析可查 [《易混淆概念辨析》](/concepts/08-confusions)，忘记名词查 [《全量术语索引》](/concepts/glossary)。
 
@@ -134,7 +136,7 @@ var framesCache = [];
 
 `reqCacheSize` 最小 600（`:10-12`）——CLI `-R`（`bin/whistle.js:174`、`docs/docs/cli.md:47`）标注的默认也是 600，两者一致。`proxy.getData` 单次最多返回 100 条（`COUNT`，`:26`，在 `:904` 钳制）；另有 `MAX_COUNT = 120`（`:34`）经 `formatApiOptions`（`:36-50`）限定对外 API（`getSessionsForApi` / `getFramesForApi`，`:818`、`:650`）的单次返回量，比 `COUNT` 大，别当作同一数字。
 
-淘汰语义要按 `clearCache`（`:147-203`）逐段读，不能望文生义。它每 `CLEAR_INTERVAL = 6000` 毫秒跑一次：`ids.length <= MAX_LENGTH(600)` 时直接返回、一条不删（`:169-171`）；超过 600 后才按已结束会话的 `endTime` 清理，宽限为 `CACHE_TIME`（`:19`，2 分钟）。当 `len >= OVERFLOW_LENGTH(1800)` 时进入溢出分支，先算 `overflow = len - MAX_CACHE_SIZE`（`MAX_CACHE_SIZE = 1200`，`:23`）把最老的一批无条件淘汰，相当于先砍回 1200 条；再把 `preserveLen = len - PRESERVE_LEN`（`PRESERVE_LEN = 360`，`:24`）之后的尾部 360 条改用 `MAX_CACHE_TIME`（`:20`，6 分钟）宽限，其余仍按 2 分钟（`:176-188`）。命中淘汰的条目一律 `data.abort && data.abort(true)` 并 `delete reqData[id]`（`:193-194`），并非只在溢出时才调用。可见 `PRESERVE_LEN` 是「尾部宽限条数」而非「溢出后保留条数」；分级宽限是为了让近期会话多留一会儿供 UI 增量拉取，同时给零复制模型的常驻内存设一个硬上限。
+淘汰语义要按 `clearCache`（`:147-203`）逐段读，不能望文生义。它每 `CLEAR_INTERVAL = 6000` 毫秒跑一次：`ids.length <= MAX_LENGTH(600)` 时直接返回、一条不删（`:169-171`）；超过 600 后才按已结束会话的 `endTime` 清理，宽限为 `CACHE_TIME`（`:19`，2 分钟）。当 `len >= OVERFLOW_LENGTH(1800)` 时进入溢出分支，先算 `overflow = len - MAX_CACHE_SIZE`（`MAX_CACHE_SIZE = 1200`，`:23`）把最老的一批无条件淘汰，相当于先砍回 1200 条；再把 `preserveLen = len - PRESERVE_LEN`（`PRESERVE_LEN = 360`，`:24`）之后的尾部 360 条改用 `MAX_CACHE_TIME`（`:20`，6 分钟）宽限，其余仍按 2 分钟（`:176-188`）。命中淘汰的条目一律 `data.abort && data.abort(true)` 并 `delete reqData[id]`（`:193-194`），并非只在溢出时才调用。要注意 `MAX_LENGTH` / `OVERFLOW_LENGTH` / `MAX_CACHE_SIZE` 都是 `reqCacheSize` 的倍率，上面 600 / 1800 / 1200 只在默认配置下成立，改了 `-R` 就要按倍率重算。可见 `PRESERVE_LEN` 是「尾部宽限条数」而非「溢出后保留条数」；分级宽限是为了让近期会话多留一会儿供 UI 增量拉取，同时给零复制模型的常驻内存设一个硬上限。
 
 [帧缓存](/concepts/05-capture) 另有瘦身策略。容易被混作 `reqCacheSize` 的 `frameCacheSize` 是另一路配置：CLI `-F`（`bin/whistle.js:175`、`docs/docs/cli.md:48`）标注默认 512，但 `lib/util/data-server.js:14-16` 在值小于 720 时强制设为 600，`:25` 的 `MAX_FRAMES_LENGTH` 因此实际也是 600 条——「官方 512 / 源码 600」的差异落在帧缓存上，不是请求缓存。`:103-106` 定义 `MAX_BUF_LEN1..4` 为 512 / 256 / 128 / 64KB，`:129-145` 的 `clearFrames` 按帧龄分级，把旧帧的 `bin` 逐步截断；`:156-157` 在帧数溢出时直接 `splice(0, overflow + 60)`。也就是说大帧不会永久占着内存，越旧留存越少。
 

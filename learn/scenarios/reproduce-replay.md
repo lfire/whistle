@@ -10,7 +10,7 @@ description: 从 Network 抓包到 Composer 重放，追溯同一 data 引用、
 ::: tip 先修知识
 本篇承接 [《接口未就绪：Mock 与契约先行》](/scenarios/mock-contract)（20），本篇会讲清（不需要预先掌握）：规则命中后由 handler 决定出站或短路、`file://` 会直接构造响应而不出网、以及抓包会话按 id 索引、有界缓存会淘汰旧条目。20 讲的是「目标不存在时由代理自己造响应」，本篇把视角翻到「目标真实存在、但那一次请求再也复现不了」——先得把真实流量采下来、存成会话，才谈得上编辑与重放。
 
-若对抓包、reqId、Composer、Replay、帧与旁路采样不熟悉，可先读 [《概念精解 · 抓包数据面与帧》](/concepts/05-capture)；对规则 DSL、pattern、Values 与过滤器可查 [《概念精解 · 规则 DSL 全景》](/concepts/06-rules)；对插件与 pfork 子进程可查 [《概念精解 · 扩展机制与工程化》](/concepts/07-extension)；对一次请求如何贯通内核与界面可查 [《概念精解 · 一次请求的完整贯通》](/concepts/09-walkthrough)。不要求预先读过源码，但知道「CGI 文件名即接口名」与「service 子进程承载重活」这两个约定会更轻松；忘记某个名词可查 [《全量术语索引》](/concepts/glossary)。
+若某个名词卡住，按主题回查 [概念精解总览](/concepts/index) 与 [《全量术语索引》](/concepts/glossary)；正文在术语首次出现处也给了对应链接。
 :::
 
 ## 场景与痛点
@@ -36,7 +36,7 @@ description: 从 Network 抓包到 Composer 重放，追溯同一 data 引用、
 ## 可复制的配置
 
 
-> **动手前**：下面的配置都写在 Whistle 界面的 **Rules** 面板里（Create 新建 → 粘贴 → Save → ON 开启）。如果还没把工具跑起来，请先完成 [第 0 站 · 第一次跑通](/guide/quickstart)：安装、启动、界面、代理、根证书与命中验证都在那里；否则照抄这些规则也看不到结果。
+> **动手前**：这一节的动作主要发生在 **Network**（搜索框、右键 Replay / Edit、Composer）与终端（`npm test`），不是写规则。若还没抓到过一条请求，先完成 [第 0 站](/guide/quickstart) 第 3–4 步。下面示例里的域名、IP、路径与 `{key}` 都是占位，请替换成你自己的目标；引用 `{key}` 之前，先在 Values 里 Create 好同名条目。
 
 Network 底部搜索框支持多条件「与」搜索，`fc:` 前缀专门隔离 Composer 流量；导入导出格式由前端约定。
 

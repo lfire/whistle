@@ -8,7 +8,9 @@ description: 以 socket-mgr 为中心，串起连接上下文、双向流拼接�
 上一篇看到 CONNECT 的两条分支最后都汇成一对双向字节流；WebSocket 的 [Upgrade](/concepts/02-http) 同样如此，只是多了 101 应答与帧结构。但 [《CONNECT 判定与 TLS 解密》](/core/connect-mitm) 把两条分支都收敛到 `handleTunnel` 之后，留下一个未解问题：无论隧道里是明文还是裸字节，连接上下文该挂在哪、帧又如何按编号归并。本篇回答的正是这个问题——它们统一交给 `lib/socket-mgr.js` 这个「连接上下文 + 双向流 + 帧处理中心」。读完你能说清一条连接何时被直接对拼、何时被插入双 Transform，以及帧脚本、暂停状态与心跳各自落在哪一段代码上。
 
 ::: tip 先修知识
-本篇承接 [《CONNECT 判定与 TLS 解密》](/core/connect-mitm)（前置 10），并沿用 [《一次 HTTP 代理请求的旅程》](/core/http-request)（前置 09）的链路视角：需要你已经理解 10 的结论「解密与不解密两条分支最终都汇入 `handleTunnel`、`enable://inspect` 给两者一致的抓帧入口」，以及 09 里 `reqId` 早于一切改写与采集、抓包 `data` 对象与连接帧上下文指向同一个编号。若对 Stream、`pipe`、背压与 Transform 双向流的语义不熟悉，可先读 [《概念精解 · Node 运行时与内核骨架》](/concepts/04-runtime)；对 Upgrade、101 应答与 WebSocket 帧可查 [《概念精解 · HTTP 报文与连接语义》](/concepts/02-http)；对抓包、`reqId`、帧与帧缓存可查 [《概念精解 · 抓包数据面与帧》](/concepts/05-capture)；对驱动帧脚本的规则配置可查 [《概念精解 · 规则 DSL 全景》](/concepts/06-rules)；想按时间顺序看一次请求的完整贯通可读 [《概念精解 · 综合贯通：一次 HTTPS 请求里的全部概念》](/concepts/09-walkthrough)。
+先做 [第 0 站](/guide/quickstart)：本篇的每一步，就是你亲手发过的那条请求在内核里的走法。
+
+若某个名词卡住，按主题回查 [概念精解总览](/concepts/index) 与 [《全量术语索引》](/concepts/glossary)；正文在术语首次出现处也给了对应链接。
 
 不需要预先读过源码，但知道 `conns[reqId]` 里的 `reqId` 来自 09 / 10 那条链会更轻松；成对辨析可查 [《易混淆概念辨析》](/concepts/08-confusions)，忘记名词查 [《全量术语索引》](/concepts/glossary)。
 

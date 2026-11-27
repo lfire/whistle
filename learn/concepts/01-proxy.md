@@ -65,7 +65,7 @@ initDataServer(proxyEvents);
 
 **容易混淆**：与正向代理相反，它不需要客户端配置代理；与「上游代理 / 链式代理」词条也不同，上游代理是「代理再去求助另一个代理」，反向代理是「代理假装自己是源站」。对照见[能力边界与风险](/scenarios/boundaries)。
 
-**工程中的样子**：把某个域名解析到代理机、由规则决定后端地址，是[团队协作与配置即代码](/scenarios/collab-config)里常见的固定入口部署；调试时仍用同一个 Rules 面板，只是流量不再经过系统代理。
+**工程中的样子**：把某个域名解析到代理机、由规则决定后端地址，是[团队协作与配置即代码](/scenarios/collab-config)里常见的固定入口部署；调试时仍用 [第 0 站](/guide/quickstart) 见过的那个 Rules 面板，只是流量不再经过系统代理。
 
 ### 系统代理（System Proxy / OS-level Proxy）
 
@@ -77,7 +77,7 @@ initDataServer(proxyEvents);
 
 ```bash
 # 来源：docs/docs/cli.md、bin/proxy.js:2
-w2 proxy 8899
+w2 proxy
 w2 proxy 0
 ```
 
@@ -85,7 +85,7 @@ w2 proxy 0
 
 **容易混淆**：系统代理只负责「交给谁」，PAC 才负责「哪些地址交给谁」；二者常被一起提起却完全不同，对照见[辨析篇](/concepts/08-confusions)。
 
-**工程中的样子**：`w2 proxy 8899` 打开系统代理、手机 Wi-Fi 里手动填电脑 IP 与端口，是[真机、移动端与远程页面调试](/scenarios/mobile-remote)的第一步；这一步不通，后面装证书、写规则都没有意义。
+**工程中的样子**：`w2 proxy` 打开系统代理、手机 Wi-Fi 里手动填电脑 IP 与端口，是[真机、移动端与远程页面调试](/scenarios/mobile-remote)的第一步；这一步不通，后面装证书、写规则都没有意义。
 
 ### PAC（Proxy Auto-Config）
 
@@ -135,7 +135,7 @@ agent = new tunnel[agentName](options);
 
 **打个比方**：像信封上必须写全「省市区 + 门牌号」。直连时把门牌交给同一栋楼的传达室就够了，可一旦交给统一收发的邮局，它要服务全城地址，信封上不写全城市与街道，邮局就不知道该往哪送。
 
-**在 Whistle 里**：`lib/util/common.js:1248-1285` 的 `getFullUrl` 用 `hasProtocol(req.url)` 区分两种请求行：带协议的是绝对 URI，拆出 `host` 与 `path` 后回填 `headers.host`（`lib/util/common.js:1251-1262`）；不带协议的是 origin-form，补一个前导斜杠即可（`lib/util/common.js:1263-1268`）。最后统一拼成 `http(s)://host/path` 供后续使用（`lib/util/common.js:1284`）。
+**在 Whistle 里**：`lib/util/common.js:1248-1285` 的 `getFullUrl` 用 `hasProtocol(req.url)` 区分两种请求行：带协议的是绝对 URI，拆出 `host` 与 `path` 后回填 `headers.host`（`lib/util/common.js:1251-1262`）；不带协议的是 origin-form，补一个前导斜杠即可（`lib/util/common.js:1263-1268`）。最后按 `req.isWs` / `req.isHttps` 拼成 `http(s)://` 或 `ws(s)://` 开头的完整 URL 供后续使用（`lib/util/common.js:1284`）。
 
 ```js
 // lib/util/common.js:1248-1285 · getFullUrl 节选
@@ -287,11 +287,11 @@ dl.example.com socks://127.0.0.1:1080
 
 ```bash
 # 来源：docs/docs/cli.md、bin/proxy.js:2
-w2 proxy 8899
+w2 proxy
 w2 proxy 0
 ```
 
-排查顺序也按三段来：先 `w2 proxy 8899` 确认系统代理生效，再看抓包里是否出现 CONNECT 与 `tunnel://` 条目，最后才判断是否需要 `enable://capture` 解密（`docs/docs/rules/enable.md`）。把入口问题和解密问题分开，能省掉大量「改了规则没反应」的来回。
+排查顺序也按三段来：先 `w2 proxy` 确认系统代理生效，再看抓包里是否出现 CONNECT 与 `tunnel://` 条目，最后才判断是否需要 `enable://capture` 解密（`docs/docs/rules/enable.md`）。把入口问题和解密问题分开，能省掉大量「改了规则没反应」的来回。
 
 ## 常见误解
 

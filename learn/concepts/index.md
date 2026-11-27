@@ -68,6 +68,8 @@ description: 用词典式的详尽词条把工程里的专业名词讲透，建�
 
 ### 三条路线
 
+无论选哪条，都请先完成 [第 0 站 · 第一次跑通](/guide/quickstart)，让下面的名词有真实界面可对照。
+
 - **系统通读**：从[代理与流量入口](/concepts/01-proxy)顺读到[扩展与工程化](/concepts/07-extension)，再进[辨析](/concepts/08-confusions)与[贯通](/concepts/09-walkthrough)。适合第一次接触代理内核，或想把已有经验重新梳理成体系。
 - **按词回查**：带着具体名词直接跳进对应篇，用页内标题定位卡片，读完「容易混淆」再顺着链接去[辨析篇](/concepts/08-confusions)；[术语索引](/concepts/glossary)与[速查表](/advanced/reference)负责快速定位。适合读源码时被一个词卡住。
 - **结合场景**：从[工程场景总览](/scenarios/index)挑一个真实问题（如[真机接入](/scenarios/mobile-remote)、[弱网注入](/scenarios/fault-injection)），遇到不懂的名词再回到本板块查卡片，最后用[动手实验](/advanced/hands-on)验证。适合「先有问题、后补概念」。
@@ -94,7 +96,7 @@ description: 用词典式的详尽词条把工程里的专业名词讲透，建�
 ```txt
 # 来源：docs/docs/rules/enable.md
 # 对目标域名强制开启 HTTPS 解密（MITM）
-www.example.com enable://capture
+www.example.com enable://https（官方文档里 `enable://capture` 与它等价）
 ```
 
 ```bash
@@ -103,11 +105,11 @@ w2 proxy 8899
 w2 ca
 ```
 
-先用 `w2 proxy` 打开系统代理、用 `w2 ca` 安装并信任根证书，再用 `enable://capture` 打开解密，三步分别对应「入口」「信任」「判定」三个概念层；任何一层缺失，表现都是「只有隧道没有明文」。把这条排查链记住，比背下十个名词更能解决现场问题。
+先用 `w2 proxy` 打开系统代理、用 `w2 ca` 安装并信任根证书，再用 `enable://https`（官方也写作 `enable://capture`，二者等价）打开解密，三步分别对应「入口」「信任」「判定」三个概念层；任何一层缺失，表现都是「只有隧道没有明文」。把这条排查链记住，比背下十个名词更能解决现场问题。
 
 ## 板块目录
 
-本板块在全站统一编号中占 **31–41**（编号规则见[站点导览](/guide/orientation)）；下列序号就是全站编号，链接文字保留各篇自身的层级名。
+本板块在全站统一编号中占 **31–41**（编号规则见[站点导览](/guide/orientation)）；下列序号就是全站编号，链接文字保留各篇自身的篇名。
 
 31. [概念精解：从名词到工程直觉](/concepts/index)（本篇）：板块定位、分层递进、概念关系与三种读法。
 32. [代理与流量入口](/concepts/01-proxy)：正向、反向、系统代理、PAC、上游代理、CONNECT、SOCKSv5 与隧道。

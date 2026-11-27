@@ -24,7 +24,7 @@ description: 从团队共享规则、.whistle.js 到多实例隔离，追踪配�
 ## 可复制的配置
 
 
-> **动手前**：下面的配置都写在 Whistle 界面的 **Rules** 面板里（Create 新建 → 粘贴 → Save → ON 开启）。如果还没把工具跑起来，请先完成 [第 0 站 · 第一次跑通](/guide/quickstart)：安装、启动、界面、代理、根证书与命中验证都在那里；否则照抄这些规则也看不到结果。
+> **动手前**：这一节混合了本地 `.whistle.js` 文件、命令行 `w2 add` / `w2 start -S` 与 **Rules** 里的 `@` 远程规则。若还没把工具跑起来，先完成 [第 0 站](/guide/quickstart)。下面示例里的域名、IP、路径与 `{key}` 都是占位，请替换成你自己的目标；引用 `{key}` 之前，先在 Values 里 Create 好同名条目。
 
 `@` 支持远程 URL、本地路径、插件接口与 Windows 路径，Whistle 会定时回源更新（来源 `docs/docs/rules/@.md`）：
 
@@ -112,6 +112,8 @@ w2 start -p 8011 -S 8011
 4. **应用点：运行期整体替换与分组存储。** `lib/index.js:231-239` 的 `setShadowRules` 改写 `config.shadowRules` 后直接 `rulesUtil.parseRules()`；`lib/rules/storage.js:61-171` 提供分组、`.backup` 双写与 `.recycle_bin` 回收站；`lib/config.js:1067-1091` 完成 storage 重定向。见 [进程模型与配置系统](/architecture/process-config)。
 5. **回写：只写修改戳。** `lib/config.js:1126-1134` 的 `setModified` 只更新 `mrulesClientId` / `mrulesTime` 与 Values 对应字段，不广播内容；`lib/index.js:231-239` 的替换动作与这条回写串在同一次变更里。见 [抓包数据的采集与上报](/core/capture-data)。
 6. **上报：随轮询返回并触发重拉。** `biz/webui/cgi-bin/get-data.js:41-44` 把四个修改戳并入响应；`htdocs/src/js/data-center.js:903-928` 的 `checkDataChanged` 比对 `mrulesClientId` 与时间戳，变化时 `trigger('rulesChanged')` 重新拉取，界面随之刷新。见 [Web 管理界面](/modules/webui)。
+
+> **验收点**：改动远程规则或 `.whistle.js` 后，回到 Rules 面板应能看到规则集更新、请求命中新规则；界面靠轮询感知变化，最多等一个刷新周期。
 
 ## 边界与坑
 

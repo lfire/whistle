@@ -8,7 +8,9 @@ description: 拆解 CONNECT 的解密判定、首包识别、SNI 证书签发与
 上一篇的 16 步链路处理的是「已经能读到明文」的请求；而 HTTPS 代理请求首先以 [CONNECT 隧道](/concepts/01-proxy) 的形式到达，代理看不到一个字节的正文。本篇回答两个问题：Whistle 凭什么决定拆开某条 CONNECT，以及拆开之后如何把 [TLS](/concepts/03-tls) 首包还原成上一篇那条 Express 链路。领域基础 03 已经把「两段独立握手」的模型与两个信任边界讲透，本篇不重复原理，只把那套模型落成可定位的分支；文中所有判定都落到 `lib/tunnel.js` 与 `lib/https/index.js` 的真实分支上，读完你能解释「为什么装了根证书也不一定解密」。
 
 ::: tip 先修知识
-本篇承接 [《一次 HTTP 代理请求的旅程》](/core/http-request)（前置 09）与 [《HTTPS、证书链与中间人》](/domain/tls-mitm)（前置 03）：需要你已经理解 09 的 16 步 Express 主干（归一化 → 定规则 → 改写 → 采集 → 出站回写），以及 03 的 TLS 握手、证书链与信任锚、两段独立 TLS 的 MITM 模型、装根证书为何是前提、证书固定与双向认证为何会拒绝换证书。若对证书、SNI 与信任边界不熟悉，可先读 [《概念精解 · TLS、证书与信任》](/concepts/03-tls)；对 CONNECT 与隧道语义可回看 [《概念精解 · 代理与流量入口》](/concepts/01-proxy)；对抓包 `data` 对象、帧与 `reqId` 可查 [《概念精解 · 抓包数据面与帧》](/concepts/05-capture)；对规则与策略值的命中可查 [《概念精解 · 规则 DSL 全景》](/concepts/06-rules)；想按时间顺序看一次请求的完整贯通可读 [《概念精解 · 综合贯通：一次 HTTPS 请求里的全部概念》](/concepts/09-walkthrough)。
+先做 [第 0 站](/guide/quickstart)：本篇的每一步，就是你亲手发过的那条请求在内核里的走法。
+
+若某个名词卡住，按主题回查 [概念精解总览](/concepts/index) 与 [《全量术语索引》](/concepts/glossary)；正文在术语首次出现处也给了对应链接。
 
 不需要预先读过源码，但要先接受 03 的结论「MITM 不是破解加密，而是让两侧各做一次独立握手」；成对辨析可查 [《易混淆概念辨析》](/concepts/08-confusions)，忘记名词查 [《全量术语索引》](/concepts/glossary)。
 :::
@@ -151,7 +153,7 @@ if (!isHttpH2 && chunk[0] != 22) {
 
 ## SNI、证书签发与内部 TLS server
 
-确认是 TLS 后，`lib/https/index.js:1295` 用 `checkSNI(chunk)`（`:9` 引入 `sni` 包）从 ClientHello 取出域名，`:1319` 经 `getDomain(servername)` 归一，`:1327` 调 `loadCert` 判断是否已有可用证书，再由 `:1277-1291` 的 `handleRequest` 三选一：有 SNI 走 `getSNIServer`，h2c 走 `getHttp2Server`，其余走 `useNoSNIServer`（`:1269-1275`）。三者都在本机创建内部 TLS server，把解密后的明文交给 `handlers`。
+确认是 TLS 后，`lib/https/index.js:1295` 用 `checkSNI(chunk)`（`:9` 引入 `sni` 包）从 TLS 握手的第一个报文 ClientHello（客户端打招呼时带上要访问的域名）取出 SNI 域名，`:1319` 经 `getDomain(servername)` 归一，`:1327` 调 `loadCert` 判断是否已有可用证书，再由 `:1277-1291` 的 `handleRequest` 三选一：有 SNI 走 `getSNIServer`，h2c 走 `getHttp2Server`，其余走 `useNoSNIServer`（`:1269-1275`）。三者都在本机创建内部 TLS server，把解密后的明文交给 `handlers`。
 
 ```js
 // lib/https/ca.js:616-624

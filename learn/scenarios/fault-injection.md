@@ -10,7 +10,7 @@ description: 用规则把偶发的超时、抖动与错误码固定成可复现�
 ::: tip 先修知识
 本篇承接 [《复现、保存与重放》](/scenarios/reproduce-replay)（21），本篇会讲清（不需要预先掌握）：抓包会话按 reqId 定位、有界缓存会淘汰旧条目、Composer 重放是回打 Whistle 自身代理而非直连目标、以及规则在请求期与响应期分阶段生效。21 解决的是「把已经发生的现场存下来」，本篇把同一套规则链用来「制造一个从未发生的现场」。
 
-若对规则 DSL、pattern、过滤器、优先级与热更新不熟悉，可先读 [《概念精解 · 规则 DSL 全景》](/concepts/06-rules)；对抓包、reqId、帧与旁路采样可查 [《概念精解 · 抓包数据面与帧》](/concepts/05-capture)；对 CONNECT 隧道与流量入口可查 [《概念精解 · 代理与流量入口》](/concepts/01-proxy)；对易混淆的阶段与时机可查 [《概念精解 · 易混淆概念辨析》](/concepts/08-confusions)。不要求预先读过源码，但知道「规则文本在解析期只被编译、请求期才逐条判定」会更容易跟上 chance 与时机分离那两段；忘记某个名词可查 [《全量术语索引》](/concepts/glossary)。
+若某个名词卡住，按主题回查 [概念精解总览](/concepts/index) 与 [《全量术语索引》](/concepts/glossary)；正文在术语首次出现处也给了对应链接。
 :::
 
 ## 场景与痛点
@@ -49,7 +49,7 @@ description: 用规则把偶发的超时、抖动与错误码固定成可复现�
 ## 可复制的配置
 
 
-> **动手前**：下面的配置都写在 Whistle 界面的 **Rules** 面板里（Create 新建 → 粘贴 → Save → ON 开启）。如果还没把工具跑起来，请先完成 [第 0 站 · 第一次跑通](/guide/quickstart)：安装、启动、界面、代理、根证书与命中验证都在那里；否则照抄这些规则也看不到结果。
+> **动手前**：规则写在 **Rules**（Create → Save → ON），`reqScript://{key}` 这类引用需要先在 **Values** 建同名 key。若还没把工具跑起来，先完成 [第 0 站](/guide/quickstart)；示例里的域名请换成你自己的目标。下面示例里的域名、IP、路径与 `{key}` 都是占位，请替换成你自己的目标；引用 `{key}` 之前，先在 Values 里 Create 好同名条目。
 
 以下规则可直接粘贴到 Rules 面板，按需要叠加 `includeFilter` 或 `excludeFilter` 收窄命中范围，避免误伤同一域名下的其它请求；调试结束把对应行注释掉即可恢复，不必改动任何业务代码。延迟与中断成对使用，可以在延迟结束后直接掐断连接，模拟「请求发出但永远收不到结果」。
 
@@ -101,7 +101,7 @@ https://example.com/api cache://no-cache
 
 # 来源：docs/docs/rules/disable.md（官方示例 wwww 系笔误，本站用 www）
 www.example.com/path disable://cache
-pattern disable://timeout
+www.example.com disable://timeout
 ```
 
 把四段规则收拢成「输入 → 动作 → 输出」：输入一行写明 URL、指令与值的规则（可叠加 `includeFilter` / `excludeFilter` 收窄命中范围）；动作是 Rules 面板按行解析、把固定毫秒值或 `reqScript` 动态值绑到请求期或响应期的具体阶段；输出是「延迟结束后继续转发或直接掐断」「请求期短路返回 500」「按 kb/s 分块节流」「按 cache 值重写缓存头」等确定行为。调试结束把对应行注释掉即可恢复，整条链不必改动任何业务代码。

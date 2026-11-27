@@ -24,7 +24,7 @@ description: 把解密判定、证书信任、抓包阈值、插件隔离与管�
 ## 可复制的配置
 
 
-> **动手前**：下面的配置都写在 Whistle 界面的 **Rules** 面板里（Create 新建 → 粘贴 → Save → ON 开启）。如果还没把工具跑起来，请先完成 [第 0 站 · 第一次跑通](/guide/quickstart)：安装、启动、界面、代理、根证书与命中验证都在那里；否则照抄这些规则也看不到结果。
+> **动手前**：本节示例多为 `w2 start` 启动参数与 `disable://capture` 规则，分属命令行与 **Rules**；规则写完后按 [第 0 站](/guide/quickstart) 第 6 步的方法确认生效。合规清单里「取消根证书信任」的做法见该站通关自检第 10 项。下面示例里的域名、IP、路径与 `{key}` 都是占位，请替换成你自己的目标；引用 `{key}` 之前，先在 Values 里 Create 好同名条目。
 
 出站默认不校验源站证书，`--mode safe` 才打开严格校验（`lib/config.js:65,809-810` 的 `safe` / `rejectUnauthorized` 分支；`docs/docs/cli.md:42` 的 `-M/--mode` 选项列表未逐项列出 `safe`，它是源码支持的取值）：
 

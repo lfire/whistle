@@ -5,7 +5,7 @@ description: 不读源码，先装好、启动、接流量、装证书、写下�
 
 # 第 0 站 · 第一次跑通 Whistle
 
-这一站不讲原理、不看源码，只做一件事：**把 Whistle 真正跑起来，并亲手验证一条规则生效**。本站其余 41 篇是「源码研读」，默认你已经会用这个工具；零基础读者如果跳过这一站直接读 01–41，会遇到「规则写在哪」「界面在哪」「为什么只有 Tunnel to」这类根本没法往下做的问题。所以无论你走哪条学习路线，都请先完成这一站，再回头读机制。
+这一站不讲原理、不看源码，只做一件事：**把 Whistle 真正跑起来，并亲手验证一条规则生效**。本站其余 41 篇是「源码研读」，默认你已经会用这个工具；零基础读者如果跳过这一站直接读 01–41，会遇到「规则写在哪」「界面在哪」「为什么抓包列表里只有一行 `Tunnel to`（那代表代理在纯透传、还没解密）」这类根本没法往下做的问题。所以无论你走哪条学习路线，都请先完成这一站，再回头读机制。
 
 完成这一站，你应该能：装好命令行版 Whistle、启动并打开管理界面、让浏览器与手机的流量经过它、装上根证书看到 HTTPS 明文、在 Rules 里写下并启用第一条规则、用「开启/关闭」对比确认它真的生效。
 
@@ -45,7 +45,7 @@ w2 status       # 确认实例在跑、端口是多少
 # w2 restart         重启
 ```
 
-**成功标志**：`w2 status` 显示 `whistle@... is running` 并列出 `Port: 8899`。然后在浏览器打开 **`http://local.whistlejs.com`**（若打不开，用 `http://127.0.0.1:8899`），会看到顶部四个 Tab：
+**成功标志**：`w2 status` 显示 `whistle@... is running` 并列出含 `8899` 的访问 URL（要看 PID / Port 用 `w2 status --all`）。然后在浏览器打开 **`http://local.whistlejs.com`**（若打不开，用 `http://127.0.0.1:8899`），会看到顶部四个 Tab：
 
 | Tab | 用来做什么 |
 |---|---|
@@ -85,13 +85,13 @@ HTTP 已经能看到，HTTPS 默认只显示一条 `Tunnel to`——这是正常
 | 仍只有 `Tunnel to` | 证书没被信任，或没勾 Enable HTTPS | 回到上面第 2、3 小步逐项确认 |
 | 浏览器提示「证书不受信」 | 根证书只下载没设为信任 | 在系统证书库里找到 Whistle 根 CA 设为始终信任 |
 | 个别 App 报 `captureError` | 证书固定（pinning）或双向认证 | 对该域名放行不解密：`域名 disable://capture`；不要强行绕过 |
-| `https://192.168.x.x` 看不到明文 | 直连 IP 不带 SNI | 用 `enable://captureIp` 显式告知 |
+| `https://192.168.x.x` 看不到明文 | 直连 IP 不带 SNI（客户端在 TLS 握手时报出的目标域名） | 用 `enable://captureIp` 显式告知 |
 
 **手机补充**：在 HTTPS 对话框切换「二维码地址」，用手机相机扫码下载证书；iOS 需「设置 → 通用 → VPN 与设备管理」装描述文件，**再**到「设置 → 通用 → 关于本机 → 证书信任设置」开启对根证书的完全信任（两步缺一不可）；Android 到「设置 → 安全 → 加密与凭据 → 安装证书 → CA 证书」。然后在手机「设置 → Wi-Fi → 当前网络 → 手动代理」填电脑 IP 与端口 `8899` 并保存。详细边界见 [24《真机、移动端与远程页面调试》](/scenarios/mobile-remote)。
 
 ## 第 5 步 · 写下并启用第一条规则
 
-规则的基本形状是 `pattern operation [lineProps...] [filters...]`：URL 命中 `pattern` 时，执行 `operation`（`协议://内容`）。现在写一条最容易验证的——给请求加一个自定义请求头。
+规则的基本形状是 `pattern operation [lineProps...] [filters...]`：URL 命中 `pattern` 时，执行 `operation`（`协议://内容`）。后两段第一次读可以先不管——`lineProps` 是只作用于这一行的附加属性（例如提升优先级），`filters` 是对已匹配的请求再做一次筛选。现在写一条最容易验证的——给请求加一个自定义请求头。
 
 1. 打开 **Rules** Tab → 点 **Create** 新建一个规则（或分组）并选中它。
 2. 粘贴这一行：
@@ -106,6 +106,21 @@ www.example.com reqHeaders://x-whistle-hello=1
 **成功标志**：请求头里出现 `x-whistle-hello: 1`。
 
 **这一步为什么重要**：它把「规则文本 → 请求期生效」这条链路变成肉眼可见的事实。后面 [09](/core/http-request) 讲的 16 步、[13](/modules/rules-engine) 讲的编译与匹配，都是在这一行背后发生的。
+
+### 再进一步：用 Values 返回固定 JSON
+
+通关自检第 9 项要用 `file://{key}`，做法就在这里：
+
+1. 打开 **Values** Tab → **Create** 新建一个条目，命名为 `hello.json`，内容填 `{"msg":"hello from whistle"}` 并保存。
+2. 回到 **Rules**，新建一组规则（或改掉刚才那行），写：
+
+```txt
+www.example.com/api file://{hello.json}
+```
+
+3. 浏览器访问 `https://www.example.com/api`，应看到你写的固定 JSON，而不是源站响应。
+
+**成功标志**：页面显示那段 JSON；改 Values 里的内容、保存后再刷新，页面跟着变。`{key}` 的意思是「去 Values 取这个名字的内容」，规则文本和内容因此可以分开维护。这也是 [20《接口未就绪：Mock 与契约先行》](/scenarios/mock-contract) 的最小原型。
 
 ## 第 6 步 · 用「开 / 关」确认规则真的生效
 
@@ -127,27 +142,30 @@ www.example.com reqHeaders://x-whistle-hello=1
 | 看一条请求的细节 | Network | 点开请求，看 Headers / Response / Timeline | [12](/core/capture-data)、[36](/concepts/05-capture) |
 | 把整站代理到本地 dev server | Rules | `域名 http://localhost:5173 excludeFilter://*/api` | [19](/scenarios/local-env) |
 | 接口没好，先返回固定 JSON | Rules + Values | Values 里 Create 一个 key，Rules 写 `域名/api file://{key}` | [20](/scenarios/mock-contract) |
-| 复现/改请求重发 | Network | 右键 Replay，或顶部 Edit → Composer | [21](/scenarios/reproduce-replay) |
-| 造超时/慢响应/偶发 500 | Rules | `reqDelay`、`resDelay`、`statusCode`、`chance` | [22](/scenarios/fault-injection) |
+| 复现/改请求重发 | Network + Composer | 点开请求 → 右键 Replay / Edit；或 `Ctrl+S` 保存会话再导入 | [21](/scenarios/reproduce-replay) |
+| 造超时/慢响应/偶发 500 | Rules | `reqDelay`、`resDelay`、`statusCode`、`includeFilter://chance:0.5` | [22](/scenarios/fault-injection) |
 | HTTPS 只有隧道、证书报错 | HTTPS 对话框 | Download RootCA + Enable HTTPS | [23](/scenarios/https-trust)、[39](/concepts/08-confusions) |
 | 真机调试 | 手机 Wi-Fi 代理 + 扫码证书 | 填电脑 IP:8899，iOS 开完全信任 | [24](/scenarios/mobile-remote) |
 | 团队共享规则 | Rules / `@` / `w2 add` | 远程 URL 或 `.whistle.js` 导入 | [25](/scenarios/collab-config) |
-| 写插件、嵌进 Node 进程 | Plugins / `require('whistle')` | 见 [28 实验二、三](/advanced/hands-on) | [16](/modules/plugins)、[38](/concepts/07-extension) |
+| 写插件 | Plugins / 插件目录 | 按 `whistle.xxx` 命名建目录、写好 `package.json`，用 `w2 install` 安装 | [16](/modules/plugins)、[28 实验二](/advanced/hands-on)、[38](/concepts/07-extension) |
+| 把代理嵌进 CI / 测试进程 | Node 代码 | `npm i whistle` 后 `require('whistle')` 传 options 启动，用事件断言规则命中 | [26](/scenarios/automation)、[28 实验三](/advanced/hands-on) |
+| 用完收尾与合规检查 | 终端 + 系统证书库 | `w2 proxy 0`、`w2 stop`、取消根证书信任 | [27](/scenarios/boundaries) |
 
 ## 通关自检
 
 按顺序做完，全部打勾就可以说自己「能把 Whistle 用起来了」，再进入机制研读才有意义：
 
 1. `w2 -V` 输出版本号。
-2. `w2 status` 显示实例在运行、端口为 8899。
+2. `w2 status` 显示 `is running` 并列出含 8899 的访问 URL。
 3. 浏览器打开 `http://local.whistlejs.com` 看到 Network / Rules / Values / Plugins 四个 Tab。
-4. 访问一个 http 站点，Network 里出现这条请求。
+4. 访问一个 http 站点，Network 里出现这条请求，点开能看到请求行与请求头。
 5. 访问一个 https 站点，能看到明文请求头，而不是只有 `Tunnel to`。
 6. 在 Rules 里 Create 一组规则、粘贴一行、Save、ON 为开启。
 7. 刷新后请求头里出现你写的自定义字段。
 8. 关掉 ON 刷新，字段消失；再打开，字段回来。
 9. 在 Values 里 Create 一个 key，用 `file://{key}` 让浏览器拿到固定 JSON。
-10. 收尾：`w2 proxy 0` 关闭系统代理、`w2 stop` 停止实例，并取消不再需要的根证书系统信任。
+10. 手机（可选）：按第 4 步的「手机补充」设置 Wi-Fi 代理并完成证书完全信任，手机访问 https 站点后 Network 能看到明文。
+11. 收尾：`w2 proxy 0` 关闭系统代理、`w2 stop` 停止实例，并取消不再需要的根证书系统信任。
 
 最后一条不是形式：装了根证书等于扩大本机信任范围，用完请取消信任（原因见[27《能力边界、风险与合规》](/scenarios/boundaries)）。只对自己有权调试的流量开启解密。
 
@@ -168,7 +186,7 @@ HTTPS 中间人解密只用于调试自己有权调试的流量。不要在共�
 
 ## 小结
 
-- 先跑通再读机制：安装 → 启动 → 界面 → 接流量 → 证书 → 第一条规则 → 开关对照，七步构成最小闭环。
+- 先跑通再读机制：安装 → 启动 → 界面 → 接流量 → 证书 → 第一条规则 → 开关对照，第 1–6 步是六个动手环节，构成最小闭环；第 7 节「常用能力落在哪个界面」是一张查阅表，不算动手步骤。
 - 四个 Tab 各管一段：Network 看结果、Rules 写决策、Values 存内容、Plugins 管扩展。
 - 规则的最小形状是 `pattern operation`，验证生效最可靠的办法是「开启/关闭」对照。
 - 本篇为后面的 [31–35 概念入门](/concepts/index) 与 [01 站点导览](/guide/orientation) 提供了可对照的真实操作经验；读机制时随时回到这里重做一遍实验。

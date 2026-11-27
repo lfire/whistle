@@ -8,7 +8,9 @@ description: 拆解 CLI、常驻业务进程与 pfork 子进程三层结构，�
 上一篇走完了启动时序，结束在「端口就绪、启动完成」这一刻，却留下一个尚未回答的问题：服务随后是以什么形态常驻的、配置改了怎样传到各处。本篇回答「服务跑起来之后是什么形状」：它由几类进程组成，配置对象从哪里来、如何合并、改了之后怎样通知到各处。这里还埋着一个最容易望文生义的坑——`lib/init.js` 名字像初始化模块，实际上却是每个请求都会经过的 Express 中间件。把这些理清，再读后面的请求链路才不会把「启动期」与「请求期」混为一谈，也能对照 `~/.WhistleAppData/.whistle/` 判断一份配置究竟落在哪。
 
 ::: tip 先修知识
-本篇承接 [《从 w2 start 到端口监听》](/architecture/startup)（前置 07），需要你已经理解 `w2 start` 的调用时序、根 `index.js` 只导出函数、以及 `--data` 把参数注入业务进程这条链；对 [中间件](/concepts/04-runtime) 与 [进程模型](/concepts/04-runtime) 的基本分工、[cluster](/concepts/04-runtime) 与 [pfork](/concepts/07-extension) 各管什么有印象会更轻松。若对双向流的包装方式不熟，可先读 [《概念精解 · Node 运行时与内核骨架》](/concepts/04-runtime)；对[插件](/concepts/07-extension)与子进程隔离可查 [《概念精解 · 扩展机制与工程化》](/concepts/07-extension)；对规则与值可查 [《概念精解 · 规则 DSL 全景》](/concepts/06-rules)；对抓包数据面可查 [《概念精解 · 抓包数据面与帧》](/concepts/05-capture)；对证书与信任材料可查 [《概念精解 · TLS、证书与信任》](/concepts/03-tls)。
+先做 [第 0 站](/guide/quickstart)：本篇把那次启动与运行拆成了代码时序。
+
+若某个名词卡住，按主题回查 [概念精解总览](/concepts/index) 与 [《全量术语索引》](/concepts/glossary)；正文在术语首次出现处也给了对应链接。
 
 不需要预先读过源码，但能分清「启动期只装配一次」与「请求期每请求都执行」就够了；成组混淆可查 [《易混淆概念辨析》](/concepts/08-confusions)，忘记名词查 [《全量术语索引》](/concepts/glossary)。
 :::
@@ -40,7 +42,7 @@ Whistle 的进程不是一层，而是职责分明的三层。最外层是 CLI �
 
 **输入 → 动作 → 输出**：这一段的输入是配置里的标量字段与运行期的功能任务，动作是 `getOptions()` 把标量序列化成 fork 参数、再由 `fork(...)` 拉起对应子进程，输出是各自独立运行的服务、插件或 weinre，以及它们经 `process.sendData({type})` 回传的消息。三段对上号，就能明白为什么表格里「层级」一列越往下越细：每往下一层，都是把上一层不想承担的风险或职责再切出去一块。
 
-**自己验证**：执行 `w2 start` 把服务拉起来，再到 `~/.WhistleAppData/.whistle/` 下看 `rules` / `values` / `properties` / `certs` 是否齐备；这几类数据落盘的位置，正是主进程与子进程都要读写、却不必共享内存的那份「共同事实」——它解释了为什么两层通信可以各管一段，而不必把所有状态都塞进消息里。
+**自己验证**：执行 `w2 start` 把服务拉起来，再到 `~/.WhistleAppData/.whistle/`（用户主目录下的隐藏目录：macOS / Linux 用 `cd ~/.WhistleAppData`，Windows 在用户目录的 `.WhistleAppData`，也可先 `w2 status` 确认实例）下看 `rules` / `values` / `properties` / `certs` 是否齐备；这几类数据落盘的位置，正是主进程与子进程都要读写、却不必共享内存的那份「共同事实」——它解释了为什么两层通信可以各管一段，而不必把所有状态都塞进消息里。
 
 ## cluster：与 pfork 正交的另一条线
 

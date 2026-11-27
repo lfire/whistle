@@ -5,7 +5,7 @@ description: 把插件、hook、内部端口、约定式 CGI 与 NPM 模块 API 
 
 # 扩展机制与工程化
 
-前四层把一次请求从代理入口一路送到抓包界面，本层回答「这套能力怎样被第三方代码复用与放大」。前置概念是进程隔离、内部 HTTP 转发与 Express 中间件；读完你能独立写出一个最小插件，说清 `w2 install` 之后主进程与插件子进程之间发生了什么，也能把 Whistle 当作 npm 模块嵌进自己的服务。本层不追求新协议知识，而是把散落在 `lib/plugins/`、`biz/webui/` 与 `index.d.ts` 的名词收成一张可回查的词典。
+概念精解前四篇（31–34）把一次请求从代理入口一路送到抓包界面，本层回答「这套能力怎样被第三方代码复用与放大」。本篇会从定义讲清进程隔离、内部 HTTP 转发与 Express 中间件这三件事；读完你能独立写出一个最小插件，说清 `w2 install` 之后主进程与插件子进程之间发生了什么，也能把 Whistle 当作 npm 模块嵌进自己的服务。本层不追求新协议知识，而是把散落在 `lib/plugins/`、`biz/webui/` 与 `index.d.ts` 的名词收成一张可回查的词典。
 
 ::: tip 先修知识
 本篇承接 [《插件系统》](/modules/plugins)（16）、[《规则 DSL 全景》](/concepts/06-rules)（37）。本篇会从定义讲起（不需要预先掌握）：进程隔离、内部 HTTP 转发、Express 中间件三类基础机制。
@@ -405,7 +405,7 @@ w2 use ./whistle.test-rules/rules.txt
 
 三条命令对应三段链路：`w2 install` 由 `bin/plugin.js:139-145` 拉起 `npm install` 并落到 `custom_plugins/`，随后 `lib/plugins/index.js:508-550` 的 6 秒轮询发现它；`w2 use` 把规则文件并进当前规则集；请求命中 `whistle.test-rules://` 时，`lib/plugins/index.js:1436-1472` 的 `resolveWhistlePlugins` 解析插件名，`:891-1035` 按 `rulesPort` 取回规则文本并合并。
 
-三条真实场景线值得对照。其一是自动化：CI 用 `require('whistle')` 启动、`setShadowRules` 注入临时规则、`getRuntimeInfo` 取统计，收尾由宿主进程关闭，见 [CI 与自动化](/scenarios/automation)。其二是协作配置：团队用 `w2 use` 加载共用规则文件、用 guest 只读地址分享界面、用 `disabledPlugins` 收敛各人插件差异，见 [协作配置](/scenarios/collab-config)。其三是真机调试：手机装根证书后，用 `weinre://` 与 `log://` 注入脚本，在 Console 面板看页面日志，见 [真机调试](/scenarios/mobile-remote)。三者分别复用「库化」「清单声明」「注入」三组机制，也说明扩展层不是孤立功能，而是前四层能力的出口。
+三条真实场景线值得对照。其一是自动化：CI 用 `require('whistle')` 启动、`setShadowRules` 注入临时规则、`getRuntimeInfo` 取统计，收尾由宿主进程关闭，见 [CI 与自动化](/scenarios/automation)。其二是协作配置：团队用 `w2 use` 加载共用规则文件、用 guest 只读地址分享界面、用 `disabledPlugins` 收敛各人插件差异，见 [协作配置](/scenarios/collab-config)。其三是真机调试：手机装根证书后，用 `weinre://` 与 `log://` 注入脚本，在 Console 面板看页面日志，见 [真机调试](/scenarios/mobile-remote)。三者分别复用「库化」「清单声明」「注入」三组机制，也说明扩展层不是孤立功能，而是概念精解前四篇（31–34）能力的出口。
 
 若只是改插件框架，最短的阅读顺序是 `lib/config.js:63-108`（头与 hook 名）→ `lib/plugins/get-plugins-sync.js:110-213`（发现与声明）→ `lib/plugins/index.js:620-686`（fork 与 kill）→ `lib/plugins/load-plugin.js:1347-1374,2012-2031`（ports 与分发）→ `biz/webui/lib/index.js:387-418,602-607`（约定式 CGI）。这条线把「一个包」变成「一次内部请求」的全过程串起来，配合 [插件系统](/modules/plugins) 与 [Web 管理界面](/modules/webui) 两篇模块深潜，定位问题会快得多。
 
@@ -435,6 +435,6 @@ w2 use ./whistle.test-rules/rules.txt
 
 ## 下一步
 
-[《易混淆概念辨析》](/concepts/08-confusions)：把全站近百组形近、名近、阶段近的概念摆在一起对照，逐组给出差别、类比、源码落点、踩坑表现与回查章节。
+[《易混淆概念辨析》](/concepts/08-confusions)：把全站 83 组形近、名近、阶段近的概念摆在一起对照，逐组给出差别、类比、源码落点、踩坑表现与回查章节。
 
 **为什么紧接着读它**：概念一多就容易串味，辨析篇帮你迅速判断「该看哪一层」。

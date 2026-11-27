@@ -8,7 +8,9 @@ description: 从命名与发现、pfork 子进程、hook 头通信到插件侧 A
 [插件](/concepts/07-extension)是 Whistle 唯一允许第三方代码深度介入请求链路的入口：它既能注册新协议、下发规则与证书，也能全权接管一个 server 或读写管道。代价是必须隔离，因此整套设计围绕「主进程 ↔ [pfork](/concepts/07-extension) 子进程 ↔ 内部 HTTP 端口 ↔ Web UI」四方展开。本篇面向要写插件或改插件框架的开发者，所有机制都给到当前分支的行号。前面 [《进程模型与配置系统》](/architecture/process-config) 交代了三层进程与配置单例如何共享状态、[《指令体系与分发链路》](/modules/protocol-catalog) 把自定义协议接进了分发链，但「第三方代码凭什么能插进请求链路、又凭什么不会拖垮代理」这个隔离问题一直没展开；本篇就补上它，读完你能写插件、也能改插件框架。
 
 ::: tip 先修知识
-本篇承接 [《进程模型与配置系统》](/architecture/process-config)（前置 08）与 [《指令体系与分发链路》](/modules/protocol-catalog)（前置 14），需要你已经理解 Whistle 的三层进程与配置单例如何共享状态、一条规则指令如何被解析并分发到请求链路，以及为什么第三方代码不能直接在主进程里 `require`。若对插件、pfork、ports 表、hook、sniCallback、Storage、PLUGIN_HOOKS 这些名词还不熟，可先读 [《概念精解 · 扩展机制与工程化》](/concepts/07-extension)；对「一次请求如何被采集」可查 [《概念精解 · 抓包数据面与帧》](/concepts/05-capture)；对规则文本如何编译命中可查 [《概念精解 · 规则 DSL 全景》](/concepts/06-rules)；对子进程与事件驱动可查 [《概念精解 · Node 运行时与内核骨架》](/concepts/04-runtime)。
+先做 [第 0 站](/guide/quickstart)：本篇讲的是你在 Rules 与界面背后动过的那套机制。
+
+若某个名词卡住，按主题回查 [概念精解总览](/concepts/index) 与 [《全量术语索引》](/concepts/glossary)；正文在术语首次出现处也给了对应链接。
 
 不要求预先读过 Whistle 源码，但知道「父子进程靠消息或本地端口通信」会更轻松。
 
