@@ -7,6 +7,8 @@ const BASE = '/whistle/'
 // 全站统一连续编号 01–41，与「41 篇正文」一一对应。
 // 分组标题表示层级/板块，条目前的两位数字表示全站阅读序号，两者维度不同。
 const guide = [
+  // 第 0 站是动手准备，不占 01–41 的机制研读编号
+  { text: '第 0 站 · 第一次跑通 Whistle', link: '/guide/quickstart' },
   { text: '01 站点导览与代码地图', link: '/guide/orientation' }
 ]
 
@@ -135,7 +137,7 @@ export default defineConfig({
       { text: '实战速查', link: '/advanced/hands-on' }
     ],
     sidebar: [
-      { text: '导览与准备 · 01', items: guide },
+      { text: '导览与准备 · 第 0 站 / 01', items: guide },
       { text: '领域基础 · 02–05', items: domain },
       { text: '全局架构 · 06–08', items: architecture },
       { text: '核心链路 · 09–12', items: core },

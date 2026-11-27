@@ -23,6 +23,9 @@ description: 从团队共享规则、.whistle.js 到多实例隔离，追踪配�
 
 ## 可复制的配置
 
+
+> **动手前**：下面的配置都写在 Whistle 界面的 **Rules** 面板里（Create 新建 → 粘贴 → Save → ON 开启）。如果还没把工具跑起来，请先完成 [第 0 站 · 第一次跑通](/guide/quickstart)：安装、启动、界面、代理、根证书与命中验证都在那里；否则照抄这些规则也看不到结果。
+
 `@` 支持远程 URL、本地路径、插件接口与 Windows 路径，Whistle 会定时回源更新（来源 `docs/docs/rules/@.md`）：
 
 ```txt

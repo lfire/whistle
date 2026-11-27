@@ -23,6 +23,9 @@ description: 把解密判定、证书信任、抓包阈值、插件隔离与管�
 
 ## 可复制的配置
 
+
+> **动手前**：下面的配置都写在 Whistle 界面的 **Rules** 面板里（Create 新建 → 粘贴 → Save → ON 开启）。如果还没把工具跑起来，请先完成 [第 0 站 · 第一次跑通](/guide/quickstart)：安装、启动、界面、代理、根证书与命中验证都在那里；否则照抄这些规则也看不到结果。
+
 出站默认不校验源站证书，`--mode safe` 才打开严格校验（`lib/config.js:65,809-810` 的 `safe` / `rejectUnauthorized` 分支；`docs/docs/cli.md:42` 的 `-M/--mode` 选项列表未逐项列出 `safe`，它是源码支持的取值）：
 
 ```bash
