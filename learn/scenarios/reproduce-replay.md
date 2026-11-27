@@ -36,6 +36,8 @@ description: 从 Network 抓包到 Composer 重放，追溯同一 data 引用、
 ## 可复制的配置
 
 
+> **想动手练**：本节讲机制与取舍；可直接执行的任务、验收与变式在 [L3 造得出](/practice/l3-simulate)。
+
 > **动手前**：这一节的动作主要发生在 **Network**（搜索框、右键 Replay / Edit、Composer）与终端（`npm test`），不是写规则。若还没抓到过一条请求，先完成 [第 0 站](/guide/quickstart) 第 3–4 步。下面示例里的域名、IP、路径与 `{key}` 都是占位，请替换成你自己的目标；引用 `{key}` 之前，先在 Values 里 Create 好同名条目。
 
 Network 底部搜索框支持多条件「与」搜索，`fc:` 前缀专门隔离 Composer 流量；导入导出格式由前端约定。

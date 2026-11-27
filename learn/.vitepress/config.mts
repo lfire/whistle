@@ -75,6 +75,19 @@ const concepts = [
   { text: '41 全量术语索引', link: '/concepts/glossary' }
 ]
 
+// 实战通关：按能力等级 L1–L5 排列，零基础者的主路线，不占 01–41 编号
+const practice = [
+  { text: '实战通关 · 能力地图', link: '/practice/index' },
+  { text: '地基：自造靶子', link: '/practice/target' },
+  { text: 'L1 看得见 · 观察与存证', link: '/practice/l1-observe' },
+  { text: 'L2 改得动 · 精确改写', link: '/practice/l2-rewrite' },
+  { text: 'L3 造得出 · Mock 与故障', link: '/practice/l3-simulate' },
+  { text: 'L4 接得上 · 复杂接入', link: '/practice/l4-extend' },
+  { text: '迁移关 · 从靶子到真实项目', link: '/practice/bridge' },
+  { text: 'L5 排得清 · 独立排障', link: '/practice/l5-diagnose' },
+  { text: '综合通关项目与自评', link: '/practice/final-project' }
+]
+
 export default defineConfig({
   lang: 'zh-CN',
   title: 'Whistle 源码研读',
@@ -134,10 +147,11 @@ export default defineConfig({
       { text: '模块深潜', link: '/modules/rules-engine' },
       { text: '工程场景', link: '/scenarios/index' },
       { text: '概念精解', link: '/concepts/index' },
-      { text: '实战速查', link: '/advanced/hands-on' }
+      { text: '实战通关', link: '/practice/index' }
     ],
     sidebar: [
       { text: '导览与准备 · 第 0 站 / 01', items: guide },
+      { text: '实战通关 · L1–L5（零基础主线）', items: practice },
       { text: '领域基础 · 02–05', items: domain },
       { text: '全局架构 · 06–08', items: architecture },
       { text: '核心链路 · 09–12', items: core },

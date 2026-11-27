@@ -24,6 +24,8 @@ description: 从团队共享规则、.whistle.js 到多实例隔离，追踪配�
 ## 可复制的配置
 
 
+> **想动手练**：本节讲机制与取舍；可直接执行的任务、验收与变式在 [L4 接得上](/practice/l4-extend)。
+
 > **动手前**：这一节混合了本地 `.whistle.js` 文件、命令行 `w2 add` / `w2 start -S` 与 **Rules** 里的 `@` 远程规则。若还没把工具跑起来，先完成 [第 0 站](/guide/quickstart)。下面示例里的域名、IP、路径与 `{key}` 都是占位，请替换成你自己的目标；引用 `{key}` 之前，先在 Values 里 Create 好同名条目。
 
 `@` 支持远程 URL、本地路径、插件接口与 Windows 路径，Whistle 会定时回源更新（来源 `docs/docs/rules/@.md`）：
