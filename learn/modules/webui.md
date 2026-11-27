@@ -8,7 +8,9 @@ description: 从主代理复用、biz 识别层、约定式 CGI 到前端轮询�
 Whistle 的管理界面没有独立进程，也没有单独的端口默认值：它复用主代理的 Express app，靠一层 `biz` 中间件把「管理流量」从普通代理流量里摘出来。本篇面向要加 CGI、改鉴权或动前端的开发者，按「识别 → 路由 → 鉴权与接口 → 前端与取舍」展开，行号均来自当前分支。前面 [《插件系统》](/modules/plugins) 讲清了第三方能力如何通过 [ports 表](/concepts/07-extension) 与 CGI 暴露出来、[《抓包数据的采集与上报》](/core/capture-data) 讲清了会话与帧如何被采集进有界缓存、并以 100 / 900 ms 短轮询经独立 cgi 接口上报，但「浏览器上那些按钮和数据，究竟怎么找到对应接口、怎么被允许访问、又怎么刷新出来」还没交代；本篇就补上浏览器这一侧，读完你能加 CGI、改鉴权或动前端。
 
 ::: tip 先修知识
-本篇承接 [《插件系统》](/modules/plugins)（前置 16）与 [《抓包数据的采集与上报》](/core/capture-data)（前置 12），需要你已经理解插件通过 ports 表与 `/whistle.xxx/` 暴露界面、内部端口与 CGI 的分工，以及请求、隧道、帧如何被采集进有界缓存、并以 100 / 900 ms 短轮询经独立 cgi 接口上报。若对抓包、reqId、帧缓存、Composer 这些名词还不熟，可先读 [《概念精解 · 抓包数据面与帧》](/concepts/05-capture)；对插件、pfork、ports 表、hook、Storage 可查 [《概念精解 · 扩展机制与工程化》](/concepts/07-extension)；对规则与 Values 如何编译命中可查 [《概念精解 · 规则 DSL 全景》](/concepts/06-rules)；对「一次请求走过哪些层」可查 [《概念精解 · 一次请求里的全部概念》](/concepts/09-walkthrough)。不要求预先读过 Whistle 源码，但知道「浏览器与服务端靠 HTTP 接口通信」会更轻松。
+本篇承接 [《插件系统》](/modules/plugins)（前置 16）与 [《抓包数据的采集与上报》](/core/capture-data)（前置 12），需要你已经理解插件通过 ports 表与 `/whistle.xxx/` 暴露界面、内部端口与 CGI 的分工，以及请求、隧道、帧如何被采集进有界缓存、并以 100 / 900 ms 短轮询经独立 cgi 接口上报。若对抓包、reqId、帧缓存、Composer 这些名词还不熟，可先读 [《概念精解 · 抓包数据面与帧》](/concepts/05-capture)；对插件、pfork、ports 表、hook、Storage 可查 [《概念精解 · 扩展机制与工程化》](/concepts/07-extension)；对规则与 Values 如何编译命中可查 [《概念精解 · 规则 DSL 全景》](/concepts/06-rules)；对「一次请求走过哪些层」可查 [《概念精解 · 一次请求里的全部概念》](/concepts/09-walkthrough)。
+
+不要求预先读过 Whistle 源码，但知道「浏览器与服务端靠 HTTP 接口通信」会更轻松。
 
 给不熟悉界面的读者补一句：这里的「管理界面」不是另一个网站，而是跑在代理同一个端口上的一批特殊路径；浏览器访问 `/.whistle-path.5b6af7b9884e1165/` 之类的地址时，请求会先被 biz 层认出来、再交给 CGI 处理，和真正被代理的业务流量走的是两套待遇。
 
