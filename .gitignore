@@ -69,3 +69,7 @@ dist
 /docs/.vitepress/dist
 /docs/.vitepress/cache
 /biz/webui/htdocs/js
+
+# local workbuddy tooling and session notes (not part of the published site)
+/.kuai.yaml
+/.workbuddy/
