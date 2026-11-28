@@ -112,7 +112,7 @@ const assert = require('assert');
 const startWhistle = require('whistle');
 startWhistle({ port: 18080, storage: 'ci_' }, (proxy) => {
   const seen = [];
-  proxy.on('_request', (req) => seen.push(req.fullUrl));   // 事件订阅
+  proxy.on('_request', (url) => seen.push(url));   // 事件订阅：实参是 URL 字符串（lib/tunnel.js:76）
   proxy.setShadowRules('www.test.com file://({"ec":0})');   // 规则整体替换
   assert(proxy.getShadowRules().indexOf('ec') > -1);        // 断言注入成功
   assert.strictEqual(typeof proxy.setUIHost, 'function');   // 导出接口断言

@@ -76,7 +76,7 @@ curl -s -i -x 127.0.0.1:8899 http://practice.test/other
 practice.test reqHeaders://x-practice=1 includeFilter://m:POST
 ```
 
-分别发 GET 与 POST（`-X POST`），应该只有 POST 那条带上请求头。`chance`、`reqH.`、`b:` 等过滤器的完整清单见官方 `docs/docs/rules/filters.md`；排除型写法是 `excludeFilter://*/static` 这种。
+分别发 GET 与 POST（`-X POST`），应该只有 POST 那条带上请求头。`chance`、`reqH.`、`b:` 等过滤器的完整清单见官方 `docs/docs/rules/filters.md`。其中按请求头限定的写法是 `includeFilter://reqH.头名:值`（值支持关键字或正则），例如 `includeFilter://reqH.x-client:phone-sim`——[L3](/practice/l3-simulate) 的半开放目标 3 会用到，先在这里发一发 `curl -s -i -x 127.0.0.1:8899 -H "X-Client: phone-sim" http://practice.test/api` 验证它能命中。排除型写法是 `excludeFilter://*/static` 这种。
 
 ### 第 5 步 · 练规则顺序
 
@@ -84,7 +84,7 @@ practice.test reqHeaders://x-practice=1 includeFilter://m:POST
 
 ### 第 6 步 · 复用 Values，并练「多协议叠加」
 
-[第 0 站](/guide/quickstart#再进一步用-values-返回固定-json) 已经教过 Values 的 Create 与 `file://{key}`，这里直接用：在 Values 里建一个 `mock.json`，内容填 `{"status":"ok","from":"values"}`，规则改成：
+[第 0 站](/guide/quickstart#再进一步用-values-返回固定-json) 教过 Values，这里把步骤再走一遍：打开 **Values** Tab → **Create** → 命名 `mock.json` → 内容填 `{"status":"ok","from":"values"}` → 保存。`{mock.json}` 里的名字必须与这里完全一致，否则取不到值。规则改成：
 
 ```txt
 $practice.test/api file://{mock.json}

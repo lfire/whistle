@@ -18,6 +18,7 @@ description: 用自造靶子练发请求、读懂 Network 各面板、过滤与�
 1. `w2 start` 在跑，界面 `http://local.whistlejs.com` 能打开。
 2. 打开 `练习靶子` 规则组的 **ON**。
 3. 终端备用一行命令：`curl -s -i -x 127.0.0.1:8899 http://practice.test/api`。
+4. **Composer** 的打开方式与 **Global Rules**（旧版标作 Whistle）开关已在 [自造靶子](/practice/target) 第 3 步教过；本关第 1 步会再用到它，若记不清先回看那一节。
 
 ## 任务
 

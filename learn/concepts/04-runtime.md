@@ -405,7 +405,9 @@ const proxy = startWhistle({
   port: 18080, storage: 'ci_',
   rules: { Default: 'www.test.com file://({"ec":0})' }
 }, () => {
-  proxy.on('_request', (req) => console.log(req.fullUrl));
+  // _request 的实参是 tunnelUrl 字符串（lib/tunnel.js:76），不是 req 对象；
+  // req.fullUrl 是 lib/tunnel.js:75 赋在请求对象上的属性，两者别混用
+  proxy.on('_request', (url) => console.log(url));
   proxy.setShadowRules('www.test.com file://({"ec":0})');
   console.log(proxy.getShadowRules());
 });

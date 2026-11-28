@@ -37,7 +37,9 @@ $practice.test/api file://({"status":"ok","from":"whistle"})
 
 点 **Save**，确认 **ON** 为开启（红色）。
 
-> 内联值必须用英文括号 `()` 包裹，且内容里不能有空格或换行；这是官方 `docs/docs/rules/file.md` 的硬性要求。少了括号会被当成文件路径，结果就是 404。想写带空格的内容，改用 [Values](/concepts/06-rules) 建 key 再写 `file://{key}`，[第 0 站](/guide/quickstart#再进一步用-values-返回固定-json) 演示过。
+> 行首的 `$` 是官方 `docs/docs/rules/pattern.md` 的**路径精确匹配**前缀：`$practice.test/api` 只命中 `/api`，不会连 `/api/user` 一起命中。L3、[迁移关](/practice/bridge) 与[通关项目](/practice/final-project) 都依赖这一点，先记住「不写 `$` 就会按路径前缀误伤子路径」即可。
+
+> 内联值必须用英文括号 `()` 包裹，且内容里不能有空格或换行：括号是在告诉解析器「这是要直接返回的内容，不是文件路径」，少了它就会被当路径去找文件，结果就是 404（官方 `docs/docs/rules/file.md`）。站内可直接照本页第 1 步的代码块抄，不必跳出去查。想写带空格的内容，改用 [Values](/concepts/06-rules) 建 key 再写 `file://{key}`，[第 0 站](/guide/quickstart#再进一步用-values-返回固定-json) 演示过。
 
 ### 第 2 步 · 用一行命令发出请求
 

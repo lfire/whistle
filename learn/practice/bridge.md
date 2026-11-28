@@ -69,6 +69,8 @@ curl -s -i -x 127.0.0.1:8899 http://www.example.com/api/users
 
 把上一组规则改成三行，让**每一条路径都有真实可达的成功响应**：
 
+> 若你已按 L3 收尾清场、Values 里没有 `user.json`，先用 **Values → Create** 重建它（内容 `{"id":1,"name":"demo"}`），否则 `{user.json}` 取不到值。
+
 ```txt
 $www.example.com/api/user file://{user.json} resType://json
 www.example.com/api http://127.0.0.1:5174
@@ -95,7 +97,7 @@ curl -s -i -x 127.0.0.1:8899 http://www.example.com/           # 落到 5173 的
 curl -s -i -x 127.0.0.1:8899 https://example.com
 ```
 
-在 Network 里点开，应能看到明文请求头与响应体；关掉 Enable HTTPS 再发一次，应变成 `Tunnel to`。给其中一个域名写 `域名 disable://capture`，确认它退回透传。
+在 Network 里点开，应能看到明文请求头与响应体；关掉 Enable HTTPS 再发一次，应变成 `Tunnel to`。给第二个域名写 `skip.test disable://capture`（`skip.test` 与靶子一样是不存在的域名，只用于观察 Tunnel to），发 `curl -s -i -x 127.0.0.1:8899 https://skip.test/api` 确认它退回透传。
 
 > 若你的环境没有外网，用 `https://practice.test/api` 配合 [L4](/practice/l4-extend) 第 1 步代替；要练的判据是「能不能看明文、为什么不能、什么时候该放行」，不是必须访问某个特定站点。证书固定 / mTLS 的目标一律放行不解密（[27](/scenarios/boundaries)）。
 
@@ -111,11 +113,11 @@ curl -s -i -x 127.0.0.1:8899 https://example.com
 | 出现没见过的报错（如 `captureError`） | 官方 `docs/docs/faq.md` |
 | 想知道「为什么会这样」、源码在哪一行 | 本站 01–41 |
 
-**一次实操**：打开官方 `docs/docs/rules/reqDelay.md`，找到「延迟后 abort」那一节，把示例 `www.example.com/path2 reqDelay://5000 enable://abort` 抄进你的练习规则（换成靶子路径）并跑一次。再打开 `docs/docs/rules/filters.md`，确认 `chance` 的取值范围是 0–1。这两处都是本站没有逐条展开的参数细节，以后遇到新指令都用这个动作补齐。
+**一次实操（补齐官方参数）**：训练关只用到每个指令最常用的写法，官方页还有本站没有逐条展开的可选参数。打开 `docs/docs/rules/reqDelay.md` 与 `docs/docs/rules/filters.md`，各挑一条训练关里没用过的写法（例如 `reqDelay` 与 `enable://abort` 的延迟中断组合、`excludeFilter://reqH.user-agent=/android/i` 这类按请求头正则排除），换成靶子路径跑一次并留下终端输出。以后遇到新指令都用这个动作补齐参数细节。
 
 ## 验收
 
-**该看到**：三种接入各留下一条证据（终端输出或 Network 截图）；能说出换域名时至少 4 个必改/不必改项；能演示「关掉 Mock 后 `/api/user` 回源」；能在官方文档里找到并实际跑通一个本站没写过的参数组合（`reqDelay` + `enable://abort`）。
+**该看到**：三种接入各留下一条证据（终端输出或 Network 截图）；能说出换域名时至少 4 个必改/不必改项；能演示「关掉 Mock 后 `/api/user` 回源」；能在官方文档里找到并实际跑通至少一条训练关之外的可选写法，留下终端输出。
 
 **不该看到**：改了域名却忘了加 `$` 导致子路径被误伤；Mock 关掉后仍返回固定 JSON（说明还有别的规则在命中）；把 `host://` 指回 Whistle 自己的端口造成自环。
 

@@ -19,7 +19,7 @@ description: 用本机等价替代练 HTTPS 解密排障、多客户端、规则
 
 1. 已完成 [L3](/practice/l3-simulate)，`练习靶子` 基线仍在（`$practice.test/api` / `$practice.test/other`，ON 可随时开关）。
 2. [第 0 站](/guide/quickstart) 第 4 步的根证书信任与 **Enable HTTPS** 都处于可用状态——本关第 1 步会反复开关它。若你之前按第 0 站通关自检第 11 项做过清场（取消了证书信任），进本关前先按第 0 站第 4 步恢复，否则第 1 步只会看到 `Tunnel to`。
-3. 终端可用 `curl`、`node -v` 正常；若要练内嵌实例，先在项目目录 `npm i whistle`。
+3. 终端可用 `curl`。第 6 步的内嵌实例是选做，需要时才在**你新建的练习目录**里执行 `npm i whistle`，主线不必准备。
 4. 本关会起额外实例、动证书信任，**每一节结束就按该节要求清场**，不要攒到最后。
 
 ### 第 1 步 · HTTPS：按域名控制解密，而不是一刀切
@@ -34,7 +34,7 @@ curl -s -i -x 127.0.0.1:8899 https://practice.test/api
 3. 在 Network 里点开，应能看到明文请求头与响应体；把 Enable HTTPS 关掉再发一次，列表里应变成一条 `Tunnel to`（这一步是复查第 0 站，不是新内容）。
 4. **真正新增的能力是「只对该解密的域名解密」**：再追加一行 `$skip.test/api disable://capture`，然后发 `curl -s -i -x 127.0.0.1:8899 https://skip.test/api`。它应保持 `Tunnel to`，而 `practice.test` 仍是明文。用两条请求做对照并留证据。
 
-**这一步要练的是判断力**：`Tunnel to` 不是「抓包失败」，而是「代理在纯透传」。按「入口 → 信任 → 判定」三层依次查（[23](/scenarios/https-trust) 的四步排障链）。
+**这一步要练的是判断力**：`Tunnel to` 不是「抓包失败」，而是「代理在纯透传」。按「入口 → 信任 → 判定」三层依次查（[23](/scenarios/https-trust)）。界面里的 **Enable HTTPS** 与规则 `enable://https` 等价（第 0 站第 4 步已教），后面变式里会用规则写法。
 
 ### 第 2 步 · 证书与解密的边界
 
@@ -57,7 +57,7 @@ curl -s -i -x 127.0.0.1:8899 https://practice.test/api
 curl -s -i -x 127.0.0.1:8899 -H "X-Client: phone-sim" http://practice.test/api
 ```
 
-在 Network 搜索框用 `h:x-client`（请求/响应头文本）或 `i:`（客户端 IP）筛出它，例如输入 `h:phone-sim`；再给规则加 `includeFilter://reqH.x-client:phone` 让改动只对这个客户端生效。这样就练到了「按客户端限定」这个真机场景里最核心的能力，而不需要手机和局域网。
+在 Network 搜索框用 `h:x-client`（请求/响应头文本）或 `i:`（客户端 IP）筛出它，例如输入 `h:phone-sim`；再给规则加 `includeFilter://reqH.x-client:phone-sim` 让改动只对这个客户端生效。这样就练到了「按客户端限定」这个真机场景里最核心的能力，而不需要手机和局域网。
 
 > 真要做真机：按 [第 0 站](/guide/quickstart) 第 4 步的「手机补充」用 Wi-Fi 手动代理 + 扫码装证书，iOS 记得开「完全信任」；细节见 [24](/scenarios/mobile-remote)。
 
@@ -68,9 +68,9 @@ curl -s -i -x 127.0.0.1:8899 -H "X-Client: phone-sim" http://practice.test/api
 **本机等价动作**（不需要真的有上级代理）：
 
 1. 另开一个终端执行 `python3 -m http.server 9000`（系统自带，不装任何东西）。
-2. 规则追加 `$practice.test/api host://127.0.0.1:9000`，再发一次 curl。
-3. 响应应来自 9000 端口那个服务（目录列表或 404 页面），**不再是靶子的 JSON** —— 这就是「出站地址被规则改掉」的可观察证据。
-4. 立刻删掉这条规则，发一发确认恢复靶子 JSON。
+2. **换一个没被基线短路的路径**：追加 `$practice.test/tohost host://127.0.0.1:9000`。不要用 `/api`——基线 `$practice.test/api file://(...)` 会先短路构造响应，请求根本不出站，`host://` 就看不到效果（这是 L2 第 6 步「可叠加」的边界）。
+3. 发 `curl -s -i -x 127.0.0.1:8899 http://practice.test/tohost`，响应应来自 9000 端口那个服务（目录列表或 404 页面），**不是靶子的 JSON** —— 这就是「出站地址被规则改掉」的可观察证据。
+4. 立刻删掉这条规则，再发一发确认该路径恢复失败（没有规则造响应）。
 
 > 绝对不要把 `host://` 指向 Whistle 自己的端口（8899 / 18899）：请求会被重新打回代理形成无限自环，且很难一眼看出原因。
 
@@ -79,7 +79,14 @@ curl -s -i -x 127.0.0.1:8899 -H "X-Client: phone-sim" http://practice.test/api
 1. **导出的规则文本**：Rules → **Export** 得到文件，再用 Rules → **Import** 导入回来，确认规则集出现在列表里。`w2 add` 不是用来导入规则文本的。
 2. **`.whistle.js` 方式**：在项目目录建 `.whistle.js`，导出 `name` / `rules`，执行 `w2 add`，确认 Rules 面板出现对应规则集。`w2 add` 只执行当前目录的 `.whistle.js`（或 `.whistle.mjs`，也可 `w2 add filepath` 指定文件），见 `docs/docs/cli.md`。
 3. 改 `.whistle.js` 后重新执行 `w2 add`，确认规则更新——界面靠轮询感知变化，不是推送（[25](/scenarios/collab-config)）。
-4. 在 Rules 里写 `@/Users/你的用户名/rules.txt` 指向一个本地规则文件（换成你自己的绝对路径），文件里写一行 `$practice.test/api file://({"from":"at"})`；保存后发一发确认命中。改文件内容，等一个刷新周期再看响应是否变化——`@` 是定时回源的规则来源（[25](/scenarios/collab-config)）。
+4. 先在终端建一个规则文件（路径用你自己主目录下的绝对路径，避免占位符）：
+
+```sh
+mkdir -p ~/whistle-practice
+printf '%s\n' '$practice.test/at-demo file://({"from":"at"})' > ~/whistle-practice/rules.txt
+```
+
+   再在 Rules 里写 `@~/whistle-practice/rules.txt`（VitePress 里请换成展开后的绝对路径，例如 `/Users/你的名字/whistle-practice/rules.txt`——**「你的名字」要替换成你本机的用户名**，可用 `whoami` 查），保存后发 `curl -s -i -x 127.0.0.1:8899 http://practice.test/at-demo` 确认命中。改文件内容后等一个刷新周期（本地文件约 5 秒、远程 10–30 秒，见 [25](/scenarios/collab-config)）再看响应是否变化。
 
 `.whistle.js` 的最小可抄写法（放在项目目录，执行 `w2 add`）：
 
@@ -108,7 +115,7 @@ const instance = whistle({ port: 18899, storage: 'practice' }, (err) => {
 })
 ```
 
-执行后终端应输出 `practice ready`，用 `curl -s -i -x 127.0.0.1:18899 http://practice.test/api` 验证：因为没有配置规则，会看到 502 或连接失败，而**不是** `Connection refused`——这恰好证明流量确实到了这个内嵌实例。它不会起后台守护进程、不改系统代理、不装证书——这些都要调用方自己安排（[26](/scenarios/automation)、[28 实验三](/advanced/hands-on)）。
+把上面代码存成 `practice.js`，用 `node practice.js` 执行，终端应输出 `practice ready`，用 `curl -s -i -x 127.0.0.1:18899 http://practice.test/api` 验证：因为没有配置规则，会看到 502 或连接失败，而**不是** `Connection refused`——这恰好证明流量确实到了这个内嵌实例。它不会起后台守护进程、不改系统代理、不装证书——这些都要调用方自己安排（[26](/scenarios/automation)、[28 实验三](/advanced/hands-on)）。
 
 ### 第 7 步 · 插件最小形态（选做）
 
@@ -116,15 +123,26 @@ const instance = whistle({ port: 18899, storage: 'practice' }, (err) => {
 
 ## 验收
 
-**该看到**：https 靶子能点开明文；关掉 Enable HTTPS 变成 `Tunnel to`；`disable://capture` 让指定域名退回透传；带 `X-Client` 的请求能被过滤并被规则单独限定；`w2 add` 导入后规则集出现且改动会刷新；内嵌脚本输出 `practice ready` 并能用 curl 打到。
-
-**该看到（新增）**：`skip.test` 保持 `Tunnel to` 而 `practice.test` 是明文；`host://127.0.0.1:9000` 期间响应来自 9000 服务，删掉规则后恢复靶子 JSON。
+**该看到**：https 靶子能点开明文；关掉 Enable HTTPS 变成 `Tunnel to`；`disable://capture` 让 `skip.test` 退回透传而 `practice.test` 仍是明文；带 `X-Client: phone-sim` 的请求能被 `h:` 筛出并被 `reqH.x-client` 规则单独限定；`host://127.0.0.1:9000` 期间 `/tohost` 响应来自 9000 服务，删掉规则后恢复；规则集通过 Rules Import 与 `.whistle.js` + `w2 add` 都能出现在界面。内嵌实例（第 6 步）与插件（第 7 步）为**选做**，不计入验收。
 
 **不该看到**：对所有 HTTPS 站点无差别解密（应只对自己有权调试的目标开）；内嵌实例改了系统代理或装了证书（它不该做这些）；`host://` 自环没清理导致后续请求全异常。
 
 ## 变式
 
-1. **只对一个客户端解密**：给 `enable://https` 加 `includeFilter://reqH.x-client:phone`，用两个不同请求头做对照。
+1. **只对一个客户端生效**：限定要写在**请求期**规则上——`enable://https` 这类解密判定发生在 CONNECT 阶段，那时还读不到业务请求头，按 `reqH.` 过滤不会生效。写：
+
+```txt
+$practice.test/api resHeaders://x-target=phone-sim includeFilter://reqH.x-client:phone-sim
+```
+
+两条对照（值要写全，`phone` 是 `phone-sim` 的子串，关键字匹配会误命中）：
+
+```sh
+curl -s -i -x 127.0.0.1:8899 -H "X-Client: phone-sim" http://practice.test/api
+curl -s -i -x 127.0.0.1:8899 http://practice.test/api
+```
+
+第一条响应头出现 `x-target: phone-sim`，第二条没有。
 2. **换端口多实例**：`w2 start -p 8100 -S practice2`，用 `w2 status --all` 看到两个实例，理解端口与存储目录必须都唯一（[08](/architecture/process-config)）。
 3. **规则集来回切**：Rules 里允许多选时切换两组规则，确认只有当前选中的那组生效。
 

@@ -85,7 +85,13 @@ const practice = [
   { text: 'L4 接得上 · 复杂接入', link: '/practice/l4-extend' },
   { text: '迁移关 · 从靶子到真实项目', link: '/practice/bridge' },
   { text: 'L5 排得清 · 独立排障', link: '/practice/l5-diagnose' },
-  { text: '综合通关项目与自评', link: '/practice/final-project' }
+  { text: '综合通关项目与自评', link: '/practice/final-project' },
+  { text: '高级层 · 从会用到能改', link: '/practice/advanced-index' },
+  { text: 'A1 读得懂 · 源码定位', link: '/practice/a1-source' },
+  { text: 'A2 改得动 · 最小插件', link: '/practice/a2-plugin' },
+  { text: 'A3 接得进 · 内嵌集成', link: '/practice/a3-embed' },
+  { text: 'A4 管得住 · 协作方案', link: '/practice/a4-collab' },
+  { text: 'A5 说得清 · 性能与讲解', link: '/practice/a5-perf-compliance' }
 ]
 
 export default defineConfig({
@@ -151,7 +157,7 @@ export default defineConfig({
     ],
     sidebar: [
       { text: '导览与准备 · 第 0 站 / 01', items: guide },
-      { text: '实战通关 · L1–L5（零基础主线）', items: practice },
+      { text: '实战通关 · L1–L5 + 高级层（零基础主线）', items: practice },
       { text: '领域基础 · 02–05', items: domain },
       { text: '全局架构 · 06–08', items: architecture },
       { text: '核心链路 · 09–12', items: core },
